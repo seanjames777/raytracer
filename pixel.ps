@@ -1,0 +1,26 @@
+#version 330 core
+
+in  vec2 uv;
+
+out vec4 out_color;
+
+uniform sampler2D textureSampler;
+uniform int TextureChannels;
+
+void main() {
+	vec4 color = texture(textureSampler, uv);
+
+	out_color = vec4(1.0f, 0.0f, 1.0f, 1.0f);
+
+	switch(TextureChannels) {
+	case 1:
+		out_color = vec4(color.r, color.r, color.r, 1.0f);
+		break;
+	case 3:
+		out_color = vec4(color.r, color.g, color.b, 1.0f);
+		break;
+	case 4:
+		out_color = color;
+		break;
+	}
+}

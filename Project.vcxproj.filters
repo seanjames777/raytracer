@@ -1,0 +1,287 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\geometry">
+      <UniqueIdentifier>{e78e1b3e-62e1-449d-b64b-ca7037a78731}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\geometry">
+      <UniqueIdentifier>{8e6c6ce6-a259-4327-83d2-31d547ece703}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\opengl">
+      <UniqueIdentifier>{52181dfb-61b8-4b2a-80f9-16a3b1eda469}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\opengl">
+      <UniqueIdentifier>{806466fe-20f4-4cf1-b728-745c93ca429a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="opengl">
+      <UniqueIdentifier>{404d7e67-242d-4a22-89f2-30c6c380de12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lights">
+      <UniqueIdentifier>{18f9c44a-f6ee-435b-8473-ddd9163acb1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lights">
+      <UniqueIdentifier>{3f2e2872-b786-403b-a992-939477a7aa65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util">
+      <UniqueIdentifier>{50dbf0d7-2151-46c7-bfad-73a4ef4b5218}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\util">
+      <UniqueIdentifier>{9dd87931-c8ed-428a-9957-3d0b99deec98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\formats">
+      <UniqueIdentifier>{c48f0488-af96-43f2-8cda-d6aa0873b434}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\formats">
+      <UniqueIdentifier>{4f28c0de-9ab4-43bd-8a45-da0bba0ab150}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\surfaces">
+      <UniqueIdentifier>{2078de18-f21f-4d3f-94d1-cf5ed3f71778}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\threading">
+      <UniqueIdentifier>{62cac3da-3455-4a4e-92d0-a9a57555adbc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\cameras">
+      <UniqueIdentifier>{880fe00e-97da-4c7b-946c-2f68269f1278}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\cameras">
+      <UniqueIdentifier>{4c939497-428d-4a07-9902-4b33014e3608}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\math">
+      <UniqueIdentifier>{c7c70910-32a2-418c-9c81-c6ace056003a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\raytracer">
+      <UniqueIdentifier>{b1de4f3e-b8a1-4953-b897-b403d2bf99f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\math">
+      <UniqueIdentifier>{8122ad7f-fa94-4d85-ba71-3ae7517c8648}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\raytracer">
+      <UniqueIdentifier>{91522534-4ad6-4806-b935-3ffbfb9f3009}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\threading">
+      <UniqueIdentifier>{a16646fd-9a70-4ec0-8fb5-f2f875ff45b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\surfaces">
+      <UniqueIdentifier>{d817276d-0c7c-4720-8dff-f2782a522834}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\kdtree">
+      <UniqueIdentifier>{2a8ddce6-5313-4a75-85d5-0e6b50f4d534}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\kdtree">
+      <UniqueIdentifier>{31a0eee7-a1f5-40f4-8563-35d714d8ff4b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shape.cpp">
+      <Filter>Source Files\geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders.cpp">
+      <Filter>Source Files\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="aaplaneshape.cpp">
+      <Filter>Source Files\geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="aacubeshape.cpp">
+      <Filter>Source Files\geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="planeshape.cpp">
+      <Filter>Source Files\geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="polygonshape.cpp">
+      <Filter>Source Files\geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="sphereshape.cpp">
+      <Filter>Source Files\geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="light.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="pointlight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="directionallight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="timer.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="loggers.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="logger.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="bitmap.cpp">
+      <Filter>Source Files\formats</Filter>
+    </ClCompile>
+    <ClCompile Include="camera.cpp">
+      <Filter>Source Files\cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="rtmath.cpp">
+      <Filter>Source Files\math</Filter>
+    </ClCompile>
+    <ClCompile Include="raytracer.cpp">
+      <Filter>Source Files\raytracer</Filter>
+    </ClCompile>
+    <ClCompile Include="parseobj.cpp">
+      <Filter>Source Files\formats</Filter>
+    </ClCompile>
+    <ClCompile Include="thread.cpp">
+      <Filter>Source Files\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="mutex.cpp">
+      <Filter>Source Files\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="semaphore.cpp">
+      <Filter>Source Files\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="threadpool.cpp">
+      <Filter>Source Files\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="atomicint.cpp">
+      <Filter>Source Files\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="surface.cpp">
+      <Filter>Source Files\surfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="phongsurface.cpp">
+      <Filter>Source Files\surfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="kdcontainable.cpp">
+      <Filter>Source Files\kdtree</Filter>
+    </ClCompile>
+    <ClCompile Include="kdtree.cpp">
+      <Filter>Source Files\kdtree</Filter>
+    </ClCompile>
+    <ClCompile Include="quad.cpp">
+      <Filter>Source Files\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="glimagedisplay.cpp">
+      <Filter>Source Files\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="alignedlist.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="defs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shape.h">
+      <Filter>Header Files\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders.h">
+      <Filter>Header Files\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="aaplaneshape.h">
+      <Filter>Header Files\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="aacubeshape.h">
+      <Filter>Header Files\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="planeshape.h">
+      <Filter>Header Files\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="polygonshape.h">
+      <Filter>Header Files\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="sphereshape.h">
+      <Filter>Header Files\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="light.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="directionallight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="pointlight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="logger.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="timer.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="loggers.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="bitmap.h">
+      <Filter>Header Files\formats</Filter>
+    </ClInclude>
+    <ClInclude Include="surface.h">
+      <Filter>Header Files\surfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="thread.h">
+      <Filter>Header Files\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>Header Files\cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="rtmath.h">
+      <Filter>Header Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="raytracer.h">
+      <Filter>Header Files\raytracer</Filter>
+    </ClInclude>
+    <ClInclude Include="parseobj.h">
+      <Filter>Header Files\formats</Filter>
+    </ClInclude>
+    <ClInclude Include="semaphore.h">
+      <Filter>Header Files\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="mutex.h">
+      <Filter>Header Files\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool.h">
+      <Filter>Header Files\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="atomicint.h">
+      <Filter>Header Files\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="phongsurface.h">
+      <Filter>Header Files\surfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="kdtree.h">
+      <Filter>Header Files\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="kdcontainable.h">
+      <Filter>Header Files\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="quad.h">
+      <Filter>Header Files\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="glimagedisplay.h">
+      <Filter>Header Files\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="alignedlist.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="pixel.ps">
+      <Filter>opengl</Filter>
+    </None>
+    <None Include="vertex.vs">
+      <Filter>opengl</Filter>
+    </None>
+  </ItemGroup>
+</Project>

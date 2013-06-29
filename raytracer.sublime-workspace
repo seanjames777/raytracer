@@ -1,0 +1,993 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"inc",
+				"include"
+			],
+			[
+				"vec3_",
+				"vec3_init"
+			],
+			[
+				"camer",
+				"camera_init"
+			],
+			[
+				"dis",
+				"distSqrt"
+			],
+			[
+				"scene_re",
+				"scene_renderpx"
+			],
+			[
+				"bmp_set",
+				"bmp_setPixel3"
+			],
+			[
+				"inter",
+				"intersect_shape"
+			],
+			[
+				"came",
+				"camera"
+			],
+			[
+				"camera",
+				"camera_uv"
+			],
+			[
+				"SHAPE_",
+				"SHAPE_SPHERE"
+			],
+			[
+				"vec3_i",
+				"vec3_init0"
+			],
+			[
+				"normal",
+				"normalize3"
+			],
+			[
+				"plan",
+				"plane_height"
+			],
+			[
+				"ma",
+				"mat4x4"
+			],
+			[
+				"sort",
+				"sortable_container"
+			],
+			[
+				"list-st",
+				"list-style-type"
+			],
+			[
+				"upda",
+				"updateList"
+			],
+			[
+				"host",
+				"hostname"
+			],
+			[
+				"reque",
+				"requestStr"
+			],
+			[
+				"cli",
+				"clientfd"
+			],
+			[
+				"requ",
+				"requestStr"
+			],
+			[
+				"conn",
+				"connfd"
+			],
+			[
+				"writ",
+				"writeThread"
+			],
+			[
+				"check",
+				"checkAt"
+			],
+			[
+				"header",
+				"headerOnly"
+			],
+			[
+				"free_re",
+				"free_request"
+			],
+			[
+				"respo",
+				"responseStr"
+			],
+			[
+				"req",
+				"requestStr"
+			],
+			[
+				"ACC",
+				"ACCEPT_ENCODING_HEADER"
+			],
+			[
+				"w",
+				"written"
+			],
+			[
+				"out",
+				"outbuff"
+			],
+			[
+				"print",
+				"print_request_info"
+			],
+			[
+				"client",
+				"clientaddr"
+			],
+			[
+				"sock",
+				"sockaddr_in"
+			],
+			[
+				"listen",
+				"listenfd"
+			],
+			[
+				"CL",
+				"CFLAGS"
+			],
+			[
+				"list",
+				"listenfd"
+			],
+			[
+				"status",
+				"statusMsg"
+			],
+			[
+				"sb_tr",
+				"sb_trim"
+			],
+			[
+				"key",
+				"keysz"
+			],
+			[
+				"ke",
+				"keysz"
+			],
+			[
+				"inser",
+				"node_insert"
+			],
+			[
+				"string",
+				"stringbuffer"
+			],
+			[
+				"strin",
+				"stringbuffer"
+			],
+			[
+				"m",
+				"maxlen"
+			],
+			[
+				"read_",
+				"read_to_any"
+			],
+			[
+				"mat",
+				"matched"
+			],
+			[
+				"str",
+				"stringbuffer"
+			],
+			[
+				"NU",
+				"NUM_BUCKETS"
+			],
+			[
+				"lookupB",
+				"lookupByAddr"
+			],
+			[
+				"coa",
+				"coalesce"
+			],
+			[
+				"mar",
+				"mark_block"
+			],
+			[
+				"coal",
+				"coalesced"
+			],
+			[
+				"spl",
+				"splice_block"
+			],
+			[
+				"found",
+				"foundSize"
+			],
+			[
+				"heap",
+				"mem_heap_hi"
+			],
+			[
+				"output",
+				"outputFD"
+			],
+			[
+				"unblo",
+				"unblockSignals"
+			],
+			[
+				"unlo",
+				"unblockSignals"
+			],
+			[
+				"wait",
+				"waitForForeground"
+			],
+			[
+				"evalJ",
+				"evalJobStateCommand"
+			],
+			[
+				"BU",
+				"BUILTIN_BG"
+			],
+			[
+				"BUIL",
+				"BUILTIN_QUIT"
+			],
+			[
+				"cmd",
+				"cmdline_tokens"
+			],
+			[
+				"block",
+				"blockSignals"
+			],
+			[
+				"getjo",
+				"getjobpid"
+			],
+			[
+				"get",
+				"getjobjid"
+			],
+			[
+				"BUI",
+				"BUILTIN_BG"
+			],
+			[
+				"set",
+				"setjobstate"
+			],
+			[
+				"job",
+				"job_list"
+			],
+			[
+				"BUILT",
+				"BUILTIN_NONE"
+			],
+			[
+				"repla",
+				"replaceEmpty"
+			],
+			[
+				"ass",
+				"associativity"
+			],
+			[
+				"wysi",
+				"wysihtml5"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "main.cpp",
+			"settings":
+			{
+				"buffer_size": 744,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/sean/Dropbox/game/pipeline/objparser.h",
+			"settings":
+			{
+				"buffer_size": 348,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/sean/Dropbox/game/pipeline/meshbuilder.cpp",
+			"settings":
+			{
+				"buffer_size": 1671,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/sean/Dropbox/game/pipeline/meshbuilder.h",
+			"settings":
+			{
+				"buffer_size": 830,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/sean/Dropbox/game/pipeline/objparser.cpp",
+			"settings":
+			{
+				"buffer_size": 2774,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "Packages/SML (Standard ML)/SML.sublime-build",
+	"command_palette":
+	{
+		"height": 247.0,
+		"selected_items":
+		[
+			[
+				"Snippet: ",
+				"Snippet: SML 'datatype' declaration"
+			],
+			[
+				"tra",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"packa",
+				"Package Control: List Packages"
+			],
+			[
+				"brow",
+				"Browse for a file"
+			],
+			[
+				"brw",
+				"Browse for a file"
+			],
+			[
+				"bro",
+				"Browse for a file"
+			],
+			[
+				"tr",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"traili",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"trai",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"diff",
+				"FileDiffs: Menu"
+			],
+			[
+				"packag",
+				"Package Control: Install Package"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"install ",
+				"Package Control: Install Package"
+			],
+			[
+				"sftp",
+				"SFTP: Browse Server…"
+			],
+			[
+				"br",
+				"SFTP: Browse Server…"
+			],
+			[
+				"foramt",
+				"SublimeAStyleFormmatter: Format Current Selection"
+			],
+			[
+				"format",
+				"SublimeAStyleFormmatter: Format Current Selection"
+			],
+			[
+				"package",
+				"Package Control: Install Package"
+			],
+			[
+				"pack",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 476.0
+	},
+	"console":
+	{
+		"height": 132.0
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/media/sean/1ACCB058CCB02FBD/Dropbox/raytracer/raytracer.sublime-project",
+		"/home/sean/Dropbox/raytracer/raytracer.sublime-project",
+		"/Users/Sean/Dropbox/school/courses.txt",
+		"/home/sean/Dropbox/raytracer/geom.c",
+		"/home/sean/Dropbox/raytracer/geom.h",
+		"/home/sean/Dropbox/raytracer/camera.c",
+		"/home/sean/Dropbox/raytracer/list.h",
+		"/home/sean/Dropbox/raytracer/bitmap.h",
+		"/home/sean/Dropbox/raytracer/rtmath.c",
+		"/home/sean/Dropbox/raytracer/raytracer.h",
+		"/home/sean/Dropbox/raytracer/camera.h",
+		"/home/sean/Dropbox/raytracer/bitmap.c",
+		"/home/sean/Dropbox/raytracer/raytracer.c",
+		"/home/sean/Dropbox/raytracer/defs.h",
+		"/home/sean/Dropbox/raytracer/main.c",
+		"/Users/Sean/Dropbox/raytracer/rtmath.h",
+		"/Users/Sean/Dropbox/raytracer/defs.h",
+		"/Users/Sean/Dropbox/raytracer/rtmath.c",
+		"/Users/Sean/Dropbox/raytracer/Makefile",
+		"/Users/Sean/Dropbox/raytracer/bitmap.h",
+		"/Users/Sean/Dropbox/raytracer/main.h",
+		"/Users/Sean/Dropbox/raytracer/bitmap.c",
+		"/Users/Sean/Dropbox/raytracer/camera.c",
+		"/Users/Sean/Dropbox/raytracer/camera.h",
+		"/Users/Sean/Dropbox/raytracer/geom.h",
+		"/Users/Sean/Dropbox/raytracer/geom.c",
+		"/Users/Sean/Dropbox/raytracer/main.c",
+		"/Users/Sean/Dropbox/raytracer/list.h",
+		"/Users/Sean/Dropbox/raytracer/raytracer.c",
+		"/Users/Sean/Dropbox/raytracer/raytracer.h",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/Makefile",
+		"/Users/Sean/Dropbox/raytracer/dump",
+		"/Users/Sean/Dropbox/raytracer/rtmath.s",
+		"/Users/Sean/Dropbox/raytracer/math.c",
+		"/Users/Sean/Dropbox/raytracer/math.h",
+		"/Users/Sean/Desktop/test.sml",
+		"/Users/Sean/Dropbox/tabs/manifest.json",
+		"/Users/Sean/Dropbox/tabs/manager_container.js",
+		"/Users/Sean/Dropbox/tabs/manager_container.html",
+		"/Users/Sean/Desktop/list.html",
+		"/Users/Sean/Dropbox/tabs/background.js",
+		"/Users/Sean/Dropbox/tabs/popup.html",
+		"/Users/Sean/Dropbox/tabs/popup.js",
+		"/Users/Sean/Dropbox/tabs/manager_template.js",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/tiny/tiny.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/net.h",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/util.h",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/main.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/proxy.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/proxy.h",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/stringbuffer.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/map.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/http.h",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/net.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/http.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/netendings.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/runtest",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/nc.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/stringbuffer.h",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/ex_server.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/util.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/map.h",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/normalize.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/port_for_user.pl",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/stringbuffer.cpp",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/stringbuilder.cpp",
+		"/Users/Sean/Dropbox/school/15213/sync/lab7/stringbuilder.h",
+		"/Users/Sean/Dropbox/school/15213/sync/lab6/mm.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab6/Makefile",
+		"/Users/Sean/Dropbox/school/15213/sync/lab6/test.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab6/mm-naive.c",
+		"/Users/Sean/Desktop/SI.txt",
+		"/Users/Sean/Dropbox/courses.txt",
+		"/Users/Sean/Dropbox/code/hostinfo.c",
+		"/Applications/Messages.app/Contents/Info.plist",
+		"/Users/Sean/Dropbox/courses",
+		"/Users/Sean/Dropbox/school/15213/sync/lab6/traces/alaska.rep",
+		"/Users/Sean/Dropbox/school/15213/lectures/lecZ.txt",
+		"/Users/Sean/Dropbox/school/15213/sync/lab6/memlib.c",
+		"/home/sean/Dropbox/school/15213/sync/lab6/memlib.h",
+		"/home/sean/.config/sublime-text-2/Packages/SFTP/SFTP.default-config",
+		"/home/sean/.config/sublime-text-2/Packages/SFTP/SFTP.sublime-settings",
+		"/Users/Sean/Desktop/rtm.py",
+		"/Users/Sean/Library/Application Support/Sublime Text 2/Packages/Default/Default (OSX).sublime-keymap",
+		"/Users/Sean/Desktop/test.c",
+		"/Users/Sean/Library/Application Support/Sublime Text 2/Packages/BrowseFile/BrowseFile.py",
+		"/Users/Sean/",
+		"/Users/Sean/Dropbox/school/15213/lectures/lecA.txt",
+		"/Users/Sean/Dropbox/school/15213/sync/lab5/tsh.c",
+		"/Users/Sean/Dropbox/school/15213/lectures/lecX.txt",
+		"/Users/Sean/Dropbox/school/15214/spjames/trunk/homework/4/README.txt",
+		"/Users/Sean/Dropbox/school/15213/lectures/lecB.txt",
+		"/Users/Sean/Dropbox/school/15213/lectures/lecC.txt",
+		"/Users/Sean/Dropbox/school/15213/lectures/lecD.txt",
+		"/Users/Sean/Dropbox/school/15213/lectures/lecE.txt",
+		"/Users/Sean/Dropbox/school/15213/lectures/lecF.txt",
+		"/Users/Sean/Dropbox/school/15213/lectures/rec2.txt",
+		"/Users/Sean/Dropbox/school/15213/sync/lab5/wt.c",
+		"/Users/Sean/Desktop/blah.sml",
+		"/Users/Sean/Library/Application Support/Sublime Text 2/Packages/SML (Standard ML)/README.md",
+		"/Users/Sean/code/game/main.cpp",
+		"/Users/Sean/Desktop/gl/main.cpp",
+		"/Users/Sean/Desktop/gl/Makefile",
+		"/Users/Sean/code/game/Makefile",
+		"/Users/Sean/code/game/build",
+		"/Users/Sean/Desktop/gl/main.c",
+		"/Users/Sean/code/game/common.h",
+		"/Users/Sean/Downloads/OpenGL-tutorial_v0010_33/tutorial01_first_window/tutorial01.cpp",
+		"/Users/Sean/Library/Application Support/Sublime Text 2/Packages/TrailingSpaces/trailing_spaces.sublime-settings",
+		"/Users/Sean/Desktop/mat64",
+		"/Users/Sean/Desktop/mat.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab4/csim.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab4/trans.c",
+		"/Users/Sean/Desktop/fork.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab4/traces/trans.trace",
+		"/Users/Sean/Dropbox/school/15213/sync/lab4/them",
+		"/Users/Sean/Dropbox/school/15213/sync/lab4/disas",
+		"/Users/Sean/Dropbox/school/15213/sync/lab4/me",
+		"/Users/Sean/Dropbox/school/15213/sync/lab4/cachelab.c",
+		"/Users/Sean/Dropbox/school/15213/sync/lab4/trace.tmp",
+		"/Users/Sean/Dropbox/school/15213/sync/sftp-config.json",
+		"/home/sean/.config/sublime-text-2/Packages/TrailingSpaces/trailing_spaces.sublime-settings",
+		"/Users/Sean/Dropbox/school/15213/sync/lab3/cookie",
+		"/Users/Sean/Dropbox/school/15213/sync/lab3/symbols",
+		"/var/www/index.html",
+		"/etc/ssh/ssh_config",
+		"/Users/Sean/Dropbox/school/15213/sync/lab3/asm.s",
+		"/Users/Sean/Dropbox/school/15213/sync/lab3/exp1"
+	],
+	"find":
+	{
+		"height": 38.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+			"rtmath.h",
+			"mm.c",
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"->",
+			"2",
+			"down",
+			"left",
+			"forward",
+			"l",
+			"out->d",
+			"p",
+			"out",
+			"->",
+			"distSqrt",
+			"ray->o",
+			"sqrt",
+			"2",
+			"static ",
+			"\\{.*\\}",
+			"{.*}",
+			"2",
+			"out->c",
+			"out",
+			"*",
+			"mul",
+			"+",
+			"add",
+			"result",
+			"return result;",
+			"result",
+			"float result = 0;",
+			"*",
+			"dot",
+			"2",
+			"3",
+			"0",
+			".",
+			"me",
+			"console.log",
+			"me.loadTabs(me.notify);",
+			"me.registered",
+			"Me",
+			"me",
+			"this",
+			"response",
+			"tabid",
+			"message",
+			"this",
+			"printf",
+			"exit",
+			"net_",
+			"dbg_print",
+			"printf",
+			"response_",
+			"s",
+			"write",
+			"%s",
+			"write",
+			"parse_re",
+			"parse",
+			"netendings",
+			"request",
+			"set_re",
+			"len",
+			");",
+			"stringbuffer",
+			"parse_header",
+			"&request.",
+			"{",
+			"request",
+			"req",
+			"request",
+			"value",
+			"name",
+			"first",
+			"prev",
+			"last",
+			"insert_node",
+			"key_match",
+			"size_t",
+			"LDFLAGS",
+			"path",
+			", -1",
+			"request",
+			"infoLine",
+			"stringbuilder",
+			"sbrk",
+			"malloc",
+			"coalesce",
+			"alloc_",
+			"coalesc",
+			"alloc_blo",
+			"alloc",
+			"128",
+			"indexSize",
+			"malloc",
+			"mm_malloc",
+			"mm_ma",
+			"mm_",
+			"<",
+			"indexSize",
+			"<",
+			"profi",
+			"profile",
+			"sbrk",
+			"mm_in",
+			"%du",
+			"%lu",
+			"aligned",
+			"int",
+			"size_t",
+			"realloc",
+			"r",
+			"p",
+			"SIZE_T_SIZE",
+			"SIZE_PTR",
+			"keys",
+			"terminal",
+			"self.text",
+			"cached_token",
+			"cached_frob",
+			"save_frob",
+			"open",
+			"OPENFL",
+			"printf",
+			"STDIN",
+			"STDOUT",
+			"open",
+			"listjobs",
+			"jobs",
+			"close"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": true,
+		"replace_history":
+		[
+			"%u",
+			"%du",
+			"conNodeHeapRef",
+			"conNodeBool",
+			"conNodeInt",
+			"conNodeUndeclared",
+			"conNodeType out = retvalUndeclared();",
+			"retvalUndeclared();"
+		],
+		"reverse": false,
+		"show_context": false,
+		"use_buffer2": false,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 4,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "main.cpp",
+					"settings":
+					{
+						"buffer_size": 744,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								728,
+								728
+							]
+						],
+						"settings":
+						{
+							"incomplete_sync": null,
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 48.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/home/sean/Dropbox/game/pipeline/objparser.h",
+					"settings":
+					{
+						"buffer_size": 348,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								289,
+								289
+							]
+						],
+						"settings":
+						{
+							"incomplete_sync": null,
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/home/sean/Dropbox/game/pipeline/meshbuilder.cpp",
+					"settings":
+					{
+						"buffer_size": 1671,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								745,
+								745
+							]
+						],
+						"settings":
+						{
+							"incomplete_sync": null,
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "/home/sean/Dropbox/game/pipeline/meshbuilder.h",
+					"settings":
+					{
+						"buffer_size": 830,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								306,
+								306
+							]
+						],
+						"settings":
+						{
+							"incomplete_sync": null,
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/home/sean/Dropbox/game/pipeline/objparser.cpp",
+					"settings":
+					{
+						"buffer_size": 2774,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								596,
+								596
+							]
+						],
+						"settings":
+						{
+							"incomplete_sync": null,
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 240.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 32.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 275.0
+	},
+	"output.find_results":
+	{
+		"height": 112.0
+	},
+	"output.sftp":
+	{
+		"height": 106.0
+	},
+	"replace":
+	{
+		"height": 64.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"proxy",
+				"sync/lab7/proxy.c"
+			],
+			[
+				"main.c",
+				"sync/lab7/main.c"
+			],
+			[
+				"main",
+				"sync/lab7/main.c"
+			],
+			[
+				"tsh.c",
+				"sync/lab5/tsh.c"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"show_minimap": false,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 192.0,
+	"status_bar_visible": true
+}
