@@ -15,6 +15,7 @@
 #include <bitmap.h>
 #include <kdtree.h>
 #include <glimagedisplay.h>
+#include <timer.h>
 
 #include <thread>
 #include <atomic>
@@ -314,6 +315,8 @@ public:
 	 * @brief Render the scene into the scene's output image
 	 */
 	void render(GLImageDisplay *display) {
+		Timer timer;
+
 		int nBlocksW = (scene->output->getWidth() + BLOCKSZ - 1) / BLOCKSZ;
 		int nBlocksH = (scene->output->getHeight() + BLOCKSZ - 1) / BLOCKSZ;
 		
@@ -338,7 +341,7 @@ public:
 		for (auto& worker : workers)
 			worker.join();
 
-		printf("Done\n");
+		printf("Done: %f seconds\n", timer.getElapsedMilliseconds() / 1000.0);
 
 		if (display != NULL) {
 			display->refresh();

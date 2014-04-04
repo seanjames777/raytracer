@@ -17,7 +17,8 @@ SOURCES=src/camera.cpp \
 	src/bitmap.cpp \
 	src/main.cpp \
 	src/raytracer.cpp \
-	src/glimagedisplay.cpp
+	src/glimagedisplay.cpp \
+	src/timer.cpp
 
 OBJS=$(patsubst src/%.cpp, obj/%.o, $(SOURCES))
 DEPS=$(patsubst src/%.cpp, obj/%.d, $(SOURCES))
