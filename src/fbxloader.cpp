@@ -99,6 +99,4 @@ void FbxLoader::load(std::string filename, std::vector<Poly> & polys) {
             vertices[indices[i + 0]],
             vertices[indices[i + 1]],
             vertices[indices[i + 2]]));
-
-    std::cout << "Loaded " << filename << ", " << indices.size() / 3 << " polygons" << std::endl;
 }
