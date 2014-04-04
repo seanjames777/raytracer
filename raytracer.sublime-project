@@ -2,7 +2,7 @@
 	"folders":
 	[
 		{
-			"path": "~/Dropbox/raytracer",
+			"path": "~/raytracer",
             "folder_exclude_patterns": [
                 "bin",
                 "obj"

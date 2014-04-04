@@ -39,4 +39,4 @@ obj/%.o: src/%.cpp
 clean:
 	rm -rf bin/
 	rm -rf obj/
-	rm output.bmp
+	rm -f output.bmp
