@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
             }*/
 
     std::vector<Poly> polys;
-    FbxLoader::load("content/models/dragon_low.fbx", polys);
+    FbxLoader::load("content/models/dragon.fbx", polys);
     for (int i = 0; i < polys.size(); i++)
         scene->addShape(&polys[i], mat);
 

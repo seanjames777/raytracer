@@ -1,6 +1,6 @@
 CC=g++
-CFLAGS=-O0 -g -Iinclude/ -I/opt/local/include/ -Iexternal/fbx/include/ -std=c++11 -stdlib=libc++ -Wno-unused-value -Wno-comment
-LDFLAGS=-O0 -g -std=c++11 -stdlib=libc++ -L/opt/local/lib/ -Lexternal/fbx/lib/Mac/ -lfbxsdk -lglfw -framework Foundation -framework OpenGL -framework Cocoa
+CFLAGS=-O3 -Iinclude/ -I/opt/local/include/ -Iexternal/fbx/include/ -std=c++11 -stdlib=libc++ -Wno-unused-value -Wno-comment
+LDFLAGS=-O3 -std=c++11 -stdlib=libc++ -L/opt/local/lib/ -Lexternal/fbx/lib/Mac/ -lfbxsdk -lglfw -framework Foundation -framework OpenGL -framework Cocoa
 
 SOURCES=src/camera.cpp \
 	src/light.cpp \
