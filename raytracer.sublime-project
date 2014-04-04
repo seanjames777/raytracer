@@ -2,7 +2,16 @@
 	"folders":
 	[
 		{
-			"path": "~/Dropbox/raytracer"
+			"path": "~/Dropbox/raytracer",
+            "folder_exclude_patterns": [
+                "bin",
+                "obj"
+            ],
+            "file_exclude_patterns": [
+                "output.bmp",
+                "raytracer.sublime-project",
+                "raytracer.sublime-workspace"
+            ]
 		}
 	]
 }
