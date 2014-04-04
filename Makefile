@@ -1,6 +1,6 @@
 CC=g++
-CFLAGS=-O3 -Iinclude/ -I/opt/local/include/ -std=c++11 -stdlib=libc++
-LDFLAGS=-O3  -std=c++11 -stdlib=libc++ -L/opt/local/lib/ -lglfw -framework Foundation -framework OpenGL -framework Cocoa
+CFLAGS=-O0 -g -Iinclude/ -I/opt/local/include/ -Iexternal/fbx/include/ -std=c++11 -stdlib=libc++ -Wno-unused-value -Wno-comment
+LDFLAGS=-O0 -g -std=c++11 -stdlib=libc++ -L/opt/local/lib/ -Lexternal/fbx/lib/Mac/ -lfbxsdk -lglfw -framework Foundation -framework OpenGL -framework Cocoa
 
 SOURCES=src/camera.cpp \
 	src/light.cpp \
@@ -18,13 +18,17 @@ SOURCES=src/camera.cpp \
 	src/main.cpp \
 	src/raytracer.cpp \
 	src/glimagedisplay.cpp \
-	src/timer.cpp
+	src/timer.cpp \
+	src/fbxloader.cpp
 
 OBJS=$(patsubst src/%.cpp, obj/%.o, $(SOURCES))
 DEPS=$(patsubst src/%.cpp, obj/%.d, $(SOURCES))
 
-bin/raytracer: bin/ obj/ $(OBJS)
+bin/raytracer: bin/ obj/ $(OBJS) bin/libfbxsdk.dylib
 	$(CC) $(LDFLAGS) -o $@ $(OBJS)
+
+bin/libfbxsdk.dylib: bin/
+	cp ./external/fbx/lib/Mac/libfbxsdk.dylib bin/
 
 bin/:
 	mkdir bin

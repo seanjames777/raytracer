@@ -13,6 +13,29 @@
 #include <rtmath.h>
 
 /**
+ * @brief Photon
+ */
+struct Photon {
+	/** @brief Photon position */
+	Vec3 position;
+
+	/** @brief Red, green, blue power */
+	Vec3 power;
+
+	/** @brief Incident direction */
+	Vec3 direction;
+
+	/**
+	 * @brief Constructor
+	 *
+	 * @param position  Photon position
+	 * @param power     Red, green, blue power
+	 * @param direction Incident direction
+	 */
+	Photon(Vec3 position, Vec3 power, Vec3 direction);
+};
+
+/**
  * @brief Base class for lights
  */
 class Light {

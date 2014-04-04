@@ -740,23 +740,23 @@ struct Mat4x4 {
         Mat4x4 out;
 
         out.m[0]  = xAxis.x;
-        out.m[1]  = yAxis.x;
-        out.m[2]  = zAxis.x;
-        out.m[3]  = 0;
+        out.m[4]  = yAxis.x;
+        out.m[8]  = zAxis.x;
+        out.m[12]  = 0;
 
-        out.m[4]  = xAxis.y;
+        out.m[1]  = xAxis.y;
         out.m[5]  = yAxis.y;
-        out.m[6]  = zAxis.y;
-        out.m[7]  = 0;
+        out.m[9]  = zAxis.y;
+        out.m[13]  = 0;
 
-        out.m[8]  = xAxis.z;
-        out.m[9]  = yAxis.z;
+        out.m[2]  = xAxis.z;
+        out.m[6]  = yAxis.z;
         out.m[10] = zAxis.z;
-        out.m[11] = 0;
+        out.m[14] = 0;
 
-        out.m[12] = xAxis.dot(position);
-        out.m[13] = yAxis.dot(position);
-        out.m[14] = zAxis.dot(position);
+        out.m[3] = xAxis.dot(position);
+        out.m[7] = yAxis.dot(position);
+        out.m[11] = zAxis.dot(position);
         out.m[15] = 1;
 
         return out;
@@ -774,8 +774,8 @@ struct Mat4x4 {
         out.m[0] = w;
         out.m[5] = h;
         out.m[10] = zfar / (zfar - znear);
-        out.m[11] = 1.0f;
-        out.m[14] = -znear * zfar / (zfar - znear);
+        out.m[14] = 1.0f;
+        out.m[11] = -znear * zfar / (zfar - znear);
 
         return out;
     }
@@ -792,8 +792,8 @@ struct Mat4x4 {
         out.m[0] = w;
         out.m[5] = h;
         out.m[10] = zfar / (zfar - znear);
-        out.m[11] = -1.0f;
-        out.m[14] = znear * zfar / (zfar - znear);
+        out.m[14] = -1.0f;
+        out.m[11] = znear * zfar / (zfar - znear);
 
         return out;
     }
@@ -1228,7 +1228,7 @@ struct int2 {
 };
 
 // TODO
-#define randf(min, max) ((min) + (float)rand() / ((float)RAND_MAX / ((max) - (min))))
+#define randf(min, max) (min + ((float)rand() / (float)RAND_MAX) * (max - min))
 
 Vec3 randSphere(const Vec3 & origin, float rad);
 Vec2 randCircle(float rad);

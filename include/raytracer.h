@@ -22,7 +22,7 @@
 #include <mutex>
 
 #define BLOCKSZ 64
-#define NSAMPLES 4
+#define NSAMPLES 2
 #define MAXDEPTH 2
 
 class Raytracer {
@@ -184,6 +184,50 @@ private:
 	}*/
 
 	/**
+	 * @brief Emit photons into the scene and track their bounces
+	 *
+	 * @param photons     Vector which will be filled with photons
+	 * @param num_photons Number of photons to emit
+	 */
+	void photon_map(std::vector<Photon> & photons, int num_photons) {
+		for (int i = 0; i < num_photons; i++) {
+			Vec3 dir = Vec3(randf(-1.0f, 1.0f), randf(-1.0f, 1.0f), randf(-1.0f, 1.0f));
+			dir.normalize();
+
+			Photon p(dir * 10.0f, Vec3(1.0f, 1.0f, 1.0f), Vec3());
+			photons.push_back(p);
+		}
+	}
+
+	/**
+	 * @brief Project photons into the output image for visualization
+	 */
+	void photon_vis(std::vector<Photon> & photons) {
+		Mat4x4 view = Mat4x4::lookAtRH(scene->camera->getPosition(), scene->camera->getTarget(), scene->camera->getUp());
+		Mat4x4 projection = Mat4x4::perspectiveRH(scene->camera->getFOV(), scene->camera->getAspectRatio(), 0.01f, 100.0f);
+		Mat4x4 vp = projection * view;
+
+		for (int i = 0; i < photons.size(); i++) {
+			Photon p = photons[i];
+
+			Vec4 pos = vp * Vec4(p.position, 1);
+			pos = pos / pos.w;
+			pos = (pos / 2.0) + 0.5;
+
+			int x = (int)(pos.x * (scene->output->getWidth() - 1));
+			int y = (int)(pos.y * (scene->output->getHeight() - 1));
+
+			if (x < 0 || x >= scene->output->getWidth())
+				continue;
+
+			if (y < 0 || y >= scene->output->getHeight())
+				continue;
+
+			scene->output->setPixel(x, y, Vec4(1, 1, 1, 1));
+		}
+	}
+
+	/**
 	 * @brief Shade the result of a view ray/object collision
 	 *
 	 * @param result Collision information
@@ -340,6 +384,10 @@ public:
 		
 		for (auto& worker : workers)
 			worker.join();
+
+		//std::vector<Photon> photons;
+		//photon_map(photons, 50000);
+		//photon_vis(photons);
 
 		printf("Done: %f seconds\n", timer.getElapsedMilliseconds() / 1000.0);
 

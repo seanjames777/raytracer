@@ -23,4 +23,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#ifndef ASSERT
+#define ASSERT(cond) if (!(cond)) { printf("ASSERTION failed on %s:%d\n", __FILE__, __LINE__); __debugbreak(); getchar(); exit(0); }
+#endif
+
 #endif

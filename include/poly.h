@@ -105,7 +105,7 @@ public:
 	 *
 	 * @return Whether there was a collision
 	 */
-	virtual bool intersects(Ray ray, float *dist) = 0;
+	bool intersects(Ray ray, float *dist);
 
 	/**
 	 * @brief Ray/shape intersection test
@@ -115,22 +115,22 @@ public:
 	 *
 	 * @return Whether there was a collision
 	 */
-	virtual bool intersects(Ray ray, CollisionResult *result) = 0;
+	bool intersects(Ray ray, CollisionResult *result);
 
 	/**
 	 * @brief Return the normal at a given position
 	 */
-	virtual Vec3 normalAt(Vec3 pos) = 0;
+	Vec3 normalAt(Vec3 pos);
 
 	/**
 	 * @brief Get the UV coordinate at the given position
 	 */
-	virtual Vec2 uvAt(Vec3 pos) = 0;
+	Vec2 uvAt(Vec3 pos);
 
 	/**
 	 * @brief Get the axis-aligned bounding box for this shape
 	 */
-	virtual AABB getBBox() = 0;
+	AABB getBBox();
 
 	/*
 	 * Get a vertex of the polygon by index

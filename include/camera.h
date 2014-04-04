@@ -102,6 +102,11 @@ public:
 	Vec3 getUp();
 
 	/**
+	 * @brief Get the camera target
+	 */
+	Vec3 getTarget();
+
+	/**
 	 * @brief Get the field of view of the camera
 	 */
 	float getFOV();

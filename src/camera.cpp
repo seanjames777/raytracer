@@ -76,6 +76,10 @@ Vec3 Camera::getUp() {
 	return up;
 }
 
+Vec3 Camera::getTarget() {
+	return target;
+}
+
 float Camera::getFOV() {
 	return fov;
 }
