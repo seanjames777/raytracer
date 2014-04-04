@@ -2,3 +2,5 @@
 obj/
 bin/
 output.bmp
+*.sublime-project
+*.sublime-workspace
