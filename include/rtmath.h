@@ -304,16 +304,56 @@ struct Vec3 {
     }
 
     /**
-     * Get a refracted vector according to Snell's law
+     * Get a refracted vector according to Snell's law. Assumes that this vector points towards
+     * the interface.
+     *
+     * @param norm Normal at interface
+     * @param n1   Index of refraction of material being left
+     * @param n2   Index of refractio nof material being entered
      */
-    inline Vec3 refract(Vec3 across, float n1, float n2) {
-        float n = n1 / n2;
+    inline Vec3 refract(Vec3 norm, float n1, float n2) {
+        Vec3 L = -*this;
+        Vec3 N = norm;
+
+        float r = n1 / n2;
+        float cos_theta_l = L.dot(N);
+        float c = sqrtf(1.0f - r * r * (1.0f - cos_theta_l * cos_theta_l));
+
+        float c_l = -r;
+        float c_n = -c - r * cos_theta_l;
+
+        return L * c_l + N * c_n;
+
+        /*float n = n1 / n2;
         float c1 = dot(across);
         float c2 = sqrtf(1.0f - n * n * (1.0f - c1 * c1));
         float b = (n * c1 - c2);
         Vec3 c = across;
+        return *this * n + c * b;*/
+    }
 
-        return *this * n + c * b;
+    /**
+     * @brief Schlick's approximation
+     *
+     * @param n  Normal
+     * @param v  View direction
+     * @param n1 Index of refraction of material being left
+     * @param n2 Index of refraction of material being entered
+     *
+     * @return A factor for blending reflection and refraction. 0 = refraction only,
+     * 1 = reflection only
+     */
+    static float schlick(Vec3 n, Vec3 v, float n1, float n2) {
+        // TODO specular highlights can use this too?
+
+        float cos_i = n.dot(v);
+
+        float r0 = (n1 - n2) / (n1 + n2);
+        r0 *= r0;
+
+        // TODO: total internal reflection
+
+        return r0 + (1.0f - r0) * pow(1.0f - cos_i, 5.0f);
     }
 
     /**
@@ -1230,8 +1270,8 @@ struct int2 {
 // TODO
 #define randf(min, max) (min + ((float)rand() / (float)RAND_MAX) * (max - min))
 
-Vec3 randSphere(const Vec3 & origin, float rad);
+void randSphere(std::vector<Vec3> & samples, int sqrtSamples);
 Vec2 randCircle(float rad);
-Vec3 randHemisphere(const Vec3 & norm);
+void randHemisphereCos(Vec3 norm, std::vector<Vec3> & samples, int sqrtSamples);
 
 #endif

@@ -22,8 +22,11 @@
 #include <mutex>
 
 #define BLOCKSZ 64
-#define NSAMPLES 2
+#define FRAGSAMPLES 4
+#define LIGHTSAMPLES 16
+#define OCCLUSIONSAMPLES 16
 #define MAXDEPTH 2
+#define REFLSAMPLES 4
 
 class Raytracer {
 private:
@@ -40,149 +43,6 @@ private:
 	/** @brief Work queue lock */
 	std::mutex blocksLock;
 
-	/*Color shadeReflection(Surface *surface, CollisionResult *result, int n) {
-		float reflectionAmount = surface->getReflectionAmt();
-
-		if (scene->settings->numReflectionRays == 0 || reflectionAmount == 0.0f)
-			return Color(0.0f, 0.0f, 0.0f);
-
-		reflectionAmount *= (1.0f / scene->settings->numReflectionRays);
-
-		Vec3 origin = result->position + result->normal * scene->settings->bias;
-		Vec3 direction = result->ray.direction.reflect(result->normal);
-		Ray reflectionRay(origin, direction);
-
-		CollisionResult reflResult;
-
-		if (intersect(reflectionRay, &reflResult, n + 1, 0.0f)) // TODO fog dist
-			return shade(&reflResult, n + 1);
-
-		return Color(0.0f, 0.0f, 0.0f);
-	}*/
-
-	/*Color shadeRefraction(Surface *surface, CollisionResult *result, int n) {
-		float refractionAmount = surface->getRefractionAmt();
-
-		if (scene->settings->numRefractionRays == 0 || refractionAmount == 0.0f)
-			return Color(0.0f, 0.0f, 0.0f);
-
-		refractionAmount *= (1.0f / scene->settings->numRefractionRays);
-
-		Vec3 origin = result->position + result->ray.direction * scene->settings->bias;
-		Vec3 direction = result->ray.direction.refract(result->normal, 1.0f, 1.333f);
-		Ray refractionRay(origin, direction);
-
-		CollisionResult refrResult;
-
-		if (intersect(refractionRay, &refrResult, n + 1, 0.0f)) // TODO fog dist
-			return shade(&refrResult, n + 1);
-
-		return Color(0.0f, 0.0f, 0.0f);
-	}*/
-
-	/*Color shadeTransparency(Surface *surface, CollisionResult *result, int n) {
-		float transparencyAmount = surface->getRefractionAmt();
-
-		if (scene->settings->numTransparentRays == 0 || transparencyAmount == 0.0f)
-			return Color(0.0f, 0.0f, 0.0f);
-
-		transparencyAmount *= (1.0f / scene->settings->numTransparentRays);
-
-		Vec3 origin = result->position + result->ray.direction * scene->settings->bias;
-		Ray transparencyRay(origin, result->ray.direction);
-
-		CollisionResult transResult;
-		
-		if (intersect(transparencyRay, &transResult, n + 1, 0.0f)) // TODO fog dist
-			return shade(&transResult, n + 1);
-
-		return Color(0.0f, 0.0f, 0.0f);
-	}*/
-
-	/*float shadeShadow(Surface *surface, CollisionResult *result, int n) {
-		if (scene->settings->numShadowRays == 0)
-			return 1.0f;
-
-		vector<Light *>::iterator it;
-
-		Vec3 origin = result->position + result->normal * scene->settings->bias;
-
-		int numHit  = 0;
-		int numCast = 0;
-
-		for (it = scene->lights.begin(); it != scene->lights.end(); it++) {
-			if (!(*it)->castsShadows())
-				continue;
-
-			for (int i = 0; i < scene->settings->numShadowRays; i++) {
-				Vec3 direction = (*it)->getShadowDir(origin, scene->settings->numShadowRays);
-				Ray shadowRay(origin, direction);
-
-				numCast++;
-
-				if (intersect(shadowRay, n + 1, 0.0f)) // TODO dist to light
-					numHit++;
-			}
-		}
-
-		if (numCast == 0)
-			return 1.0f;
-
-		float amt = 1.0f - (float)numHit / (float)numCast;
-		amt = amt * 0.7f + 0.3f;
-
-		return amt;
-	}*/
-
-	/*float shadeOcclusion(Surface *surface, CollisionResult *result, int n) {
-		if (scene->settings->numOcclusionRays == 0)
-			return 1.0f;
-
-		Vec3 origin = result->position + result->normal * scene->settings->bias;
-
-		int numHit  = 0;
-		int numCast = 0;
-
-		for (numCast = 0; numCast < scene->settings->numOcclusionRays; numCast++) {
-			Vec3 direction = randHemisphere(result->normal);
-			Ray occlusionRay(origin, direction);
-
-			if (intersect(occlusionRay, n + 1, 40.0f))
-				numHit++;
-		}
-
-		float amt = 1.0f - (float)numHit / (float)numCast;
-		amt = pow(amt, 1.3f);
-		amt = amt * 0.8f + 0.2f;
-
-		return amt;
-	}*/
-
-	/*Color shadeSurface(Surface *surface, CollisionResult *result) {
-		if (scene->settings->numShadowRays == 0)
-			return 1.0f;
-
-		vector<Light *>::iterator it;
-
-		Color color(0.0f, 0.0f, 0.0f);
-
-		for (it = scene->lights.begin(); it != scene->lights.end(); it++)
-			color = color + surface->shade(*it, result);
-
-		return color;
-	}*/
-
-	/*Color shadeFog(const Color & c0, const Color & c1, float fogStart, float fogEnd, float dist) {
-		Color s = c0; // TODO
-		Color e = c1; // TODO
-
-		float amt = (dist - fogStart) / (fogEnd - fogStart);
-		amt = CLAMP(0.0f, 1.0f, amt);
-		float invAmt = 1.0f - amt;
-
-		return s * invAmt + e * amt;
-	}*/
-
 	/**
 	 * @brief Emit photons into the scene and track their bounces
 	 *
@@ -190,11 +50,11 @@ private:
 	 * @param num_photons Number of photons to emit
 	 */
 	void photon_map(std::vector<Photon> & photons, int num_photons) {
-		for (int i = 0; i < num_photons; i++) {
-			Vec3 dir = Vec3(randf(-1.0f, 1.0f), randf(-1.0f, 1.0f), randf(-1.0f, 1.0f));
-			dir.normalize();
+		std::vector<Vec3> samples;
+		randSphere(samples, num_photons);
 
-			Photon p(dir * 10.0f, Vec3(1.0f, 1.0f, 1.0f), Vec3());
+		for (int i = 0; i < samples.size(); i++) {
+			Photon p(samples[i] * 5.0f, Vec3(1.0f, 1.0f, 1.0f), Vec3());
 			photons.push_back(p);
 		}
 	}
@@ -240,30 +100,12 @@ private:
 			return color;
 
 		Material *material = scene->materialMap[result->shape];
-		color += material->getAmbient();
 
-		for (auto it = scene->lights.begin(); it != scene->lights.end(); it++)
-			color += material->shade(*it, result);
+		color = material->shade(result, scene, this);
 
 		color.x = SATURATE(color.x);
 		color.y = SATURATE(color.y);
 		color.z = SATURATE(color.z);
-
-		//vector<Light *>::iterator it;
-		//Surface *surf = scene->surfaceMap[(Shape *)result->shape];
-
-		//Color refl, refr;
-		
-		//Color reflection   = shadeReflection  (surf, result, n);
-		//Color refraction   = shadeRefraction  (surf, result, n);
-		//Color transparency = shadeTransparency(surf, result, n);
-		//float shadow       = shadeShadow      (surf, result, n);
-		//float occlusion    = shadeOcclusion   (surf, result, n);
-
-		//Color surface      = shadeSurface(surf, result);
-
-		//Color color = (surface + reflection + refraction + transparency) * shadow * occlusion;
-		//color = shadeFog(color, scene->settings->fogColor, scene->settings->fogStart, scene->settings->fogEnd, result->distance);
 
 		return color;
 	}
@@ -287,8 +129,8 @@ private:
 			int width = scene->output->getWidth();
 			int height = scene->output->getHeight();
 
-			float sampleOffset = 1.0f / (float)(NSAMPLES + 1);
-			float sampleContrib = 1.0f / (float)(NSAMPLES * NSAMPLES);
+			float sampleOffset = 1.0f / (float)(FRAGSAMPLES + 1);
+			float sampleContrib = 1.0f / (float)(FRAGSAMPLES * FRAGSAMPLES);
 
 			for (int y = y0; y < y0 + BLOCKSZ; y++) {
 				for (int x = x0; x < x0 + BLOCKSZ; x++) {
@@ -297,26 +139,22 @@ private:
 
 					Vec3 color = Vec3(0.0f, 0.0f, 0.0f);
 
-					for (int p = 0; p < NSAMPLES; p++) {
+					for (int p = 0; p < FRAGSAMPLES; p++) {
 						float v = (float)(y + p * sampleOffset) / (float)height;
 
-						for (int q = 0; q < NSAMPLES; q++) {
+						for (int q = 0; q < FRAGSAMPLES; q++) {
 							float u = (float)(x + q * sampleOffset) / (float)width;
 
 							Ray r = scene->camera->getViewRay(u, v);
 
 							CollisionResult result, temp;
 
-							/*for (auto it = scene->shapes.begin(); it != scene->shapes.end(); it++)
-								if ((*it)->intersects(r, &temp) && (result.shape == NULL ||
-									result.distance > temp.distance))
-									result = temp;*/
+							Vec3 sampleColor = getEnvironment(r.direction);
 
-							if (!tree->intersect(r, &result, 0.0f))
-								continue;
+							if (tree->intersect(r, &result, 0.0f))
+								sampleColor = shade(&result, 1);
 
-							//if (result.shape != NULL)
-							color += shade(&result, 1) * sampleContrib;
+							color += sampleColor * sampleContrib;
 						}
 					}
 
@@ -385,17 +223,120 @@ public:
 		for (auto& worker : workers)
 			worker.join();
 
-		//std::vector<Photon> photons;
-		//photon_map(photons, 50000);
+		std::vector<Photon> photons;
+		//photon_map(photons, 50);
 		//photon_vis(photons);
 
 		printf("Done: %f seconds\n", timer.getElapsedMilliseconds() / 1000.0);
 
 		if (display != NULL) {
 			display->refresh();
-			printf("Press any key to exit: ");
-			getchar();
+			//printf("Press any key to exit: ");
+			//getchar();
 		}
+	}
+
+	/**
+	 * @brief Compute the shadow coverage for a collision and light pair, taking LIGHTSAMPLES
+	 * samples for area light sources.
+	 *
+	 * @param result Information about location being shaded
+	 * @param light  Light to calculate shadows for
+	 *
+	 * @return A floating point number ranging from 0 (fully shadowed) to 1 (fully lit)
+	 */
+	float getShadow(CollisionResult *result, Light *light) {
+		if (!light->castsShadows())
+			return 1.0f;
+
+		Ray shadow_ray;
+		shadow_ray.origin = result->position + result->normal * .001f;
+
+		float shadow = 0.0f;
+
+		std::vector<Vec3> samples;
+		light->getShadowDir(result->position, samples, LIGHTSAMPLES);
+		int nSamples = samples.size();
+
+		for (int i = 0; i < nSamples; i++) {
+			shadow_ray.direction = samples[i];
+
+			float maxDist = shadow_ray.direction.len();
+			shadow_ray.direction = shadow_ray.direction / maxDist;
+
+			CollisionResult shadow_result;
+			if (!tree->intersect(shadow_ray, &shadow_result, maxDist))
+				shadow += 1.0f / nSamples;
+		}
+
+		return shadow;
+	}
+
+	/**
+	 * @brief Compute ambient-occlusion for a collision, taking OCCLUSIONSAMPLES samples
+	 *
+	 * @param result Information about location being shaded
+	 *
+	 * @return A floating point number ranging from 0 (fully occluded) to 1 (fully visible)
+	 */
+	float getAmbientOcclusion(CollisionResult *result) {
+		Ray occl_ray;
+		occl_ray.origin = result->position + result->normal * .001f;
+
+		float occlusion = 1.0f;
+
+		int sqrtNSamples = sqrt(OCCLUSIONSAMPLES);
+		int nSamples = sqrtNSamples * sqrtNSamples;
+
+		std::vector<Vec3> samples;
+		randHemisphereCos(result->normal, samples, sqrtNSamples);
+
+		for (int i = 0; i < nSamples; i++) {
+			occl_ray.direction = samples[i];
+
+			CollisionResult occl_result;
+			if (tree->intersect(occl_ray, &occl_result, 2.0f))
+				occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance / 2.0f));
+		}
+
+		return occlusion;
+	}
+
+	/**
+	 * @brief Sample the environment map, if there is one. Otherwise, returns the background
+	 * color (TODO).
+	 *
+	 * @param norm Direction to sample the environment
+	 */
+	Vec3 getEnvironment(Vec3 norm) {
+		if (scene->environment != NULL) {
+			Vec4 sample = scene->environment->getPixel(norm);
+			return Vec3(sample.x, sample.y, sample.z);
+		}
+
+		return Vec3(0, 0, 0);
+	}
+
+	/**
+	 * @brief Get the environment reflection at a point across a normal
+	 */
+	Vec3 getEnvironmentReflection(CollisionResult *result) {
+		Vec3 origin = result->position + result->normal * .001f;
+		Vec3 direction = result->ray.direction.reflect(result->normal);
+		return getEnvironment(direction);
+	}
+
+	/**
+	 * @brief Get the environment refraction at a point across a normal, assuming the environment
+	 * is filled with air.
+	 *
+	 * @param result Collision information
+	 * @param ior    Index of refraction of material
+	 */
+	Vec3 getEnvironmentRefraction(CollisionResult *result, float ior) {
+		Vec3 origin = result->position + result->normal * .001f;
+		Vec3 direction = result->ray.direction.refract(result->normal, 1.0f, ior);
+		return getEnvironment(direction);
 	}
 };
 

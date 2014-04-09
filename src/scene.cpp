@@ -6,9 +6,10 @@
 
 #include <scene.h>
 
-Scene::Scene(Camera *camera, Bitmap *output)
+Scene::Scene(Camera *camera, Bitmap *output, Bitmap *environment)
     : camera(camera),
-      output(output)
+      output(output),
+      environment(environment)
 {
 }
 

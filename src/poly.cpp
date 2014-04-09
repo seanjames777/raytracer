@@ -64,7 +64,7 @@ bool Poly::intersects(Ray ray, float *dist) {
 bool Poly::intersects(Ray ray, CollisionResult *result) {
 	float d = ray.direction.dot(normalizedNormal);
 
-	if (d == 0.0f)
+	if (d >= 0.0f) // backfacing or parallel
 		return false;
 
 	result->distance = (radius - ray.origin.dot(normalizedNormal)) / d;

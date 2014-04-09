@@ -121,10 +121,10 @@ private:
 	 * @param dir    Direction to split root
 	 * @param depth  Recursion depth
 	 */
-	KDNode<T, R> *build(AABB bounds, std::vector<T *> & items, int dir, int depth) {
+	KDNode<T, R> *build(AABB bounds, std::vector<T *> & items, int dir, int depth, int prevSize) {
 		KDNode<T, R> *node = new KDNode<T, R>(NULL, NULL, 0.0f, 0);
 
-		if (depth > 6 || items.size() < 4) {
+		if (depth > 30 || items.size() < 4) {
 			// leaf if
 			// 1) too few items
 			// 2) too deep
@@ -151,8 +151,8 @@ private:
 			int countL = countInBox(leftBB, items, leftItems);
 			int countR = countInBox(rightBB, items, rightItems);
 
-			KDNode<T, R> *left  = build(leftBB, leftItems,  (dir + 1) % 3, depth + 1);
-			KDNode<T, R> *right = build(rightBB, rightItems, (dir + 1) % 3, depth + 1);
+			KDNode<T, R> *left  = build(leftBB, leftItems,  (dir + 1) % 3, depth + 1, items.size());
+			KDNode<T, R> *right = build(rightBB, rightItems, (dir + 1) % 3, depth + 1, items.size());
 
 			node->left  = left;
 			node->right = right;
@@ -315,7 +315,7 @@ public:
 	 */
 	KDTree<T, R>(std::vector<T *> & items) {
 		sceneBounds = buildAABB(items);
-		root = build(sceneBounds, items, 2, 0);
+		root = build(sceneBounds, items, 2, 0, -1);
 	}
 
 	/**

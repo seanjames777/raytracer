@@ -15,6 +15,9 @@
 #include <light.h>
 #include <shape.h>
 
+class Raytracer;
+class Scene;
+
 /**
  * @brief Material base class. Initially simple, only contains the parameters for shading with a
  * phong appearance.
@@ -63,27 +66,8 @@ public:
 	 * @brief Shade the surface for a given collision and light source. Will be called for each
 	 * light source and mixed externally with shadows, reflections, etc.
 	 */
-	Vec3 shade(Light *light, CollisionResult *result);
+	Vec3 shade(CollisionResult *result, Scene *scene, Raytracer *rt);
 
-	/**
-	 * @brief Get the ambient light color
-	 */
-	Vec3 getAmbient();
-
-	/**
-	 * @brief Get the index of refraction
-	 */
-	float getIndexOfRefraction();
-
-	/**
-	 * @brief Get the amount of reflection to add to the shading
-	 */
-	float getReflectionAmt();
-
-	/**
-	 * @brief Get the amount of refraction to add to the shading
-	 */
-	float getRefractionAmt();
 };
 
 #endif

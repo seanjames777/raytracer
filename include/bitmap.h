@@ -125,6 +125,14 @@ public:
 	 */
 	Vec4 getPixel(int x, int y);
 
+    /**
+     * @brief Sample a pixel by direction vector, assuming the image is an equirectangular
+     * cube map
+     *
+     * @param norm Direction to sample
+     */
+    Vec4 getPixel(Vec3 norm);
+
 	/**
 	 * @brief Get a pixel by integer coordinate
 	 */

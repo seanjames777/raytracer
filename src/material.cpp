@@ -5,6 +5,7 @@
  */
 
 #include <material.h>
+#include <raytracer.h>
 
 Material::Material(Vec3 ambient, Vec3 diffuse, Vec3 specular, float specularPower,
 	float reflection, float refraction, float ior)
@@ -18,36 +19,49 @@ Material::Material(Vec3 ambient, Vec3 diffuse, Vec3 specular, float specularPowe
 {
 }
 
-Vec3 Material::shade(Light *light, CollisionResult *result) {
-	Vec3 color =  light->getColor(result->position);
-	Vec3  ldir  = -light->getDirection(result->position);
+Vec3 Material::shade(CollisionResult *result, Scene *scene, Raytracer *raytracer) {
+	Vec3 color = Vec3(0, 0, 0);
+	color += ambient;
 
-	float ndotl =  SATURATE(result->normal.dot(ldir));
+	Vec3 reflection = Vec3(0, 0, 0);
 
-	Vec3  view  =  result->ray.direction;
-	Vec3  ref   =  ldir.reflect(result->normal);
+	if (this->reflection > 0.0f)
+		reflection = raytracer->getEnvironmentReflection(result) * this->reflection;
 
-	float rdotv =  SATURATE(ref.dot(view));
-	float specf =  powf(rdotv, specularPower);
-	Vec3 spec  =  specular * specf;
+	Vec3 refraction = Vec3(0, 0, 0);
 
-	Vec3 output = color * (diffuse * ndotl) + spec;
+	if (this->refraction > 0.0f)
+		refraction = raytracer->getEnvironmentRefraction(result, ior) * this->refraction;
 
-	return output;
-}
+	float schlick = 1.0f;
 
-Vec3 Material::getAmbient() {
-	return ambient;
-}
+	if (this->reflection > 0.0f && this->refraction > 0.0f)
+		schlick = Vec3::schlick(-result->ray.direction, result->normal, 1.0f, ior);
 
-float Material::getIndexOfRefraction() {
-	return ior;
-}
+	color += refraction * (1.0f - schlick) + reflection * schlick;
 
-float Material::getReflectionAmt() {
-	return reflection;
-}
+	for (auto it = scene->lights.begin(); it != scene->lights.end(); it++) {
+		Light *light = *it;
+		float shadow = raytracer->getShadow(result, light) * .8f + .2f;
 
-float Material::getRefractionAmt() {
-	return refraction;
+		Vec3 lcolor =  light->getColor(result->position);
+		Vec3  ldir  = -light->getDirection(result->position);
+
+		float ndotl =  SATURATE(result->normal.dot(ldir));
+
+		Vec3  view  =  result->ray.direction;
+		Vec3  ref   =  ldir.reflect(result->normal);
+
+		float rdotv =  SATURATE(ref.dot(view));
+		float specf =  powf(rdotv, specularPower);
+		Vec3 spec  =  specular * specf;
+
+		color += (lcolor * (diffuse * ndotl) + spec) * shadow;
+	}
+
+	float occlusion = raytracer->getAmbientOcclusion(result);
+	color = color * occlusion;
+	//color = Vec3(occlusion, occlusion, occlusion);
+
+	return color;
 }

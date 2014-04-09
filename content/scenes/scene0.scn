@@ -1,0 +1,82 @@
+{
+    "environment": {
+        "environment_map": "content/textures/cubemap.bmp",
+        "background": [ 0.0, 0.0, 0.0 ]
+    },
+    "cameras": [
+        "camera0": {
+            "position":     [ -15.0, 15.0, -15.0 ],
+            "target":       [ 0.0, 3.9, 0.0 ],
+            "fov":          0.8975,
+            "focal_length": 19.25,
+            "aperture":     0.0
+        }
+    ],
+    "materials": [
+        {
+            "name":           "mat0",
+            "ambient":        [ 0.1, 0.1, 0.1 ],
+            "diffuse":        [ 0.0, 0.0, 0.0 ],
+            "specular":       [ 0.8, 0.8, 0.8 ],
+            "specular_power": 8.0,
+            "reflection":     0.8,
+            "refraction":     0.0,
+            "ior":            10.0
+        }
+    ],
+    "shapes": [
+        {
+            "name":     "sphere0",
+            "type":     "sphere",
+            "origin":   [ 0.0, 3.0, 0.0 ],
+            "radius":   6.0,
+            "material": "mat0",
+            "visible":  false
+        },
+        {
+            "name":     "plane0",
+            "type":     "plane",
+            "normal":   [ 0.0, 1.0, 0.0 ],
+            "radius":   0.0,
+            "forward":  [ 0.0, 0.0, 1.0 ],
+            "width":    100.0,
+            "length":   100.0,
+            "material": "mat0",
+            "visible":  true
+        },
+        {
+            "name":     "dragon",
+            "type":     "mesh",
+            "origin":   [ 0.0, 0.0, 0.0 ],
+            "rotation": [ 0.0, 0.0, 0.0 ],
+            "scale":    [ 0.0, 0.0, 0.0 ],
+            "filename": "content/models/dragon.fbx",
+            "material": "mat0",
+            "visible":  true
+        }
+    ],
+    "lights": [
+        {
+            "name":          "light0",
+            "type":          "point",
+            "origin":        [ 100.0, 100.0, 0.0 ],
+            "color":         [ 0.94, 0.81, 0.7 ],
+            "radius":        4.0,
+            "falloff_range": 150.0,
+            "falloff_power": 0.0
+            "shadows":       true,
+            "visible":       true
+        },
+        {
+            "name":          "light1",
+            "type":          "point",
+            "origin":        [ -100.0, 2.0, 0.0 ],
+            "color":         [ 0.5, 0.55, 0.58 ],
+            "radius":        2.0,
+            "falloff_range": 150.0,
+            "falloff_power": 0.0
+            "shadows":       false,
+            "visible":       true
+        }
+    ]
+}

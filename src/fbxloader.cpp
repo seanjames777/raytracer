@@ -7,8 +7,7 @@
 #include <fbxloader.h>
 #include <fbxsdk.h>
 
-void addAttribute(std::vector<Vertex> & vertices, std::vector<int> & indices,
-    FbxNodeAttribute *attribute)
+void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute)
 {
     if (attribute->GetAttributeType() != FbxNodeAttribute::eMesh)
         return;
@@ -24,49 +23,66 @@ void addAttribute(std::vector<Vertex> & vertices, std::vector<int> & indices,
     FbxLayer *layer0 = mesh->GetLayer(0);
 
     FbxLayerElementNormal *norms = layer0->GetNormals();
-    ASSERT(norms->GetMappingMode() == FbxLayerElement::eByControlPoint);
-    ASSERT(norms->GetReferenceMode() == FbxLayerElement::eDirect);
+    ASSERT(norms->GetMappingMode() == FbxLayerElement::eByControlPoint ||
+        norms->GetMappingMode() == FbxLayerElement::eByPolygonVertex);
+    ASSERT(norms->GetReferenceMode() == FbxLayerElement::eDirect ||
+        norms->GetReferenceMode() == FbxLayerElement::eIndexToDirect);
 
     FbxLayerElementUV *uvs = layer0->GetUVs();
 
     if (uvs != NULL) {
-        ASSERT(uvs->GetMappingMode() == FbxLayerElement::eByControlPoint);
-        ASSERT(uvs->GetReferenceMode() == FbxLayerElement::eDirect);
+        ASSERT(uvs->GetMappingMode() == FbxLayerElement::eByControlPoint ||
+            uvs->GetMappingMode() == FbxLayerElement::eByPolygonVertex);
+        ASSERT(uvs->GetReferenceMode() == FbxLayerElement::eDirect ||
+            uvs->GetReferenceMode() == FbxLayerElement::eIndexToDirect);
     }
-
-    for (int i = 0; i < nVertices; i++) {
-        FbxVector4 vertexPos = meshVerts[i];
-        FbxVector4 vertexNorm = norms->GetDirectArray().GetAt(i);
-
-        Vertex modelVertex;
-        modelVertex.position = Vec3((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
-        modelVertex.normal = Vec3((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
-
-        if (uvs != NULL) {
-            FbxVector2 vertexUV = uvs->GetDirectArray().GetAt(i);
-            modelVertex.uv = Vec2((float)vertexUV[0], (float)vertexUV[1]);
-        }
-        else
-            modelVertex.uv = Vec2(0, 0);
-
-        vertices.push_back(modelVertex);
+    else {
+        std::cout << "Warning: Model does not have UVs" << std::endl;
     }
 
     for (int i = 0; i < mesh->GetPolygonCount(); i++) {
         ASSERT(mesh->GetPolygonSize(i) == 3);
 
-        for (int j = 0; j < 3; j++)
-            indices.push_back(mesh->GetPolygonVertex(i, j));
+        for (int j = 0; j < 3; j++) {
+            int vertIdx = mesh->GetPolygonVertex(i, j);
+
+            FbxVector4 vertexPos = meshVerts[vertIdx];
+            FbxVector4 vertexNorm;
+            mesh->GetPolygonVertexNormal(i, j, vertexNorm);
+            FbxVector2 vertexUV;
+
+            if (uvs != NULL) {
+                if (uvs->GetMappingMode() == FbxLayerElement::eByControlPoint) {
+                    if (uvs->GetReferenceMode() == FbxLayerElement::eDirect)
+                        vertexUV = uvs->GetDirectArray().GetAt(vertIdx);
+                    else {
+                        int idx = uvs->GetIndexArray().GetAt(vertIdx);
+                        vertexUV = uvs->GetDirectArray().GetAt(idx);
+                    }
+                }
+                else {
+                    int normIdx = mesh->GetTextureUVIndex(i, j);
+                    vertexUV = uvs->GetDirectArray().GetAt(normIdx);
+                }
+            }
+
+            Vertex vertex;
+            vertex.position = Vec3((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
+            vertex.normal = Vec3((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
+            vertex.uv = Vec2((float)vertexUV[0], (float)vertexUV[1]);
+
+            vertices.push_back(vertex);
+        }
     }
 }
 
-void addNode(std::vector<Vertex> & vertices, std::vector<int> & indices, FbxNode *node) {
+void addNode(std::vector<Vertex> & vertices, FbxNode *node) {
     for (int i = 0; i < node->GetNodeAttributeCount(); i++) {
-        addAttribute(vertices, indices, node->GetNodeAttributeByIndex(i));
+        addAttribute(vertices, node->GetNodeAttributeByIndex(i));
     }
 
     for (int i = 0; i < node->GetChildCount(); i++) {
-        addNode(vertices, indices, node->GetChild(i));
+        addNode(vertices, node->GetChild(i));
     }
 }
 
@@ -86,17 +102,16 @@ void FbxLoader::load(std::string filename, std::vector<Poly> & polys) {
     FbxNode *rootNode = scene->GetRootNode();
 
     std::vector<Vertex> vertices;
-    std::vector<int> indices;
 
     if (rootNode != NULL)
         for (int i = 0; i < rootNode->GetChildCount(); i++)
-            addNode(vertices, indices, rootNode->GetChild(i));
+            addNode(vertices, rootNode->GetChild(i));
 
     fbxManager->Destroy();
 
-    for (int i = 0; i < indices.size(); i += 3)
+    for (int i = 0; i < vertices.size(); i += 3)
         polys.push_back(Poly(
-            vertices[indices[i + 0]],
-            vertices[indices[i + 1]],
-            vertices[indices[i + 2]]));
+            vertices[i + 0],
+            vertices[i + 1],
+            vertices[i + 2]));
 }

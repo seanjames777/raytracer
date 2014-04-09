@@ -1,10 +1,9 @@
-/*
- * Sean James
+/**
+ * @file plane.h
  *
- * plane.h
+ * @brief Possibly finite, possibly non-axis aligned plane shape
  *
- * Non-axis aligned plane shape
- *
+ * @author Sean James
  */
 
 #ifndef _PLANE_H
@@ -12,134 +11,92 @@
 
 #include <shape.h>
 
-/*
- * Plane shape. Not necessarily axis aligned, but slower than AAPlane. For more
- * complex (non square or infinite) shapes, use Polygons.
+/**
+ * @brief Possibly finite, possibly non-axis aligned plane shape
  */
-class PlaneShape : public Shape {
+class Plane : public Shape {
 private:
 
-	Vec3 normal;  // Normal vector
-	float radius; // Distance from the origin
+	/** @brief Normal */
+	Vec3 normal;
 
-	Vec3 origin;  // Origin (center) of the plane
-	Vec3 forward; // Forward vector perpendicular to normal and right, for texturing
-	Vec3 right;   // Right vector perpendicular to normal and forward, for texturing
+	/** @brief Distance to global origin */
+	float radius;
 
-	float width;  // Width of the plane
-	float length; // Length of the plane
+	/** @brief Origin of plane */
+	Vec3 origin;
 
-	/*
-	 * Recalculate the plane values. Requires normal, forward, and radius to be set
-	 */
-	void refresh();
+	/** @brief Forward vector of plane's coordinate system */
+	Vec3 forward;
+
+	/** @brief Right vector of plane's coordiante system */
+	Vec3 right;
+
+	/** @brief Width of the plane, as measured along right vector */
+	float width;
+
+	/** @brief Length of the plane, as measured along the forward vector */
+	float length;
 
 public:
 	
-	/*
-	 * Constructor based on normal and distance from origin. Set width and length to 0 for an
-	 * infinite plane.
+	/**
+	 * @brief Constructor
+	 *
+	 * @param normal  Normal vector
+	 * @param radius  Distance to global origin
+	 * @param forward Forward vector
+	 * @param width   Width of the plane along right vector, or 0 for an infinite plane
+	 * @param length  Length of the plane along forward vector, or 0 for an infinite plane
 	 */
-	PlaneShape(const Vec3 & Normal, float Radius, const Vec3 & Forward, float Width, float Length);
+	Plane(Vec3 normal, float radius, Vec3 forward, float width, float length);
 
-	/*
-	 * Constructor based on normal and origin point. Set width and length to 0 for an
-	 * infinite plane.
+	/**
+	 * @brief Constructor
+	 *
+	 * @param normal  Normal vector
+	 * @param origin  Center/origin of plane
+	 * @param forward Forward vector
+	 * @param width   Width of the plane along right vector, or 0 for an infinite plane
+	 * @param length  Length of the plane along forward vector, or 0 for an infinite plane
 	 */
-	PlaneShape(const Vec3 & Normal, const Vec3 & Origin, const Vec3 & Forward, float Width, float Length);
+	Plane(Vec3 normal, Vec3 origin, Vec3 forward, float width, float length);
 
-	/*
-	 * Whether the given ray intersects the plane. Sets the intersection distance in
-	 * 'dist'.
+	/**
+	 * @brief Ray/shape intersection test
+	 *
+	 * @param ray  Ray to test against
+	 * @param dist Will be set to the distance along ray to collision
+	 *
+	 * @return Whether there was a collision
 	 */
-	bool intersects(const Ray & ray, float *dist);
+	bool intersects(Ray ray, float *dist);
 
-	/*
-	 * Whether the given ray intersects the plane. Sets the intersection distance in
-	 * 'dist'.
+	/**
+	 * @brief Ray/shape intersection test
+	 *
+	 * @param ray    Ray to test against
+	 * @param result Will be filled with information about the collision
+	 *
+	 * @return Whether there was a collision
 	 */
-	bool intersects(const Ray & ray, CollisionResult *result);
+	bool intersects(Ray ray, CollisionResult *result);
 
-	/*
-	 * Get the normal vector at a given point
+	/**
+	 * @brief Return the normal at a given position
 	 */
-	Vec3 normalAt(const Vec3 & pos);
+	Vec3 normalAt(Vec3 pos);
 
-	/*
-	 * Get the UV coordinates at a given point
+	/**
+	 * @brief Get the UV coordinate at the given position
 	 */
-	Vec2 uvAt(const Vec3 & pos);
+	Vec2 uvAt(Vec3 pos);
 
-	/*
-	 * Get the axis-aligned bounding box for this plane
+	/**
+	 * @brief Get the axis-aligned bounding box for this shape
 	 */
 	AABB getBBox();
 
-	/*
-	 * Get the normal vector of the plane
-	 */
-	Vec3 getNormal();
-
-	/*
-	 * Set the normal vector of the plane
-	 */
-	void setNormal(const Vec3 & Normal);
-
-	/*
-	 * Get the forward vector of the plane
-	 */
-	Vec3 getForward();
-
-	/*
-	 * Set the forward vector of the plane
-	 */
-	void setForward(const Vec3 & Forward);
-
-	/* 
-	 * Get the right vector of the plane
-	 * TODO: setter?
-	 */
-	Vec3 getRight();
-
-	/*
-	 * Get the origin of the plane
-	 */
-	Vec3 getOrigin();
-
-	/*
-	 * Set the origin of the plane
-	 */
-	void setOrigin(const Vec3 & Origin);
-
-	/*
-	 * Get the distance of the plane from the (world) origin
-	 */
-	float getRadius();
-
-	/*
-	 * Set the distance of the plane from the (world) origin
-	 */
-	void setRadius(float Radius);
-
-	/*
-	 * Get the width of the plane
-	 */
-	float getWidth();
-
-	/*
-	 * Set the width of the plane
-	 */
-	void setWidth(float Width);
-
-	/*
-	 * Get the length of the plane
-	 */
-	float getLength();
-
-	/*
-	 * Set the length of the plane
-	 */
-	void setLength(float Length);
 };
 
 #endif

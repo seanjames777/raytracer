@@ -186,6 +186,13 @@ Vec4 Bitmap::getPixel(Vec2 uv) {
 	return getPixel(x, y);
 }
 
+Vec4 Bitmap::getPixel(Vec3 norm) {
+    Vec2 uv = Vec2(atan2f(norm.z, norm.x) + M_PI, acosf(-norm.y));
+    uv = uv / Vec2(2.0f * M_PI, M_PI);
+
+    return getPixel(uv);
+}
+
 Vec4 Bitmap::getPixel(int x, int y) {
 	int i = (y * width + x) * channels;
 

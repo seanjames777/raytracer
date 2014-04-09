@@ -19,12 +19,13 @@ SOURCES=src/camera.cpp \
 	src/raytracer.cpp \
 	src/glimagedisplay.cpp \
 	src/timer.cpp \
-	src/fbxloader.cpp
+	src/fbxloader.cpp \
+	src/plane.cpp
 
 OBJS=$(patsubst src/%.cpp, obj/%.o, $(SOURCES))
 DEPS=$(patsubst src/%.cpp, obj/%.d, $(SOURCES))
 
-bin/raytracer: bin/ obj/ $(OBJS) bin/libfbxsdk.dylib
+bin/raytracer: bin/ obj/ output/ $(OBJS) bin/libfbxsdk.dylib
 	$(CC) $(LDFLAGS) -o $@ $(OBJS)
 
 bin/libfbxsdk.dylib: bin/
@@ -36,6 +37,9 @@ bin/:
 obj/:
 	mkdir obj
 
+output/:
+	mkdir output
+
 obj/%.o: src/%.cpp
 	$(CC) $(CFLAGS) -o $@ -c -MD -MT $(patsubst src/%.cpp, obj/%.o, $<) -MF $(patsubst src/%.cpp, obj/%.d, $<) $<
 
@@ -44,4 +48,7 @@ obj/%.o: src/%.cpp
 clean:
 	rm -rf bin/
 	rm -rf obj/
-	rm -f output.bmp
+	rm -rf output/
+
+encode:
+	ffmpeg -y -i output/frame%d.bmp -c:v libx264 -preset slow -crf 18 -r 30 -pix_fmt yuv420p output/out.mp4

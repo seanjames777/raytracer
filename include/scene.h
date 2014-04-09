@@ -37,13 +37,16 @@ public:
 	/** @brief Output Bitmap */
 	Bitmap *output;
 
+	/** @brief Environment bitmap */
+	Bitmap *environment;
+
 	/**
 	 * @brief Constructor
 	 *
 	 * @param camera Camera
 	 * @param output Output image
 	 */
-	Scene(Camera *camera, Bitmap *output);
+	Scene(Camera *camera, Bitmap *output, Bitmap *environment);
 
 	/**
 	 * @brief Add a shape to the scene

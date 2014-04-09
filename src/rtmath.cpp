@@ -1,12 +1,30 @@
 #include "rtmath.h"
 
-Vec3 randSphere(const Vec3 & origin, float rad) {
-	Vec3 d = Vec3(randf(-1.0f, 1.0f), randf(-1.0f, 1.0f), randf(-1.0f, 1.0f));
+void randSphere(std::vector<Vec3> & samples, int sqrtSamples) {
+	float sampleRange = 1.0f / sqrtSamples;
 
-	d.normalize();
-	d = d * rad + origin;
+	for (int i = 0; i < sqrtSamples; i++) {
+		for (int j = 0; j < sqrtSamples; j++) {
+			float min1 = sampleRange * i;
+			float max1 = min1 + sampleRange;
 
-	return d;
+			float min2 = sampleRange * j;
+			float max2 = min2 + sampleRange;
+
+			float u1 = (randf(0.0f, 1.0f) * (max1 - min1) + min1);
+			float u2 = (randf(0.0f, 1.0f) * (max2 - min2) + min2);
+
+			float theta = u2 * 2.0f * M_PI;
+			float z = u1 * 2.0f - 1.0f;
+			float r = sqrtf(1.0f - z * z);
+
+			Vec3 n = Vec3(1, 0, 0) * r * cosf(theta) +
+				Vec3(0, 1, 0) * z +
+				Vec3(0, 0, 1) * r * sinf(theta);
+
+			samples.push_back(n);
+		}
+	}
 }
 
 Vec2 randCircle(float rad) {
@@ -24,22 +42,38 @@ Vec2 randCircle(float rad) {
 	return Vec2(r * cosf(t), r * sinf(t));
 }
 
-Vec3 randHemisphere(const Vec3 & norm) {
-	float max = 0.99f;
-	Vec3 d = Vec3(randf(-max, max), randf(0.0f, 1.0f), randf(-max, max));
-	d.normalize();
+void randHemisphereCos(Vec3 norm, std::vector<Vec3> & samples, int sqrtSamples) {
+	float sampleRange = 1.0f / sqrtSamples;
 
-	Vec3 forward = Vec3(0, 0, 1);
+	for (int i = 0; i < sqrtSamples; i++) {
+		for (int j = 0; j < sqrtSamples; j++) {
+			float min1 = sampleRange * i;
+			float max1 = min1 + sampleRange;
 
-	Vec3 n = norm; // TODO
+			float min2 = sampleRange * j;
+			float max2 = min2 + sampleRange;
 
-	if (1.0f - abs(n.dot(forward)) < .0001f)
-		forward = Vec3(0, -1, 0);
+			float u1 = (randf(0.0f, 1.0f) * (max1 - min1) + min1);
+			float u2 = (randf(0.0f, 1.0f) * (max2 - min2) + min2);
 
-	Vec3 right = forward.cross(norm);
-	forward = n.cross(right);
+			float theta = u2 * 2.0f * M_PI;
+			float r = sqrtf(u1);
 
-	Vec3 h = n * d.y + right * d.x + forward * d.z;
+			// TODO: find something better
+			Vec3 forward = Vec3(0, 0.3f, 0.35f);
+			forward.normalize();
+			
+			if (abs(norm.dot(forward)) == 1.0f)
+				forward = Vec3(0, -1, 0);
 
-	return h;
+			Vec3 right = forward.cross(norm);
+			forward = norm.cross(right);
+
+			Vec3 n = right * r * cosf(theta) +
+				norm * sqrtf(1.0f - u1) +
+				forward * r * sinf(theta);
+
+			samples.push_back(n);
+		}
+	}
 }

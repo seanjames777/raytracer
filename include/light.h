@@ -57,10 +57,17 @@ public:
 	virtual bool castsShadows() = 0;
 
 	/**
-	 * @brief Get the direction of a shadow-testing ray starting at
-	 * the given point and pointing towards the light
+	 * @brief Get the direction of a set of shadow testing rays. Samples are added to a vector to
+	 * allow for stratefied sampling and to allow lights to return variable numbers of samples.
+	 * Note that the number of samples returned may not be the same as nSamples. For example, a
+	 * point light with no radius does not need more than one sample, while stratification requires
+	 * perfect square numbers of samples.
+	 *
+	 * @param at       Location to sample from
+	 * @param samples  Vector of samples to add to
+	 * @param nSamples Number of samples to compute
 	 */
-	virtual Vec3 getShadowDir(Vec3 at) = 0;
+	virtual void getShadowDir(Vec3 at, std::vector<Vec3> & samples, int nSamples) = 0;
 };
 
 #endif
