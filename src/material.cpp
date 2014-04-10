@@ -19,7 +19,7 @@ Material::Material(Vec3 ambient, Vec3 diffuse, Vec3 specular, float specularPowe
 {
 }
 
-Vec3 Material::shade(CollisionResult *result, Scene *scene, Raytracer *raytracer) {
+Vec3 Material::shade(CollisionResult *result, Scene *scene, Raytracer *raytracer, int depth) {
 	Vec3 color = Vec3(0, 0, 0);
 	color += ambient;
 
@@ -40,9 +40,11 @@ Vec3 Material::shade(CollisionResult *result, Scene *scene, Raytracer *raytracer
 
 	color += refraction * (1.0f - schlick) + reflection * schlick;
 
+	color += raytracer->getIndirectLighting(result, depth);
+
 	for (auto it = scene->lights.begin(); it != scene->lights.end(); it++) {
 		Light *light = *it;
-		float shadow = raytracer->getShadow(result, light) * .8f + .2f;
+		float shadow = raytracer->getShadow(result, light) * .5f + .5f;
 
 		Vec3 lcolor =  light->getColor(result->position);
 		Vec3  ldir  = -light->getDirection(result->position);
@@ -56,10 +58,12 @@ Vec3 Material::shade(CollisionResult *result, Scene *scene, Raytracer *raytracer
 		float specf =  powf(rdotv, specularPower);
 		Vec3 spec  =  specular * specf;
 
-		color += (lcolor * (diffuse * ndotl) + spec) * shadow;
+		Vec3 geomDiffuse = Vec3(result->color.x, result->color.y, result->color.z);
+
+		color += (lcolor * (diffuse * geomDiffuse * ndotl) + spec) * shadow;
 	}
 
-	float occlusion = raytracer->getAmbientOcclusion(result);
+	float occlusion = raytracer->getAmbientOcclusion(result) * .5f + .5f;
 	color = color * occlusion;
 	//color = Vec3(occlusion, occlusion, occlusion);
 

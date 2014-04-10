@@ -107,6 +107,11 @@ Vec2 Plane::uvAt(Vec3 pos) {
 	return Vec2(u, v);
 }
 
+Vec4 Plane::colorAt(Vec3 pos) {
+	// TODO
+	return Vec4(1, 1, 1, 1);
+}
+
 AABB Plane::getBBox() {
 	Vec3 d = forward * (length / 2.0f) + right * (width / 2.0f);
 

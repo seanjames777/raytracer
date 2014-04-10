@@ -9,10 +9,11 @@
 Vertex::Vertex() {
 }
 
-Vertex::Vertex(Vec3 position, Vec3 normal, Vec2 uv) 
+Vertex::Vertex(Vec3 position, Vec3 normal, Vec2 uv, Vec4 color) 
 	: position(position),
 	  normal(normal),
-	  uv(uv)
+	  uv(uv),
+	  color(color)
 {
 }
 
@@ -90,6 +91,12 @@ bool Poly::intersects(Ray ray, CollisionResult *result) {
 
 	result->uv = auv + buv + cuv;
 
+	Vec4 acolor = v1.color * a;
+	Vec4 bcolor = v2.color * b;
+	Vec4 ccolor = v3.color * c;
+
+	result->color = acolor + bcolor + ccolor;
+
 	result->shape = this;
 	result->position = ray.at(result->distance);
 	result->ray = ray;
@@ -119,6 +126,17 @@ Vec2 Poly::uvAt(Vec3 pos) {
 	return auv + buv + cuv;
 }
 
+Vec4 Poly::colorAt(Vec3 pos) {
+	float a, b, c;
+	barycentric(pos, &a, &b, &c);
+
+	Vec4 acolor = v1.color * a;
+	Vec4 bcolor = v2.color * b;
+	Vec4 ccolor = v3.color * c;
+
+	return acolor + bcolor + ccolor;
+}
+
 AABB Poly::getBBox() {
 	AABB box(v1.position, v1.position);
 	box.join(v2.position);
@@ -137,5 +155,5 @@ Vertex Poly::getVertex(int idx) {
 		return v3;
 	}
 
-	return Vertex(Vec3(), Vec3(), Vec2()); // Shouldn't happen
+	return Vertex(Vec3(), Vec3(), Vec2(), Vec4()); // Shouldn't happen
 }

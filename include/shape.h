@@ -30,6 +30,9 @@ struct CollisionResult {
 	/** @brief UV at collision point */
 	Vec2 uv;
 
+	/** @brief Color at collision point */
+	Vec4 color;
+
 	/** @brief Shape that was hit */
 	Shape *shape;
 
@@ -77,6 +80,11 @@ public:
 	 * @brief Get the UV coordinate at the given position
 	 */
 	virtual Vec2 uvAt(Vec3 pos) = 0;
+
+	/**
+	 * @brief Get the color at the given position
+	 */
+	virtual Vec4 colorAt(Vec3 pos) = 0;
 
 	/**
 	 * @brief Get the axis-aligned bounding box for this shape

@@ -28,7 +28,7 @@ Vec3 PointLight::getColor(Vec3 pos) {
 	Vec3 diff = pos - position;
 	float dist2 = diff.len2();
 
-	float falloff = 1.0f - CLAMP(0.0f, 1.0f, dist2 / range2);
+	float falloff = 1.0f - SATURATE(dist2 / range2);
 	falloff = powf(falloff, power);
 
 	return color * falloff;
@@ -39,7 +39,7 @@ bool PointLight::castsShadows() {
 }
 
 void PointLight::getShadowDir(Vec3 at, std::vector<Vec3> & samples, int nSamples) {
-	if (radius == 0.0f) {
+	if (radius == 0.0f || nSamples == 1) {
 		Vec3 dir = this->position - at;
 		samples.push_back(dir);
 		return;

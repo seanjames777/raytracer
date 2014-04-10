@@ -93,6 +93,11 @@ public:
 	Vec2 uvAt(Vec3 pos);
 
 	/**
+	 * @brief Get the color at the given position
+	 */
+	Vec4 colorAt(Vec3 pos);
+
+	/**
 	 * @brief Get the axis-aligned bounding box for this shape
 	 */
 	AABB getBBox();

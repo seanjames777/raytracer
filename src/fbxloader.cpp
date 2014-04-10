@@ -40,6 +40,18 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute)
         std::cout << "Warning: Model does not have UVs" << std::endl;
     }
 
+    FbxLayerElementVertexColor *colors = layer0->GetVertexColors();
+
+    if (colors != NULL) {
+        ASSERT(colors->GetMappingMode() == FbxLayerElement::eByControlPoint ||
+            colors->GetMappingMode() == FbxLayerElement::eByPolygonVertex);
+        ASSERT(colors->GetReferenceMode() == FbxLayerElement::eDirect ||
+            colors->GetReferenceMode() == FbxLayerElement::eIndexToDirect);
+    }
+    else {
+        std::cout << "Warning: Model does not have vertex colors" << std::endl;
+    }
+
     for (int i = 0; i < mesh->GetPolygonCount(); i++) {
         ASSERT(mesh->GetPolygonSize(i) == 3);
 
@@ -50,6 +62,7 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute)
             FbxVector4 vertexNorm;
             mesh->GetPolygonVertexNormal(i, j, vertexNorm);
             FbxVector2 vertexUV;
+            FbxColor vertexColor;
 
             if (uvs != NULL) {
                 if (uvs->GetMappingMode() == FbxLayerElement::eByControlPoint) {
@@ -66,10 +79,20 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute)
                 }
             }
 
+            if (colors != NULL) {
+                if (colors->GetReferenceMode() == FbxLayerElement::eDirect)
+                    vertexColor = colors->GetDirectArray().GetAt(vertIdx);
+                else {
+                    int idx = colors->GetIndexArray().GetAt(vertIdx);
+                    vertexColor = colors->GetDirectArray().GetAt(idx);
+                }
+            }
+
             Vertex vertex;
             vertex.position = Vec3((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
             vertex.normal = Vec3((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
             vertex.uv = Vec2((float)vertexUV[0], (float)vertexUV[1]);
+            vertex.color = Vec4((float)vertexColor[0], (float)vertexColor[1], (float)vertexColor[2], (float)vertexColor[3]);
 
             vertices.push_back(vertex);
         }

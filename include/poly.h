@@ -26,6 +26,9 @@ public:
 	/** @brief UV */
 	Vec2 uv;
 
+	/** @brief Vertex color */
+	Vec4 color;
+
 	/**
 	 * @brief Empty constructor
 	 */
@@ -37,8 +40,9 @@ public:
 	 * @param position Position
 	 * @param normal   Normal
 	 * @param uv       UV
+	 * @param color    Color
 	 */
-	Vertex(Vec3 position, Vec3 normal, Vec2 uv);
+	Vertex(Vec3 position, Vec3 normal, Vec2 uv, Vec4 color);
 };
 
 /**
@@ -126,6 +130,11 @@ public:
 	 * @brief Get the UV coordinate at the given position
 	 */
 	Vec2 uvAt(Vec3 pos);
+
+	/**
+	 * @brief Get the color at the given position
+	 */
+	Vec4 colorAt(Vec3 pos);
 
 	/**
 	 * @brief Get the axis-aligned bounding box for this shape

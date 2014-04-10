@@ -22,11 +22,11 @@
 #include <mutex>
 
 #define BLOCKSZ 64
-#define FRAGSAMPLES 4
+#define FRAGSAMPLES 2
 #define LIGHTSAMPLES 16
 #define OCCLUSIONSAMPLES 16
 #define MAXDEPTH 2
-#define REFLSAMPLES 4
+#define INDIRECTSAMPLES 16
 
 class Raytracer {
 private:
@@ -42,6 +42,15 @@ private:
 
 	/** @brief Work queue lock */
 	std::mutex blocksLock;
+
+	/** @brief Number of blocks unfinished */
+	int blocksUnfinished;
+
+	/** @brief Whether workers should keep working */
+	bool keepWorking;
+
+	/** @brief Worker threads */
+	std::vector<std::thread> workers;
 
 	/**
 	 * @brief Emit photons into the scene and track their bounces
@@ -101,7 +110,7 @@ private:
 
 		Material *material = scene->materialMap[result->shape];
 
-		color = material->shade(result, scene, this);
+		color = material->shade(result, scene, this, depth);
 
 		color.x = SATURATE(color.x);
 		color.y = SATURATE(color.y);
@@ -114,11 +123,14 @@ private:
 	 * @brief Entry point for a worker thread
 	 */
 	void worker_thread() {
-		printf("Started worker thread\n");
+		while(keepWorking) {
+			blocksLock.lock();
 
-		blocksLock.lock();
+			if (blocks.size() == 0) {
+				blocksLock.unlock();
+				continue;
+			}
 
-		while(blocks.size() > 0) {
 			int2 args = blocks[0];
 			blocks.erase(blocks.begin(), blocks.begin() + 1);
 			blocksLock.unlock();
@@ -163,9 +175,9 @@ private:
 			}
 
 			blocksLock.lock();
+			blocksUnfinished--;
+			blocksLock.unlock();
 		}
-
-		blocksLock.unlock();
 	}
 
 	void clearChecker() {
@@ -194,6 +206,30 @@ public:
 	}
 
 	/**
+	 * @brief Start worker threads
+	 */
+	void startThreads() {
+		keepWorking = true;
+
+		for (int i = 0; i < std::thread::hardware_concurrency(); i++)
+			workers.push_back(std::thread(std::bind(&Raytracer::worker_thread, this)));
+
+		printf("Started %d worker threads\n", std::thread::hardware_concurrency());
+	}
+
+	/**
+	 * @brief Stop worker threads
+	 */
+	void stopThreads() {
+		keepWorking = false;
+
+		for (auto& worker : workers)
+			worker.join();
+
+		workers.clear();
+	}
+
+	/**
 	 * @brief Render the scene into the scene's output image
 	 */
 	void render(GLImageDisplay *display) {
@@ -201,39 +237,31 @@ public:
 
 		int nBlocksW = (scene->output->getWidth() + BLOCKSZ - 1) / BLOCKSZ;
 		int nBlocksH = (scene->output->getHeight() + BLOCKSZ - 1) / BLOCKSZ;
-		
+
+		clearChecker();
+
+		blocksLock.lock();
 		for (int y = 0; y < nBlocksH; y++)
 			for (int x = 0; x < nBlocksW; x++)
 				blocks.push_back(int2(x, y));
 
-		clearChecker();
-
-		std::vector<std::thread> workers;
-
-		for (int i = 0; i < std::thread::hardware_concurrency() - 1; i++)
-			workers.push_back(std::thread(std::bind(&Raytracer::worker_thread, this)));
+		blocksUnfinished = blocks.size();
+		blocksLock.unlock();
 
 		if (display != NULL) {
-			while (blocks.size() > 0) {
+			while (blocksUnfinished > 0) {
 				display->refresh();
 				usleep(33000);
 			}
 		}
-		
-		for (auto& worker : workers)
-			worker.join();
 
-		std::vector<Photon> photons;
+		//std::vector<Photon> photons;
 		//photon_map(photons, 50);
 		//photon_vis(photons);
 
-		printf("Done: %f seconds\n", timer.getElapsedMilliseconds() / 1000.0);
+		display->refresh();
 
-		if (display != NULL) {
-			display->refresh();
-			//printf("Press any key to exit: ");
-			//getchar();
-		}
+		printf("Done: %f seconds\n", timer.getElapsedMilliseconds() / 1000.0);
 	}
 
 	/**
@@ -295,11 +323,39 @@ public:
 			occl_ray.direction = samples[i];
 
 			CollisionResult occl_result;
-			if (tree->intersect(occl_ray, &occl_result, 2.0f))
-				occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance / 2.0f));
+			if (tree->intersect(occl_ray, &occl_result, 0.5f))
+				occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance / 0.5f));
 		}
 
 		return occlusion;
+	}
+
+	/**
+	 * @brief Compute indirect lighting for a collision, taking INDIRECTSAMPLES samples
+	 *
+	 * @param result Information about location being shaded
+	 */
+	Vec3 getIndirectLighting(CollisionResult *result, int depth) {
+		Ray ind_ray;
+		ind_ray.origin = result->position + result->normal * .001f;
+
+		Vec3 color = Vec3(0, 0, 0);
+
+		int sqrtNSamples = sqrt(INDIRECTSAMPLES);
+		int nSamples = sqrtNSamples * sqrtNSamples;
+
+		std::vector<Vec3> samples;
+		randHemisphereCos(result->normal, samples, sqrtNSamples);
+
+		for (int i = 0; i < nSamples; i++) {
+			ind_ray.direction = samples[i];
+
+			CollisionResult ind_result;
+			if (tree->intersect(ind_ray, &ind_result, 20.0f))
+				color += shade(&ind_result, depth + 1) * (1.0f / nSamples) * (1.0f - SATURATE(ind_result.distance / 20.0f));
+		}
+
+		return color;
 	}
 
 	/**

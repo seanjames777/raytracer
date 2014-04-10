@@ -76,6 +76,7 @@ bool Sphere::intersects(Ray ray, CollisionResult *result) {
 	result->shape = this;
 	result->position = hit;
 	result->ray = ray;
+	result->color = colorAt(hit);
 	
 	return true;
 }
@@ -90,6 +91,11 @@ Vec3 Sphere::normalAt(Vec3 pos) {
 Vec2 Sphere::uvAt(Vec3 pos) {
 	// TODO
 	return Vec2();
+}
+
+Vec4 Sphere::colorAt(Vec3 pos) {
+	// TODO
+	return Vec4(1, 1, 1, 1);
 }
 
 AABB Sphere::getBBox() {
