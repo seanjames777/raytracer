@@ -6,10 +6,7 @@ SOURCES=src/camera.cpp \
 	src/light.cpp \
 	src/pointlight.cpp \
 	src/directionallight.cpp \
-	src/shape.cpp \
-	src/sphere.cpp \
-	src/cube.cpp \
-	src/poly.cpp \
+	src/polygon.cpp \
 	src/rtmath.cpp \
 	src/material.cpp \
 	src/kdtree.cpp \
@@ -20,7 +17,6 @@ SOURCES=src/camera.cpp \
 	src/glimagedisplay.cpp \
 	src/timer.cpp \
 	src/fbxloader.cpp \
-	src/plane.cpp \
 	src/raytracersettings.cpp
 
 OBJS=$(patsubst src/%.cpp, obj/%.o, $(SOURCES))

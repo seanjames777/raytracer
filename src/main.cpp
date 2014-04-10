@@ -8,45 +8,32 @@
 
 #include <defs.h>
 #include <scene.h>
-#include <sphere.h>
-#include <plane.h>
 #include <pointlight.h>
 #include <raytracer.h>
 #include <glimagedisplay.h>
 #include <fbxloader.h>
 
 int main(int argc, char *argv[]) {
-    int width = 1024;
-    int height = 1024;
+    RaytracerSettings settings;
 
-    Camera *camera = new Camera(Vec3(-0.01f, 5.01f, -15), Vec3(0, 5.0f, 0), (float)width / (float)height,
+    Camera *camera = new Camera(Vec3(-25, 25, -25), Vec3(0, 2.0f, 0), (float)settings.width / (float)settings.height,
         M_PI / 3.4f, 19.25f, 0.0f);
 
-    Bitmap *output = new Bitmap(width, height, 3);
+    Bitmap *output = new Bitmap(settings.width, settings.height, 3);
 
     Bitmap *environment = Bitmap::load("content/textures/cubemap.bmp");
-    environment = NULL;
 
     Scene *scene = new Scene(camera, output, environment);
 
-    Material *mat = new Material(Vec3(0.2f, 0.2f, 0.2f), Vec3(0.8f, 0.8f, 0.8f),
+    Material *mat = new Material(Vec3(0.00f, 0.00f, 0.00f), Vec3(1.0f, 1.0f, 1.0f),
         Vec3(1.0f, 1.0f, 1.0f) * 0, 8.0f, 0.0f, 0.0f, 10.0f);
 
-    Sphere *sphere1 = new Sphere(Vec3(2, 2, 2), 2.0f);
-    scene->addShape(sphere1, mat);
-
-    Sphere *sphere2 = new Sphere(Vec3(-2, 2, -2), 2.0f);
-    scene->addShape(sphere2, mat);
-
-    //Plane *plane = new Plane(Vec3(0, 1, 0), 0.0f, Vec3(0, 0, 1), 100.0f, 100.0f);
-    //scene->addShape(plane, mat);
-
-    std::vector<Poly> polys;
-    FbxLoader::load("content/models/box.fbx", polys);
+    std::vector<Polygon> polys;
+    FbxLoader::load("content/models/dragon.fbx", polys);
     for (int i = 0; i < polys.size(); i++)
-        scene->addShape(&polys[i], mat);
+        scene->addPoly(&polys[i], mat);
 
-    Light *light1 = new PointLight(Vec3(0, 9, 0), Vec3(1.0f, 1.0f, 1.0f), 0.1f, 15.0f, 0.5f, true);
+    Light *light1 = new PointLight(Vec3(-10, 30, 0), Vec3(1.0f, 1.0f, 1.0f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light1);
 
     //Light *light2 = new PointLight(Vec3(4, 9, -4), Vec3(0.2f, 0.2f, 0.2f), 0.0f, 15.0f, 0.5f, false);
@@ -54,7 +41,7 @@ int main(int argc, char *argv[]) {
 
     GLImageDisplay *disp = new GLImageDisplay(1024, 1024, output);
 
-    Raytracer *rt = new Raytracer(scene);
+    Raytracer *rt = new Raytracer(settings, scene);
     rt->startThreads();
 
     int nFrames = 1;
@@ -71,6 +58,5 @@ int main(int argc, char *argv[]) {
 
     rt->stopThreads();
 
-    getchar();
     return 0;
 }

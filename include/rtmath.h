@@ -165,6 +165,38 @@ struct Vec3 {
     float y; // Y component
     float z; // Z component
 
+    // TODO: check
+    inline void set(int component, float value) {
+        //*(&x + component) = value;
+
+        switch(component) {
+        case 0:
+            x = value;
+            break;
+        case 1:
+            y = value;
+            break;
+        case 2:
+            z = value;
+            break;
+        }
+    }
+
+    inline float get(int component) {
+        //return *(&x + component);
+
+        switch(component) {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        }
+        
+        return 0.0f;
+    }
+
     /**
      * Constructor accepts X, Y, and Z values
      */

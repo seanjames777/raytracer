@@ -13,9 +13,9 @@ Scene::Scene(Camera *camera, Bitmap *output, Bitmap *environment)
 {
 }
 
-void Scene::addShape(Shape *shape, Material *material) {
-    shapes.push_back(shape);
-    materialMap[shape] = material;
+void Scene::addPoly(Polygon *poly, Material *material) {
+    polys.push_back(poly);
+    materialMap[poly] = material;
 }
 
 void Scene::addLight(Light *light) {

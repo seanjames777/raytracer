@@ -7,11 +7,14 @@
 #include <raytracersettings.h>
 
 RaytracerSettings::RaytracerSettings()
-    : blockSize(64),
-      pixelSamples(2),
-      shadowSamples(16),
-      occlusionSamples(16),
+    : blockSize(32),
+      pixelSamples(1),
+      shadowSamples(1),
+      occlusionSamples(0),
       maxDepth(2),
-      indirectSamples(16)
+      indirectSamples(0),
+      numThreads(0),
+      width(1024),
+      height(1024)
 {
 }

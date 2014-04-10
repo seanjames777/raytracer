@@ -58,25 +58,6 @@ private:
 	AABB sceneBounds;
 
 	/**
-	 * @brief Unpack the components of a vector
-	 *
-	 * @param v   Vector
-	 * @param idx Index to retrieve (x = 0, y = 1, z = 2)
-	 */
-	inline float unpack_vec(Vec3 vector, int idx) {
-		switch (idx) {
-		case 0:
-			return vector.x;
-		case 1:
-			return vector.y;
-		case 2:
-			return vector.z;
-		}
-
-		return vector.x; // Shouldn't happen
-	}
-
-	/**
 	 * @brief Count the subset of items contained in a bounding box
 	 *
 	 * @param box       Bounding box
@@ -90,7 +71,7 @@ private:
 		int count = 0;
 
 		for (auto it = items.begin(); it != items.end(); it++)
-			if ((*it)->containedIn(box)) {
+			if (box.intersectsBbox((*it)->getBBox())) {
 				contained.push_back(*it);
 				count++;
 			}
@@ -110,7 +91,7 @@ private:
 		Vec3 max = bounds.max, min = bounds.min;
 		Vec3 ext = max - min;
 
-		return unpack_vec(ext, dir) / 2.0f + unpack_vec(bounds.min, dir);
+		return ext.get(dir) / 2.0f + bounds.min.get(dir);
 	}
 
 	/**
@@ -124,7 +105,7 @@ private:
 	KDNode<T, R> *build(AABB bounds, std::vector<T *> & items, int dir, int depth, int prevSize) {
 		KDNode<T, R> *node = new KDNode<T, R>(NULL, NULL, 0.0f, 0);
 
-		if (depth > 30 || items.size() < 4) {
+		if (depth > 10 || items.size() < 4) {
 			// leaf if
 			// 1) too few items
 			// 2) too deep
@@ -174,23 +155,23 @@ private:
 	bool intersectLeaf(KDNode<T, R> *leaf, Ray ray, R *result, float enter,
 		float exit)
 	{
-		result->shape = NULL;
+		result->polygon = NULL;
 
 		R tmpResult;
 
 		for (int i = 0; i < leaf->nItems; i++) {
 			T *item = leaf->items[i];
 
-			if (item->intersects(ray, &tmpResult)) {
+			if (item->intersects(ray, &tmpResult, exit)) { // TODO: check
 				if (tmpResult.distance < enter || tmpResult.distance > exit) {
 					continue;
 				}
-				else if (result->shape == NULL || tmpResult.distance < result->distance)
+				else if (result->polygon == NULL || tmpResult.distance < result->distance)
 					*result = tmpResult;
 			}
 		}
 
-		return result->shape != NULL;
+		return result->polygon != NULL;
 	}
 
 	/**
@@ -358,8 +339,8 @@ public:
 				float radius = currentNode->split;
 				float origin, direction;
 
-				origin    = unpack_vec(ray.origin, dir);
-				direction = unpack_vec(ray.direction, dir);
+				origin    = ray.origin.get(dir);
+				direction = ray.direction.get(dir);
 
 				float t = (radius - origin) / direction;
 				

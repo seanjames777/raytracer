@@ -12,6 +12,12 @@
 #include <defs.h>
 
 struct RaytracerSettings {
+    /** @brief Image width */
+    int width;
+
+    /** @brief Image height */
+    int height;
+
     /** @brief Block side size, in pixels. Threads render one block at a time */
     int blockSize;
 
@@ -29,6 +35,9 @@ struct RaytracerSettings {
 
     /** @brief Maximum number of indirect lighting samples */
     int indirectSamples;
+
+    /** @brief Number of threads to use, or 0 to use all available hardware threads */
+    int numThreads;
 
     RaytracerSettings();
 };

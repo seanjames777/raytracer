@@ -109,7 +109,7 @@ void addNode(std::vector<Vertex> & vertices, FbxNode *node) {
     }
 }
 
-void FbxLoader::load(std::string filename, std::vector<Poly> & polys) {
+void FbxLoader::load(std::string filename, std::vector<Polygon> & polys) {
     FbxManager *fbxManager = FbxManager::Create();
     FbxIOSettings *ioSettings = FbxIOSettings::Create(fbxManager, filename.c_str());
     fbxManager->SetIOSettings(ioSettings);
@@ -133,7 +133,7 @@ void FbxLoader::load(std::string filename, std::vector<Poly> & polys) {
     fbxManager->Destroy();
 
     for (int i = 0; i < vertices.size(); i += 3)
-        polys.push_back(Poly(
+        polys.push_back(Polygon(
             vertices[i + 0],
             vertices[i + 1],
             vertices[i + 2]));

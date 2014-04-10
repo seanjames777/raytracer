@@ -16,23 +16,17 @@
 #include <kdtree.h>
 #include <glimagedisplay.h>
 #include <timer.h>
+#include <raytracersettings.h>
 
 #include <thread>
 #include <atomic>
 #include <mutex>
 
-#define BLOCKSZ 64
-#define FRAGSAMPLES 2
-#define LIGHTSAMPLES 16
-#define OCCLUSIONSAMPLES 16
-#define MAXDEPTH 2
-#define INDIRECTSAMPLES 16
-
 class Raytracer {
 private:
 
 	/** @brief Intersection test tree */
-	KDTree<Shape, CollisionResult> *tree;
+	KDTree<Polygon, CollisionResult> *tree;
 
 	/** @brief Scene */
 	Scene *scene;
@@ -51,6 +45,9 @@ private:
 
 	/** @brief Worker threads */
 	std::vector<std::thread> workers;
+
+	/** @brief Raytracer settings */
+	RaytracerSettings settings;
 
 	/**
 	 * @brief Emit photons into the scene and track their bounces
@@ -105,16 +102,12 @@ private:
 	Vec3 shade(CollisionResult *result, int depth) {
 		Vec3 color = Vec3(0.0f, 0.0f, 0.0f);
 
-		if (depth > MAXDEPTH)
+		if (depth > settings.maxDepth)
 			return color;
 
-		Material *material = scene->materialMap[result->shape];
+		Material *material = scene->materialMap[result->polygon];
 
 		color = material->shade(result, scene, this, depth);
-
-		color.x = SATURATE(color.x);
-		color.y = SATURATE(color.y);
-		color.z = SATURATE(color.z);
 
 		return color;
 	}
@@ -135,40 +128,52 @@ private:
 			blocks.erase(blocks.begin(), blocks.begin() + 1);
 			blocksLock.unlock();
 
-			int x0 = BLOCKSZ * args.x;
-			int y0 = BLOCKSZ * args.y;
+			int x0 = settings.blockSize * args.x;
+			int y0 = settings.blockSize * args.y;
 
 			int width = scene->output->getWidth();
 			int height = scene->output->getHeight();
 
-			float sampleOffset = 1.0f / (float)(FRAGSAMPLES + 1);
-			float sampleContrib = 1.0f / (float)(FRAGSAMPLES * FRAGSAMPLES);
+			float sampleOffset = 1.0f / (float)(settings.pixelSamples + 1);
+			float sampleContrib = 1.0f / (float)(settings.pixelSamples * settings.pixelSamples);
 
-			for (int y = y0; y < y0 + BLOCKSZ; y++) {
-				for (int x = x0; x < x0 + BLOCKSZ; x++) {
+			for (int y = y0; y < y0 + settings.blockSize; y++) {
+				for (int x = x0; x < x0 + settings.blockSize; x++) {
 					if (x >= width || y >= height)
 						continue;
 
 					Vec3 color = Vec3(0.0f, 0.0f, 0.0f);
 
-					for (int p = 0; p < FRAGSAMPLES; p++) {
+					for (int p = 0; p < settings.pixelSamples; p++) {
 						float v = (float)(y + p * sampleOffset) / (float)height;
 
-						for (int q = 0; q < FRAGSAMPLES; q++) {
+						for (int q = 0; q < settings.pixelSamples; q++) {
 							float u = (float)(x + q * sampleOffset) / (float)width;
 
 							Ray r = scene->camera->getViewRay(u, v);
 
 							CollisionResult result, temp;
+							result.distance = INFINITY32F;
 
 							Vec3 sampleColor = getEnvironment(r.direction);
 
 							if (tree->intersect(r, &result, 0.0f))
 								sampleColor = shade(&result, 1);
 
+							//for (int i = 0; i < scene->polys.size(); i++)
+								//if (scene->polys[i]->intersects(r, &temp, 0.0f) && temp.distance < result.distance)
+									//result = temp;
+
+							//if (result.polygon != NULL)
+								//sampleColor = shade(&result, 1);
+
 							color += sampleColor * sampleContrib;
 						}
 					}
+
+					color.x = SATURATE(color.x);
+					color.y = SATURATE(color.y);
+					color.z = SATURATE(color.z);
 
 					scene->output->setPixel(x, y, Vec4(color, 1.0f));
 				}
@@ -198,9 +203,10 @@ public:
 	 *
 	 * @param scene Scene to render
 	 */
-	Raytracer(Scene *scene)
-		: scene(scene),
-		  tree(new KDTree<Shape, CollisionResult>(scene->shapes))
+	Raytracer(RaytracerSettings settings, Scene *scene)
+		: settings(settings),
+		  scene(scene),
+		  tree(new KDTree<Polygon, CollisionResult>(scene->polys))
 	{
 		srand((unsigned)time(0));
 	}
@@ -211,10 +217,15 @@ public:
 	void startThreads() {
 		keepWorking = true;
 
-		for (int i = 0; i < std::thread::hardware_concurrency(); i++)
+		int nThreads = settings.numThreads;
+
+		if (nThreads == 0)
+			nThreads = std::thread::hardware_concurrency();
+
+		for (int i = 0; i < nThreads; i++)
 			workers.push_back(std::thread(std::bind(&Raytracer::worker_thread, this)));
 
-		printf("Started %d worker threads\n", std::thread::hardware_concurrency());
+		printf("Started %d worker threads\n", nThreads);
 	}
 
 	/**
@@ -235,8 +246,8 @@ public:
 	void render(GLImageDisplay *display) {
 		Timer timer;
 
-		int nBlocksW = (scene->output->getWidth() + BLOCKSZ - 1) / BLOCKSZ;
-		int nBlocksH = (scene->output->getHeight() + BLOCKSZ - 1) / BLOCKSZ;
+		int nBlocksW = (scene->output->getWidth() + settings.blockSize - 1) / settings.blockSize;
+		int nBlocksH = (scene->output->getHeight() + settings.blockSize - 1) / settings.blockSize;
 
 		clearChecker();
 
@@ -265,8 +276,8 @@ public:
 	}
 
 	/**
-	 * @brief Compute the shadow coverage for a collision and light pair, taking LIGHTSAMPLES
-	 * samples for area light sources.
+	 * @brief Compute the shadow coverage for a collision and light pair, taking
+	 * settings.shadowSamples samples for area light sources.
 	 *
 	 * @param result Information about location being shaded
 	 * @param light  Light to calculate shadows for
@@ -283,7 +294,7 @@ public:
 		float shadow = 0.0f;
 
 		std::vector<Vec3> samples;
-		light->getShadowDir(result->position, samples, LIGHTSAMPLES);
+		light->getShadowDir(result->position, samples, settings.shadowSamples);
 		int nSamples = samples.size();
 
 		for (int i = 0; i < nSamples; i++) {
@@ -301,7 +312,7 @@ public:
 	}
 
 	/**
-	 * @brief Compute ambient-occlusion for a collision, taking OCCLUSIONSAMPLES samples
+	 * @brief Compute ambient-occlusion for a collision, taking settings.occlusionSamples samples
 	 *
 	 * @param result Information about location being shaded
 	 *
@@ -313,7 +324,7 @@ public:
 
 		float occlusion = 1.0f;
 
-		int sqrtNSamples = sqrt(OCCLUSIONSAMPLES);
+		int sqrtNSamples = sqrt(settings.occlusionSamples);
 		int nSamples = sqrtNSamples * sqrtNSamples;
 
 		std::vector<Vec3> samples;
@@ -331,7 +342,7 @@ public:
 	}
 
 	/**
-	 * @brief Compute indirect lighting for a collision, taking INDIRECTSAMPLES samples
+	 * @brief Compute indirect lighting for a collision, taking settings.indirectSamples samples
 	 *
 	 * @param result Information about location being shaded
 	 */
@@ -341,7 +352,7 @@ public:
 
 		Vec3 color = Vec3(0, 0, 0);
 
-		int sqrtNSamples = sqrt(INDIRECTSAMPLES);
+		int sqrtNSamples = sqrt(settings.indirectSamples);
 		int nSamples = sqrtNSamples * sqrtNSamples;
 
 		std::vector<Vec3> samples;
@@ -351,8 +362,8 @@ public:
 			ind_ray.direction = samples[i];
 
 			CollisionResult ind_result;
-			if (tree->intersect(ind_ray, &ind_result, 20.0f))
-				color += shade(&ind_result, depth + 1) * (1.0f / nSamples) * (1.0f - SATURATE(ind_result.distance / 20.0f));
+			if (tree->intersect(ind_ray, &ind_result, 50.0f))
+				color += shade(&ind_result, depth + 1) * (1.0f / nSamples) * (1.0f - SATURATE(ind_result.distance / 50.0f));
 		}
 
 		return color;

@@ -1,5 +1,5 @@
 /**
- * @file poly.h
+ * @file polygon.h
  *
  * @brief Polygon shape
  *
@@ -9,13 +9,16 @@
 #ifndef _POLYGON_H
 #define _POLYGON_H
 
-#include <shape.h>
+#include <defs.h>
+#include <rtmath.h>
 
 /**
  * @brief Vertex data layout
  */
 struct Vertex {
 public:
+
+	// TODO: padding/alignment
 
 	/** @brief Position */
 	Vec3 position;
@@ -45,11 +48,53 @@ public:
 	Vertex(Vec3 position, Vec3 normal, Vec2 uv, Vec4 color);
 };
 
+class Polygon;
+
+/**
+ * @brief Information about a collision
+ */
+struct CollisionResult {
+	/** @brief Collision distance */
+	float distance;
+
+	/** @brief Alpha barycentric coordinate */
+	float alpha;
+
+	/** @brief Beta barycentric coordinate */
+	float beta;
+
+	/** @brief Gamma barycentric coordinate */
+	float gamma;
+
+	/** @brief Polygon */
+	Polygon *polygon;
+
+	/** @brief Ray */
+	Ray ray;
+
+	/** @brief Position */
+	Vec3 position;
+
+	/** @brief Normal */
+	Vec3 normal;
+
+	/** @brief UV */
+	Vec2 uv;
+
+	/** @brief Color */
+	Vec4 color;
+
+	/**
+	 * @brief Empty constructor
+	 */
+	CollisionResult();
+};
+
 /**
  * @brief Triangle shape
  */
-class Poly : public Shape {
-private:
+struct Polygon {
+public:
 
 	/** @brief Vertex 1 */
 	Vertex v1;
@@ -60,37 +105,22 @@ private:
 	/** @brief Vertex 3 */
 	Vertex v3;
 
-	/** @brief Un-normalized polygon normal */
-	Vec3 normal;
+	/** @brief v3.position - v1.position */
+	Vec3 b;
 
-	/** @brief Normalized normal */
-	Vec3 normalizedNormal;
-	
-	/** @brief Distance to polygon plane from the origin */
-	float radius;
+	/** @brief v2.position - v1.position */
+	Vec3 c;
 
-	/** @brief Polygon area */
-	float area;
+	/** @brief c x b / (c x b).k */
+	Vec3 n;
 
-	/**
-	 * @brief Calculate the barycentric coordinates for a point. All three output values will be
-	 * non-negative if the point is inside the triangle.
-	 *
-	 * @param q Point to test
-	 * @param a Barycentric coordinate 1
-	 * @param b Barycentric coordinate 2
-	 * @param c Barycentric coordinate 3
-	 *
-	 * @return Whether the point is inside the triangle
-	 */
-	bool barycentric(Vec3 q, float *a, float *b, float *c);
-
-public:
+	/** @brief Projection axis */
+	int k;
 
 	/**
 	 * @brief Empty constructor
 	 */
-	Poly();
+	Polygon();
 
 	/**
 	 * @brief Constructor
@@ -99,17 +129,7 @@ public:
 	 * @param v2 Vertex 2
 	 * @param v3 Vertex 3
 	 */
-	Poly(Vertex v1, Vertex v2, Vertex v3);
-
-	/**
-	 * @brief Ray/shape intersection test
-	 *
-	 * @param ray  Ray to test against
-	 * @param dist Will be set to the distance along ray to collision
-	 *
-	 * @return Whether there was a collision
-	 */
-	bool intersects(Ray ray, float *dist);
+	Polygon(Vertex v1, Vertex v2, Vertex v3);
 
 	/**
 	 * @brief Ray/shape intersection test
@@ -119,32 +139,27 @@ public:
 	 *
 	 * @return Whether there was a collision
 	 */
-	bool intersects(Ray ray, CollisionResult *result);
+	bool intersects(Ray ray, CollisionResult *result, float t_max);
 
 	/**
 	 * @brief Return the normal at a given position
 	 */
-	Vec3 normalAt(Vec3 pos);
+	Vec3 interpNormal(CollisionResult *result);
 
 	/**
 	 * @brief Get the UV coordinate at the given position
 	 */
-	Vec2 uvAt(Vec3 pos);
+	Vec2 interpUV(CollisionResult *result);
 
 	/**
 	 * @brief Get the color at the given position
 	 */
-	Vec4 colorAt(Vec3 pos);
+	Vec4 interpColor(CollisionResult *result);
 
 	/**
 	 * @brief Get the axis-aligned bounding box for this shape
 	 */
 	AABB getBBox();
-
-	/*
-	 * Get a vertex of the polygon by index
-	 */
-	Vertex getVertex(int idx);
 
 };
 

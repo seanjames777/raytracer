@@ -13,7 +13,7 @@
 #include <defs.h>
 #include <rtmath.h>
 #include <light.h>
-#include <shape.h>
+#include <polygon.h>
 
 class Raytracer;
 class Scene;

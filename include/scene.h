@@ -10,26 +10,26 @@
 #define _SCENE_H
 
 #include <defs.h>
-#include <shape.h>
+#include <polygon.h>
 #include <light.h>
 #include <camera.h>
 #include <bitmap.h>
 #include <material.h>
 
 /**
- * @brief Scene structure, which tracks the shapes, lights, etc. in a scene
+ * @brief Scene structure, which tracks the polygons, lights, etc. in a scene
  */
 struct Scene {
 public:
 
-	/** @brief Set of shapes */
-	std::vector<Shape *> shapes;
+	/** @brief Set of polygons */
+	std::vector<Polygon *> polys;
 
 	/** @brief Set of lights */
 	std::vector<Light *> lights;
 
-	/** @brief Mapping from shapes to materials */
-	std::map<Shape *, Material *> materialMap;
+	/** @brief Mapping from polygons to materials */
+	std::map<Polygon *, Material *> materialMap;
 
 	/** @brief Camera */
 	Camera *camera;
@@ -49,12 +49,12 @@ public:
 	Scene(Camera *camera, Bitmap *output, Bitmap *environment);
 
 	/**
-	 * @brief Add a shape to the scene
+	 * @brief Add a polygon to the scene
 	 *
-	 * @param shape    Shape to add
-	 * @param material Material for shape
+	 * @param polygon  Polygon to add
+	 * @param material Material for polygon
 	 */
-	void addShape(Shape *shape, Material *material);
+	void addPoly(Polygon *poly, Material *material);
 
 	/**
 	 * @brief Add a light to the scene

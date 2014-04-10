@@ -10,7 +10,7 @@
 #define _FBXLOADER_H
 
 #include <defs.h>
-#include <poly.h>
+#include <polygon.h>
 
 class FbxLoader {
 public:
@@ -21,7 +21,7 @@ public:
      * @param filename File to load
      * @param polys    Vector to which polygons will be added
      */
-    static void load(std::string filename, std::vector<Poly> & polys);
+    static void load(std::string filename, std::vector<Polygon> & polys);
 
 };
 
