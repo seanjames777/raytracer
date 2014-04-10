@@ -16,7 +16,7 @@
 int main(int argc, char *argv[]) {
     RaytracerSettings settings;
 
-    Camera *camera = new Camera(Vec3(-25, 25, -25), Vec3(0, 2.0f, 0), (float)settings.width / (float)settings.height,
+    Camera *camera = new Camera(Vec3(-15, 15, -15), Vec3(0, 2.0f, 0), (float)settings.width / (float)settings.height,
         M_PI / 3.4f, 19.25f, 0.0f);
 
     Bitmap *output = new Bitmap(settings.width, settings.height, 3);

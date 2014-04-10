@@ -105,17 +105,26 @@ public:
 	/** @brief Vertex 3 */
 	Vertex v3;
 
-	/** @brief v3.position - v1.position */
-	Vec3 b;
+	struct PolygonAccel {
+		// Aligned to three 16 byte lines
 
-	/** @brief v2.position - v1.position */
-	Vec3 c;
+		float n_u; // normal.u / normal.k
+		float n_v; // normal.v / normal.h
+		float n_d; // constant of plane equation
+		int k;     // projection axis
 
-	/** @brief c x b / (c x b).k */
-	Vec3 n;
+		// line equation AC
+		float b_nu;
+		float b_nv;
+		float b_d;
+		int pad1;
 
-	/** @brief Projection axis */
-	int k;
+		// line equation AB
+		float c_nu;
+		float c_nv;
+		float c_d;
+		int pad2;
+	} accel;
 
 	/**
 	 * @brief Empty constructor

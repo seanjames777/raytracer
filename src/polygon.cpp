@@ -6,6 +6,9 @@
 
 #include <polygon.h>
 
+// TODO Align me
+static const int modlookup[5] = { 0, 1, 2, 0, 1 };
+
 Vertex::Vertex() {
 }
 
@@ -32,40 +35,57 @@ Polygon::Polygon(Vertex v1, Vertex v2, Vertex v3)
 	  v3(v3)
 {
 	// Edges and normal
-	b = v3.position - v1.position;
-	c = v2.position - v1.position;
-	n = c.cross(b);
+	Vec3 b = v3.position - v1.position;
+	Vec3 c = v2.position - v1.position;
+	Vec3 n = c.cross(b);
 
 	// Choose which dimension to project
 	if (abs(n.x) > abs(n.y))
-		k = abs(n.x) > abs(n.z) ? 0 : 2;
+		accel.k = abs(n.x) > abs(n.z) ? 0 : 2;
 	else
-		k = abs(n.y) > abs(n.z) ? 1 : 2;
+		accel.k = abs(n.y) > abs(n.z) ? 1 : 2;
+
+	int u = modlookup[accel.k + 1];
+	int v = modlookup[accel.k + 2];
+
+	n = n / n.get(accel.k);
+
+	accel.n_u = n.get(u);
+	accel.n_v = n.get(v);
+	accel.n_d = v1.position.dot(n);
+
+	float denom = b.get(u) * c.get(v) - b.get(v) * c.get(u);
+	accel.b_nu = -b.get(v) / denom;
+	accel.b_nv =  b.get(u) / denom;
+	accel.b_d  =  (b.get(v) * v1.position.get(u) - b.get(u) * v1.position.get(v)) / denom;
+
+	accel.c_nu =  c.get(v) / denom;
+	accel.c_nv = -c.get(u) / denom;
+	accel.c_d  =  (c.get(u) * v1.position.get(v) - c.get(v) * v1.position.get(u)) / denom;
 }
 
 bool Polygon::intersects(Ray ray, CollisionResult *result, float t_max) {
-	static const int modlookup[5] = { 0, 1, 2, 0, 1 };
-	int u = modlookup[k + 1];
-	int v = modlookup[k + 2];
+	int u = modlookup[accel.k + 1];
+	int v = modlookup[accel.k + 2];
 
-	// Distance to plane
-	float t_plane = -(ray.origin - v1.position).dot(n) / ray.direction.dot(n);
+	// Find distance to plane. Start division early.
+	const float nd = 1.0f / (ray.direction.get(accel.k)
+		+ accel.n_u * ray.direction.get(u) + accel.n_v * ray.direction.get(v));
+	const float t_plane = (accel.n_d - ray.origin.get(accel.k)
+		- accel.n_u * ray.origin.get(u) - accel.n_v * ray.origin.get(v)) * nd;
 
-	if (t_plane <= 0.0f)// TODO || (t_plane > t_max && t_max > 0.0f))
+	if (t_plane < 0.0f || (t_plane > t_max && t_max > 0.0f))
 		return false;
 
 	// Find collision
-	Vec3 H;
-	H.set(u, ray.origin.get(u) + t_plane * ray.direction.get(u) - v1.position.get(u));
-	H.set(v, ray.origin.get(v) + t_plane * ray.direction.get(v) - v1.position.get(v));
+	const float hu = ray.origin.get(u) + t_plane * ray.direction.get(u);
+	const float hv = ray.origin.get(v) + t_plane * ray.direction.get(v);
 
-	float denom = (b.get(u) * c.get(v) - b.get(v) * c.get(u));
-
-	float beta = (b.get(u) * H.get(v) - b.get(v) * H.get(u)) / denom; 
+	const float beta  = (hu * accel.b_nu + hv * accel.b_nv + accel.b_d);
 	if (beta < 0.0f)
 		return false;
 
-	float gamma = (c.get(v) * H.get(u) - c.get(u) * H.get(v)) / denom;
+	const float gamma = (hu * accel.c_nu + hv * accel.c_nv + accel.c_d);
 	if (gamma < 0.0f)
 		return false;
 
