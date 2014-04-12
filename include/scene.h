@@ -23,13 +23,16 @@ struct Scene {
 public:
 
 	/** @brief Set of polygons */
-	std::vector<Polygon *> polys;
+	std::vector<Polygon> polys;
+
+	/** @brief Polygon acceleration data */
+	std::vector<PolygonAccel> polyAccels;
 
 	/** @brief Set of lights */
 	std::vector<Light *> lights;
 
 	/** @brief Mapping from polygons to materials */
-	std::map<Polygon *, Material *> materialMap;
+	std::vector<Material *> materialMap;
 
 	/** @brief Camera */
 	Camera *camera;
@@ -54,7 +57,7 @@ public:
 	 * @param polygon  Polygon to add
 	 * @param material Material for polygon
 	 */
-	void addPoly(Polygon *poly, Material *material);
+	void addPoly(Polygon poly, Material *material);
 
 	/**
 	 * @brief Add a light to the scene

@@ -13,7 +13,10 @@ void Camera::refresh() {
 	Vec3 gup = Vec3(0, 1, 0);
 
 	right = -forward.cross(gup);
+	right.normalize();
+
 	up = right.cross(forward);
+	up.normalize();
 
 	halfWidth  = tanf(fov / 2.0f) * focus;
 	halfHeight = halfWidth / aspect;

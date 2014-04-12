@@ -66,7 +66,7 @@ public:
 	 * @brief Shade the surface for a given collision and light source. Will be called for each
 	 * light source and mixed externally with shadows, reflections, etc.
 	 */
-	Vec3 shade(CollisionResult *result, Scene *scene, Raytracer *rt, int depth);
+	Vec3 shade(Ray ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth);
 
 };
 

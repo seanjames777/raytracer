@@ -48,17 +48,12 @@ public:
 	Vertex(Vec3 position, Vec3 normal, Vec2 uv, Vec4 color);
 };
 
-class Polygon;
-
 /**
  * @brief Information about a collision
  */
-struct CollisionResult {
+struct Collision {
 	/** @brief Collision distance */
 	float distance;
-
-	/** @brief Alpha barycentric coordinate */
-	float alpha;
 
 	/** @brief Beta barycentric coordinate */
 	float beta;
@@ -67,28 +62,82 @@ struct CollisionResult {
 	float gamma;
 
 	/** @brief Polygon */
-	Polygon *polygon;
-
-	/** @brief Ray */
-	Ray ray;
-
-	/** @brief Position */
-	Vec3 position;
-
-	/** @brief Normal */
-	Vec3 normal;
-
-	/** @brief UV */
-	Vec2 uv;
-
-	/** @brief Color */
-	Vec4 color;
+	int polygonID;
 
 	/**
 	 * @brief Empty constructor
 	 */
-	CollisionResult();
+	Collision();
 };
+
+/**
+ * @brief Additional information about a collision
+ */
+struct CollisionEx {
+	/** @brief Position of collision */
+	Vec3 position;
+
+	/** @brief Normal at collision location, derived from polygon vertices */
+	Vec3 polyNormal;
+
+	/** @brief Interpolated normal */
+	Vec3 normal;
+
+	/** @brief Interpolated UV */
+	Vec2 uv;
+
+	/** @brief Interpolated color */
+	Vec4 color;
+
+	/** @brief Ray */
+	Ray ray;
+};
+
+#pragma pack(push, 1)
+
+struct PolygonAccel {
+	float n_u; // normal.u / normal.k
+	float n_v; // normal.v / normal.h
+	float n_d; // constant of plane equation
+	int k;     // projection axis
+
+	// line equation AC
+	float b_nu;
+	float b_nv;
+	float b_d;
+	int pad1;
+
+	// line equation AB
+	float c_nu;
+	float c_nv;
+	float c_d;
+	unsigned int polygonID;
+
+	// Bounding box
+	Vec3 min;
+	int pad3;
+	Vec3 max;
+	int pad4;
+
+	PolygonAccel(Vec3 p1, Vec3 p2, Vec3 p3, unsigned int polygonID);
+
+	/**
+	 * @brief Ray/shape intersection test
+	 *
+	 * @param ray    Ray to test against
+	 * @param result Will be filled with information about the collision
+	 *
+	 * @return Whether there was a collision
+	 */
+	bool intersects(Ray ray, Collision *result, float t_max);
+
+	/**
+	 * @brief Get the axis-aligned bounding box for this shape
+	 */
+	AABB getBBox();
+};
+
+#pragma pack(pop)
 
 /**
  * @brief Triangle shape
@@ -105,26 +154,8 @@ public:
 	/** @brief Vertex 3 */
 	Vertex v3;
 
-	struct PolygonAccel {
-		// Aligned to three 16 byte lines
-
-		float n_u; // normal.u / normal.k
-		float n_v; // normal.v / normal.h
-		float n_d; // constant of plane equation
-		int k;     // projection axis
-
-		// line equation AC
-		float b_nu;
-		float b_nv;
-		float b_d;
-		int pad1;
-
-		// line equation AB
-		float c_nu;
-		float c_nv;
-		float c_d;
-		int pad2;
-	} accel;
+	/** @brief Normal */
+	Vec3 normal;
 
 	/**
 	 * @brief Empty constructor
@@ -141,34 +172,9 @@ public:
 	Polygon(Vertex v1, Vertex v2, Vertex v3);
 
 	/**
-	 * @brief Ray/shape intersection test
-	 *
-	 * @param ray    Ray to test against
-	 * @param result Will be filled with information about the collision
-	 *
-	 * @return Whether there was a collision
+	 * @brief Get more information about a collision
 	 */
-	bool intersects(Ray ray, CollisionResult *result, float t_max);
-
-	/**
-	 * @brief Return the normal at a given position
-	 */
-	Vec3 interpNormal(CollisionResult *result);
-
-	/**
-	 * @brief Get the UV coordinate at the given position
-	 */
-	Vec2 interpUV(CollisionResult *result);
-
-	/**
-	 * @brief Get the color at the given position
-	 */
-	Vec4 interpColor(CollisionResult *result);
-
-	/**
-	 * @brief Get the axis-aligned bounding box for this shape
-	 */
-	AABB getBBox();
+	void getCollisionEx(Ray ray, Collision *collision, CollisionEx *collisionEx, bool interpolate);
 
 };
 

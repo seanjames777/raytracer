@@ -26,7 +26,7 @@ class Raytracer {
 private:
 
 	/** @brief Intersection test tree */
-	KDTree<Polygon, CollisionResult> *tree;
+	KDTree<PolygonAccel, Collision> *tree;
 
 	/** @brief Scene */
 	Scene *scene;
@@ -99,15 +99,16 @@ private:
 	 * @param result Collision information
 	 * @param depth  Recursion depth
 	 */
-	Vec3 shade(CollisionResult *result, int depth) {
+	Vec3 shade(Ray ray, Collision *result, int depth) {
 		Vec3 color = Vec3(0.0f, 0.0f, 0.0f);
 
 		if (depth > settings.maxDepth)
 			return color;
 
-		Material *material = scene->materialMap[result->polygon];
+		Material *material = scene->materialMap[result->polygonID];
 
-		color = material->shade(result, scene, this, depth);
+		// TODO: might be better to pass ray by pointer or something
+		color = material->shade(ray, result, scene, this, depth);
 
 		return color;
 	}
@@ -152,13 +153,13 @@ private:
 
 							Ray r = scene->camera->getViewRay(u, v);
 
-							CollisionResult result, temp;
+							Collision result, temp;
 							result.distance = INFINITY32F;
 
 							Vec3 sampleColor = getEnvironment(r.direction);
 
 							if (tree->intersect(r, &result, 0.0f))
-								sampleColor = shade(&result, 1);
+								sampleColor = shade(r, &result, 1);
 
 							//for (int i = 0; i < scene->polys.size(); i++)
 								//if (scene->polys[i]->intersects(r, &temp, 0.0f) && temp.distance < result.distance)
@@ -206,8 +207,15 @@ public:
 	Raytracer(RaytracerSettings settings, Scene *scene)
 		: settings(settings),
 		  scene(scene),
-		  tree(new KDTree<Polygon, CollisionResult>(scene->polys))
+		  tree(NULL)
 	{
+		std::vector<PolygonAccel *> accelPtrs;
+
+		for (int i = 0; i < scene->polyAccels.size(); i++)
+			accelPtrs.push_back(&scene->polyAccels[i]);
+
+		tree = new KDTree<PolygonAccel, Collision>(accelPtrs);
+
 		srand((unsigned)time(0));
 	}
 
@@ -284,17 +292,17 @@ public:
 	 *
 	 * @return A floating point number ranging from 0 (fully shadowed) to 1 (fully lit)
 	 */
-	float getShadow(CollisionResult *result, Light *light) {
+	float getShadow(Collision *result, CollisionEx *resultEx, Light *light) {
 		if (!light->castsShadows())
 			return 1.0f;
 
 		Ray shadow_ray;
-		shadow_ray.origin = result->position + result->normal * .001f;
+		shadow_ray.origin = resultEx->position + resultEx->normal * .001f;
 
 		float shadow = 0.0f;
 
 		std::vector<Vec3> samples;
-		light->getShadowDir(result->position, samples, settings.shadowSamples);
+		light->getShadowDir(resultEx->position, samples, settings.shadowSamples);
 		int nSamples = samples.size();
 
 		for (int i = 0; i < nSamples; i++) {
@@ -303,7 +311,7 @@ public:
 			float maxDist = shadow_ray.direction.len();
 			shadow_ray.direction = shadow_ray.direction / maxDist;
 
-			CollisionResult shadow_result;
+			Collision shadow_result;
 			if (!tree->intersect(shadow_ray, &shadow_result, maxDist))
 				shadow += 1.0f / nSamples;
 		}
@@ -318,9 +326,9 @@ public:
 	 *
 	 * @return A floating point number ranging from 0 (fully occluded) to 1 (fully visible)
 	 */
-	float getAmbientOcclusion(CollisionResult *result) {
+	float getAmbientOcclusion(Collision *result, CollisionEx *resultEx) {
 		Ray occl_ray;
-		occl_ray.origin = result->position + result->normal * .001f;
+		occl_ray.origin = resultEx->position + resultEx->normal * .001f;
 
 		float occlusion = 1.0f;
 
@@ -328,14 +336,15 @@ public:
 		int nSamples = sqrtNSamples * sqrtNSamples;
 
 		std::vector<Vec3> samples;
-		randHemisphereCos(result->normal, samples, sqrtNSamples);
+		randHemisphereCos(resultEx->normal, samples, sqrtNSamples);
 
 		for (int i = 0; i < nSamples; i++) {
 			occl_ray.direction = samples[i];
 
-			CollisionResult occl_result;
-			if (tree->intersect(occl_ray, &occl_result, 0.5f))
-				occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance / 0.5f));
+			Collision occl_result;
+			if (tree->intersect(occl_ray, &occl_result, settings.occlusionSamples))
+				occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance /
+					settings.occlusionSamples));
 		}
 
 		return occlusion;
@@ -346,9 +355,9 @@ public:
 	 *
 	 * @param result Information about location being shaded
 	 */
-	Vec3 getIndirectLighting(CollisionResult *result, int depth) {
+	Vec3 getIndirectLighting(Collision *result, CollisionEx *resultEx, int depth) {
 		Ray ind_ray;
-		ind_ray.origin = result->position + result->normal * .001f;
+		ind_ray.origin = resultEx->position + resultEx->normal * .001f;
 
 		Vec3 color = Vec3(0, 0, 0);
 
@@ -356,14 +365,15 @@ public:
 		int nSamples = sqrtNSamples * sqrtNSamples;
 
 		std::vector<Vec3> samples;
-		randHemisphereCos(result->normal, samples, sqrtNSamples);
+		randHemisphereCos(resultEx->normal, samples, sqrtNSamples);
 
 		for (int i = 0; i < nSamples; i++) {
 			ind_ray.direction = samples[i];
 
-			CollisionResult ind_result;
+			Collision ind_result;
 			if (tree->intersect(ind_ray, &ind_result, 50.0f))
-				color += shade(&ind_result, depth + 1) * (1.0f / nSamples) * (1.0f - SATURATE(ind_result.distance / 50.0f));
+				color += shade(ind_ray, &ind_result, depth + 1) * (1.0f / nSamples) *
+					(1.0f - SATURATE(ind_result.distance / 50.0f));
 		}
 
 		return color;
@@ -387,9 +397,9 @@ public:
 	/**
 	 * @brief Get the environment reflection at a point across a normal
 	 */
-	Vec3 getEnvironmentReflection(CollisionResult *result) {
-		Vec3 origin = result->position + result->normal * .001f;
-		Vec3 direction = result->ray.direction.reflect(result->normal);
+	Vec3 getEnvironmentReflection(Collision *result, CollisionEx *resultEx) {
+		Vec3 origin = resultEx->position + resultEx->normal * .001f;
+		Vec3 direction = resultEx->ray.direction.reflect(resultEx->normal);
 		return getEnvironment(direction);
 	}
 
@@ -400,9 +410,9 @@ public:
 	 * @param result Collision information
 	 * @param ior    Index of refraction of material
 	 */
-	Vec3 getEnvironmentRefraction(CollisionResult *result, float ior) {
-		Vec3 origin = result->position + result->normal * .001f;
-		Vec3 direction = result->ray.direction.refract(result->normal, 1.0f, ior);
+	Vec3 getEnvironmentRefraction(Collision *result, float ior, CollisionEx *resultEx) {
+		Vec3 origin = resultEx->position + resultEx->normal * .001f;
+		Vec3 direction = resultEx->ray.direction.refract(resultEx->normal, 1.0f, ior);
 		return getEnvironment(direction);
 	}
 };

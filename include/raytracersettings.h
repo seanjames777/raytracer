@@ -30,6 +30,9 @@ struct RaytracerSettings {
     /** @brief Number of ambient occlusion samples */
     int occlusionSamples;
 
+    /** @brief Maximum ambient occlusion distance */
+    float occlusionDistance;
+
     /** @brief Maximum recursion depth */
     int maxDepth;
 

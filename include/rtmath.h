@@ -771,6 +771,7 @@ struct Mat4x4 {
         xAxis.normalize();
 
         Vec3 yAxis = zAxis.cross(xAxis);
+        yAxis.normalize();
 
         Mat4x4 out;
 

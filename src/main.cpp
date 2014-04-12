@@ -31,9 +31,9 @@ int main(int argc, char *argv[]) {
     std::vector<Polygon> polys;
     FbxLoader::load("content/models/dragon.fbx", polys);
     for (int i = 0; i < polys.size(); i++)
-        scene->addPoly(&polys[i], mat);
+        scene->addPoly(polys[i], mat);
 
-    Light *light1 = new PointLight(Vec3(-10, 30, 0), Vec3(1.0f, 1.0f, 1.0f), 0.25f, 50.0f, 0.15f, true);
+    Light *light1 = new PointLight(Vec3(-15, 30, -15), Vec3(1.0f, 1.0f, 1.0f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light1);
 
     //Light *light2 = new PointLight(Vec3(4, 9, -4), Vec3(0.2f, 0.2f, 0.2f), 0.0f, 15.0f, 0.5f, false);

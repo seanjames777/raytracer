@@ -62,7 +62,7 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute)
             FbxVector4 vertexNorm;
             mesh->GetPolygonVertexNormal(i, j, vertexNorm);
             FbxVector2 vertexUV;
-            FbxColor vertexColor;
+            FbxColor vertexColor(1.0, 1.0, 1.0, 1.0);
 
             if (uvs != NULL) {
                 if (uvs->GetMappingMode() == FbxLayerElement::eByControlPoint) {

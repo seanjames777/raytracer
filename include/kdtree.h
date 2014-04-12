@@ -155,7 +155,7 @@ private:
 	bool intersectLeaf(KDNode<T, R> *leaf, Ray ray, R *result, float enter,
 		float exit)
 	{
-		result->polygon = NULL;
+		bool found = false;
 
 		R tmpResult;
 
@@ -166,12 +166,14 @@ private:
 				if (tmpResult.distance < enter || tmpResult.distance > exit) {
 					continue;
 				}
-				else if (result->polygon == NULL || tmpResult.distance < result->distance)
+				else if (!found || tmpResult.distance < result->distance) {
+					found = true;
 					*result = tmpResult;
+				}
 			}
 		}
 
-		return result->polygon != NULL;
+		return found;
 	}
 
 	/**

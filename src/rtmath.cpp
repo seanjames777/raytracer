@@ -67,7 +67,9 @@ void randHemisphereCos(Vec3 norm, std::vector<Vec3> & samples, int sqrtSamples) 
 				forward = Vec3(0, -1, 0);
 
 			Vec3 right = forward.cross(norm);
+			right.normalize();
 			forward = norm.cross(right);
+			forward.normalize();
 
 			Vec3 n = right * r * cosf(theta) +
 				norm * sqrtf(1.0f - u1) +
