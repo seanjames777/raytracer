@@ -106,7 +106,8 @@ private:
 	 *
 	 * @return Number of items added to contained set
 	 */
-	int countInBox(AABB box, std::vector<PolygonAccel *> & items, std::vector<PolygonAccel *> & contained)
+	int countInBox(AABB box, std::vector<PolygonAccel *> & items,
+		std::vector<PolygonAccel *> & contained)
 	{
 		int count = 0;
 
@@ -196,33 +197,6 @@ private:
 		return node;
 	}
 
-	/*
-	 * Check every item in a leaf node for intersection against a given ray
-	 */
-	bool intersectLeaf(KDNode *leaf, Ray ray, Collision *result, float enter,
-		float exit)
-	{
-		bool found = false;
-
-		Collision tmpResult;
-
-		for (int i = 0; i < leaf->nItems; i++) {
-			PolygonAccel *item = leaf->items[i];
-
-			if (item->intersects(ray, &tmpResult, exit)) { // TODO: check
-				if (tmpResult.distance < enter || tmpResult.distance > exit) {
-					continue;
-				}
-				else if (!found || tmpResult.distance < result->distance) {
-					found = true;
-					*result = tmpResult;
-				}
-			}
-		}
-
-		return found;
-	}
-
 	/**
 	 * @brief Compute a bounding box for a set of items
 	 */
@@ -236,6 +210,29 @@ private:
 			box.join((*it)->getBBox());
 
 		return box;
+	}
+
+	/**
+	 * @brief Check every item in a leaf node for intersection against a given ray
+	 */
+	bool intersectLeaf(KDNode *leaf, Ray ray, Collision *result, float entry, float exit) {
+		bool found = false;
+
+		Collision tmpResult;
+
+		for (int i = 0; i < leaf->nItems; i++) {
+			PolygonAccel *item = leaf->items[i];
+
+			if (item->intersects(ray, &tmpResult) && tmpResult.distance >= entry &&
+				tmpResult.distance <= exit &&
+				(!found || tmpResult.distance < result->distance))
+			{
+				found = true;
+				*result = tmpResult;
+			}
+		}
+
+		return found;
 	}
 
 public:
@@ -281,8 +278,9 @@ public:
 			entry = top.enter;
 			exit = top.exit;
 
-			if (maxDepth != 0.0f && entry > maxDepth)
-				continue;
+			// Nothing will be closer, give up
+			if (maxDepth > 0.0f && entry > maxDepth)
+				return false;
 
 			while (!(currentNode->left == NULL && currentNode->right == NULL)) {
 				int dir = currentNode->dir;
@@ -298,8 +296,7 @@ public:
 				KDNode *nearNode = currentNode->left;
 				KDNode *farNode  = currentNode->right;
 
-				if (radius < origin)
-				{
+				if (radius < origin) {
 					KDNode *temp = nearNode;
 					nearNode = farNode;
 					farNode = temp;
@@ -318,12 +315,8 @@ public:
 				}
 			}
 
-			float fakeExit = exit;
-
-			if (maxDepth != 0.0f)
-				fakeExit = exit < maxDepth ? exit : maxDepth;
-
-			if (intersectLeaf(currentNode, ray, result, entry, fakeExit))
+			if (intersectLeaf(currentNode, ray, result, entry, maxDepth > 0.0f ?
+				MIN2(maxDepth, exit) : exit))
 				return true;
 		}
 

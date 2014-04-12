@@ -73,7 +73,7 @@ Vec3 PolygonAccel::getPosition() {
 	return min + (max - min) / 2.0f;
 }
 
-bool PolygonAccel::intersects(Ray ray, Collision *result, float t_max) {
+bool PolygonAccel::intersects(Ray ray, Collision *result) {
 	int u = modlookup[k + 1];
 	int v = modlookup[k + 2];
 
@@ -83,7 +83,8 @@ bool PolygonAccel::intersects(Ray ray, Collision *result, float t_max) {
 	const float t_plane = (n_d - ray.origin.get(k)
 		- n_u * ray.origin.get(u) - n_v * ray.origin.get(v)) * nd;
 
-	if (t_plane < 0.0f || (t_plane > t_max && t_max > 0.0f))
+	// Backfacing or parallel to ray
+	if (t_plane <= 0.0f)
 		return false;
 
 	// Find collision

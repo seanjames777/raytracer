@@ -129,7 +129,7 @@ struct PolygonAccel {
 	 *
 	 * @return Whether there was a collision
 	 */
-	bool intersects(Ray ray, Collision *result, float t_max);
+	bool intersects(Ray ray, Collision *result);
 
 	/**
 	 * @brief Get the axis-aligned bounding box for this shape
