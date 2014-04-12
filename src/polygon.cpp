@@ -69,10 +69,6 @@ AABB PolygonAccel::getBBox() {
 	return AABB(min, max);
 }
 
-Vec3 PolygonAccel::getPosition() {
-	return min + (max - min) / 2.0f;
-}
-
 bool PolygonAccel::intersects(Ray ray, Collision *result) {
 	int u = modlookup[k + 1];
 	int v = modlookup[k + 2];

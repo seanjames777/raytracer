@@ -64,6 +64,8 @@ struct Collision {
 	/** @brief Polygon */
 	int polygonID;
 
+	int KD_NODE;
+
 	/**
 	 * @brief Empty constructor
 	 */
@@ -136,10 +138,6 @@ struct PolygonAccel {
 	 */
 	AABB getBBox();
 
-	/**
-	 * @brief Get the center of the bounding box
-	 */
-	Vec3 getPosition();
 };
 
 #pragma pack(pop)

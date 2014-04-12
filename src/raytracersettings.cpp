@@ -10,7 +10,7 @@ RaytracerSettings::RaytracerSettings()
     : blockSize(32),
       pixelSamples(2),
       shadowSamples(1),
-      occlusionSamples(16),
+      occlusionSamples(1),
       occlusionDistance(10.0f),
       maxDepth(2),
       indirectSamples(0),

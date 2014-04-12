@@ -15,7 +15,7 @@
 
 int main(int argc, char *argv[]) {
     Timer timer;
-    
+
     RaytracerSettings settings;
 
     Camera *camera = new Camera(Vec3(-15, 15, -15), Vec3(0, 2.0f, 0), (float)settings.width / (float)settings.height,
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
         Vec3(1.0f, 1.0f, 1.0f) * 0, 8.0f, 0.0f, 0.0f, 10.0f);
 
     std::vector<Polygon> polys;
-    FbxLoader::load("content/models/dragon.fbx", polys);
+    FbxLoader::load("content/models/box.fbx", polys);
     for (int i = 0; i < polys.size(); i++)
         scene->addPoly(polys[i], mat);
 

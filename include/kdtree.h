@@ -36,6 +36,8 @@ struct KDNode {
     /** @brief Number of items in this node's bounding box */
     int nItems;
 
+    int id;
+
     /**
      * @brief Constructor
      *
@@ -44,15 +46,8 @@ struct KDNode {
      * @param split World-space split position of the split plane along the node's axis
      * @param dir   Split direction (x = 0, y = 1, z = 2)
      */
-    KDNode(KDNode *left, KDNode *right, float split, int dir)
-      : left(left),
-        right(right),
-        split(split),
-        dir(dir),
-        items(NULL),
-        nItems(0)
-    {
-    }
+    KDNode(KDNode *left, KDNode *right, float split, int dir);
+
 };
 
 /**
@@ -120,19 +115,13 @@ private:
 		return count;
 	}
 
-	/**
-	 * @brief Determine the split distance for the given bounding box and direction
-	 *
-	 * @param bounds Bounding box to split
-	 * @param dir    Split direction (x = 0, y = 1, z = 2)
-	 *
-	 * @return World-space position to split box
-	 */
-	float splitDist(AABB bounds, int dir) {
-		Vec3 max = bounds.max, min = bounds.min;
-		Vec3 ext = max - min;
+	void buildLeaf(KDNode *node, std::vector<PolygonAccel *> & items) {
+		node->nItems = items.size();
+		node->items = new PolygonAccel *[node->nItems];
 
-		return ext.get(dir) / 2.0f + bounds.min.get(dir);
+		int i = 0;
+			for (auto it = items.begin(); it != items.end(); it++)
+				node->items[i++] = *it;
 	}
 
 	/**
@@ -143,55 +132,102 @@ private:
 	 * @param dir    Direction to split root
 	 * @param depth  Recursion depth
 	 */
-	KDNode *build(AABB bounds, std::vector<PolygonAccel *> & items, int dir, int depth, int prevSize) {
+	KDNode *build(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
 		KDNode *node = new KDNode(NULL, NULL, 0.0f, 0);
 
-		if (depth > 10 || items.size() < 4) {
-			// leaf if
-			// 1) too few items
-			// 2) too deep
-
-			node->nItems = items.size();
-			node->items = new PolygonAccel *[node->nItems];
-
-			int i = 0;
-			for (auto it = items.begin(); it != items.end(); it++)
-				node->items[i++] = *it;
-		}
+		if (depth >= 2 || items.size() < 4)
+			buildLeaf(node, items);
 		else {
 			// not a leaf
 
-			node->split = splitDist(bounds, dir);
-			node->dir = dir;
+			std::vector<float> splits;
 
-			float splitDist;
+			for (int i = 0; i < items.size(); i++) {
+				// TODO: calculate bbox while building instead of storing at runtime
+				AABB box = items[i]->getBBox();
 
-			switch(dir) {
-			case 0:
-				splitDist = node->split - bounds.min.x;
-				break;
-			case 1:
-				splitDist = node->split - bounds.min.y;
-				break;
-			case 2:
-				splitDist = node->split - bounds.min.z;
-				break;
+				splits.push_back(box.min.x);
+				splits.push_back(box.min.y);
+				splits.push_back(box.min.z);
+				splits.push_back(box.max.x);
+				splits.push_back(box.max.y);
+				splits.push_back(box.max.z);
 			}
 
-			AABB leftBB, rightBB;
-			bounds.split(splitDist, node->dir, leftBB, rightBB);
+			float minSplitVal = INFINITY32F;
+			AABB minLeft, minRight;
+			int minDir;
+			float minSplitDist;
 
 			std::vector<PolygonAccel *> leftItems;
 			std::vector<PolygonAccel *> rightItems;
 
-			int countL = countInBox(leftBB, items, leftItems);
-			int countR = countInBox(rightBB, items, rightItems);
+			float surfaceArea = bounds.surfaceArea();
 
-			KDNode *left  = build(leftBB, leftItems,  (dir + 1) % 3, depth + 1, items.size());
-			KDNode *right = build(rightBB, rightItems, (dir + 1) % 3, depth + 1, items.size());
+			for (int i = 0; i < splits.size(); i++) {
+				if (i % 1000 == 0)
+					std::cout << i << std::endl;
 
-			node->left  = left;
-			node->right = right;
+				float split = splits[i];
+				int dir = i % 3;
+
+				float min = bounds.min.get(dir);
+				float max = bounds.max.get(dir);
+
+				if (split < min || split > max)
+					continue;
+
+				AABB leftBB, rightBB;
+				bounds.split(split - min, node->dir, leftBB, rightBB);
+
+				int countL = 0, countR = 0;
+
+				for (int j = 0; j < items.size(); j++) {
+					AABB box = items[j]->getBBox();
+
+					float min = box.min.get(dir);
+					float max = box.max.get(dir);
+
+					if (min <= split && max >= split) {
+						countL++;
+						countR++;
+					}
+					else if (max <= split)
+						countL++;
+					else if (min >= split)
+						countR++;
+				}
+
+				float cost = (countL == 0 || countR == 0) ? .8 : 1;
+				cost *= (15.0f + 20.0f * (countL * leftBB.surfaceArea() / surfaceArea +
+					countR * rightBB.surfaceArea() / surfaceArea));
+
+				if (cost < minSplitVal) {
+					minSplitVal = cost;
+					minLeft = leftBB;
+					minRight = rightBB;
+					minDir = dir;
+					minSplitDist = split;
+				}
+
+				leftItems.clear();
+				rightItems.clear();
+			}
+
+			node->split = minSplitDist;
+			node->dir = minDir;
+			int count = countInBox(minLeft, items, leftItems);
+			count += countInBox(minRight, items, rightItems);
+
+			if(minSplitVal > count * 20.0f)
+				buildLeaf(node, items);
+			else {
+				KDNode *left  = build(minLeft, leftItems, depth + 1);
+				KDNode *right = build(minRight, rightItems, depth + 1);
+
+				node->left  = left;
+				node->right = right;
+			}
 		}
 
 		return node;
@@ -229,6 +265,7 @@ private:
 			{
 				found = true;
 				*result = tmpResult;
+				result->KD_NODE = leaf->id;
 			}
 		}
 
@@ -244,7 +281,7 @@ public:
 	 */
 	KDTree(std::vector<PolygonAccel *> & items) {
 		sceneBounds = buildAABB(items);
-		root = build(sceneBounds, items, 2, 0, -1);
+		root = build(sceneBounds, items, 0);
 	}
 
 	/**
