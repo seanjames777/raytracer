@@ -24,3 +24,15 @@ double Timer::getElapsedMilliseconds() {
 
 	return diff;
 }
+
+double Timer::getCPUTime() {
+    rusage usage;
+    ASSERT(getrusage(RUSAGE_SELF, &usage) == 0);
+
+    double time = 0.0f;
+
+    time += usage.ru_utime.tv_sec * 1000.0;
+    time += usage.ru_utime.tv_usec / 1000.0;
+
+    return time;
+}

@@ -252,8 +252,6 @@ public:
 	 * @brief Render the scene into the scene's output image
 	 */
 	void render(GLImageDisplay *display) {
-		Timer timer;
-
 		int nBlocksW = (scene->output->getWidth() + settings.blockSize - 1) / settings.blockSize;
 		int nBlocksH = (scene->output->getHeight() + settings.blockSize - 1) / settings.blockSize;
 
@@ -279,8 +277,6 @@ public:
 		//photon_vis(photons);
 
 		display->refresh();
-
-		printf("Done: %f seconds\n", timer.getElapsedMilliseconds() / 1000.0);
 	}
 
 	/**

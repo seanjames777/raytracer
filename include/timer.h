@@ -11,6 +11,7 @@
 
 #include <defs.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 /**
  * @brief Timer utility class
@@ -37,6 +38,11 @@ public:
 	 * @brief Get the difference between the stop and start times in milliseconds
 	 */
 	double getElapsedMilliseconds();
+
+	/**
+	 * @brief Get the total CPU time used by the process in milliseconds
+	 */
+	double getCPUTime();
 
 };
 

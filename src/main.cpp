@@ -14,6 +14,8 @@
 #include <fbxloader.h>
 
 int main(int argc, char *argv[]) {
+    Timer timer;
+    
     RaytracerSettings settings;
 
     Camera *camera = new Camera(Vec3(-15, 15, -15), Vec3(0, 2.0f, 0), (float)settings.width / (float)settings.height,
@@ -57,6 +59,10 @@ int main(int argc, char *argv[]) {
     }
 
     rt->stopThreads();
+
+    printf("Done: %f seconds (total), %f seconds (CPU)\n",
+        timer.getElapsedMilliseconds() / 1000.0,
+        timer.getCPUTime() / 1000.0);
 
     return 0;
 }
