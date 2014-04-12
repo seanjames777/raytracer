@@ -1286,6 +1286,28 @@ public:
 		Vec3 ext = max - min;
 		return 2 * (ext.x * ext.y + ext.x * ext.z + ext.y * ext.z);
 	}
+
+    /*
+     * Split the bounding box
+     */
+    AABB split(float dist, int axis, AABB & left, AABB & right) {
+        switch(axis) {
+        case 0:
+            left = AABB(min, Vec3(min.x + dist, max.y, max.z));
+            right = AABB(Vec3(min.x + dist, min.y, min.z), max);
+            break;
+        case 1:
+            left = AABB(min, Vec3(max.x, min.y + dist, max.z));
+            right = AABB(Vec3(min.x, min.y + dist, min.z), max);
+            break;
+        case 2:
+            left = AABB(min, Vec3(max.x, max.y, min.z + dist));
+            right = AABB(Vec3(min.x, min.y, min.z + dist), max);
+            break;
+        }
+
+        return AABB(); // Shouldn't happen
+    }
 };
 
 /*

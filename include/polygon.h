@@ -135,6 +135,11 @@ struct PolygonAccel {
 	 * @brief Get the axis-aligned bounding box for this shape
 	 */
 	AABB getBBox();
+
+	/**
+	 * @brief Get the center of the bounding box
+	 */
+	Vec3 getPosition();
 };
 
 #pragma pack(pop)

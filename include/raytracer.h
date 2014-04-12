@@ -26,7 +26,7 @@ class Raytracer {
 private:
 
 	/** @brief Intersection test tree */
-	KDTree<PolygonAccel, Collision> *tree;
+	KDTree *tree;
 
 	/** @brief Scene */
 	Scene *scene;
@@ -214,7 +214,7 @@ public:
 		for (int i = 0; i < scene->polyAccels.size(); i++)
 			accelPtrs.push_back(&scene->polyAccels[i]);
 
-		tree = new KDTree<PolygonAccel, Collision>(accelPtrs);
+		tree = new KDTree(accelPtrs);
 
 		srand((unsigned)time(0));
 	}

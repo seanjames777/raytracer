@@ -11,16 +11,57 @@
 
 #include <defs.h>
 #include <rtmath.h>
-#include <kdnode.h>
+#include <polygon.h>
+
+/**
+ * @brief A node in a KD tree
+ */
+struct KDNode {
+
+    /** @brief Left sub-tree */
+    KDNode *left;
+
+    /** @brief Right sub-tree */
+    KDNode *right;
+
+    /** @brief World-space split position of the split plane along the node's axis */
+    float split;
+
+    /** @brief Split direction (x = 0, y = 1, z = 2) */
+    int dir;
+
+    /** @brief Items contained in this (leaf-only) node */
+    PolygonAccel **items;
+
+    /** @brief Number of items in this node's bounding box */
+    int nItems;
+
+    /**
+     * @brief Constructor
+     *
+     * @param left  Left sub-tree
+     * @param right Right sub-tree
+     * @param split World-space split position of the split plane along the node's axis
+     * @param dir   Split direction (x = 0, y = 1, z = 2)
+     */
+    KDNode(KDNode *left, KDNode *right, float split, int dir)
+      : left(left),
+        right(right),
+        split(split),
+        dir(dir),
+        items(NULL),
+        nItems(0)
+    {
+    }
+};
 
 /**
  * @brief KD-tree traversal stack item
  */
-template<class T, class R>
 struct KDStackItem {
 
 	/** @brief KD-Node to traverse */
-	KDNode<T, R> *node;
+	KDNode *node;
 
 	/** @brief Entry distance from ray origin */
 	float enter;
@@ -35,7 +76,7 @@ struct KDStackItem {
 	 * @param enter Entry distance from ray origin
 	 * @param exit  Exit distance from ray origin
 	 */
-	KDStackItem<T, R>(KDNode<T, R> *node, float enter, float exit)
+	KDStackItem(KDNode *node, float enter, float exit)
 		: node(node),
 		  enter(enter),
 		  exit(exit)
@@ -47,12 +88,11 @@ struct KDStackItem {
 /**
  * @brief KD-Tree
  */
-template<class T, class R>
 class KDTree {
 private:
 
 	/** @brief Root of the KD-Tree */
-	KDNode<T, R> *root;
+	KDNode *root;
 
 	/** @brief Bounding box containing the entire scene */
 	AABB sceneBounds;
@@ -66,7 +106,7 @@ private:
 	 *
 	 * @return Number of items added to contained set
 	 */
-	int countInBox(AABB box, std::vector<T *> & items, std::vector<T *> & contained)
+	int countInBox(AABB box, std::vector<PolygonAccel *> & items, std::vector<PolygonAccel *> & contained)
 	{
 		int count = 0;
 
@@ -102,8 +142,8 @@ private:
 	 * @param dir    Direction to split root
 	 * @param depth  Recursion depth
 	 */
-	KDNode<T, R> *build(AABB bounds, std::vector<T *> & items, int dir, int depth, int prevSize) {
-		KDNode<T, R> *node = new KDNode<T, R>(NULL, NULL, 0.0f, 0);
+	KDNode *build(AABB bounds, std::vector<PolygonAccel *> & items, int dir, int depth, int prevSize) {
+		KDNode *node = new KDNode(NULL, NULL, 0.0f, 0);
 
 		if (depth > 10 || items.size() < 4) {
 			// leaf if
@@ -111,7 +151,7 @@ private:
 			// 2) too deep
 
 			node->nItems = items.size();
-			node->items = new T *[node->nItems];
+			node->items = new PolygonAccel *[node->nItems];
 
 			int i = 0;
 			for (auto it = items.begin(); it != items.end(); it++)
@@ -123,17 +163,31 @@ private:
 			node->split = splitDist(bounds, dir);
 			node->dir = dir;
 
-			AABB leftBB = node->getBBoxL(bounds);
-			AABB rightBB = node->getBBoxR(bounds);
+			float splitDist;
 
-			std::vector<T *> leftItems;
-			std::vector<T *> rightItems;
+			switch(dir) {
+			case 0:
+				splitDist = node->split - bounds.min.x;
+				break;
+			case 1:
+				splitDist = node->split - bounds.min.y;
+				break;
+			case 2:
+				splitDist = node->split - bounds.min.z;
+				break;
+			}
+
+			AABB leftBB, rightBB;
+			bounds.split(splitDist, node->dir, leftBB, rightBB);
+
+			std::vector<PolygonAccel *> leftItems;
+			std::vector<PolygonAccel *> rightItems;
 
 			int countL = countInBox(leftBB, items, leftItems);
 			int countR = countInBox(rightBB, items, rightItems);
 
-			KDNode<T, R> *left  = build(leftBB, leftItems,  (dir + 1) % 3, depth + 1, items.size());
-			KDNode<T, R> *right = build(rightBB, rightItems, (dir + 1) % 3, depth + 1, items.size());
+			KDNode *left  = build(leftBB, leftItems,  (dir + 1) % 3, depth + 1, items.size());
+			KDNode *right = build(rightBB, rightItems, (dir + 1) % 3, depth + 1, items.size());
 
 			node->left  = left;
 			node->right = right;
@@ -142,25 +196,18 @@ private:
 		return node;
 	}
 
-	/**
-	 * @brief Check whether the given node is a leaf
-	 */
-	inline bool is_leaf(KDNode<T, R> *node) {
-		return node->left == NULL && node->right == NULL;
-	}
-
 	/*
 	 * Check every item in a leaf node for intersection against a given ray
 	 */
-	bool intersectLeaf(KDNode<T, R> *leaf, Ray ray, R *result, float enter,
+	bool intersectLeaf(KDNode *leaf, Ray ray, Collision *result, float enter,
 		float exit)
 	{
 		bool found = false;
 
-		R tmpResult;
+		Collision tmpResult;
 
 		for (int i = 0; i < leaf->nItems; i++) {
-			T *item = leaf->items[i];
+			PolygonAccel *item = leaf->items[i];
 
 			if (item->intersects(ray, &tmpResult, exit)) { // TODO: check
 				if (tmpResult.distance < enter || tmpResult.distance > exit) {
@@ -177,88 +224,9 @@ private:
 	}
 
 	/**
-	 * @brief Find the item closest to a point in a leaf node
-	 *
-	 * @param leaf      Leaf node to check
-	 * @param pt        Point to search near
-	 * @param maxRadius Maximum distance to item
-	 * @param dist      Will be set to the distance to the found item
-	 *
-	 * @return Found item or NULL
-	 */
-	T *leafNearest(KDNode<T, R> *leaf, Vec3 pt, float maxRadius, float *dist) {
-		T *closest = NULL;
-		float closestDist = maxRadius;
-
-		for (int i = 0; i < leaf->nItems; i++) {
-			T *item = leaf->items[i];
-
-			Vec3 p = item->getPosition();
-			Vec3 r = p - pt;
-			float len = r.len();
-
-			if (closest == NULL || len < closestDist) {
-				closestDist = len;
-				closest = item;
-			}
-		}
-
-		*dist = closestDist;
-		return closest;
-	}
-
-	/**
-	 * @brief Find the item closest to a point
-	 *
-	 * @param node      Node to search
-	 * @param pt        Point to search near
-	 * @param maxRadius Maximum distance to point
-	 * @param dist      Will be set to distance to item
-	 *
-	 * @return The nearest item or NULL
-	 */
-	T *nearestInternal(KDNode<T, R> *node, Vec3 pt, float maxRadius, float *dist) {
-		if (is_leaf(node)) {
-			return leafNearest(node, pt, maxRadius, dist);
-		}
-		else {
-			float ptR = unpack_vec(pt, node->dir);
-			
-			if (ptR + maxRadius < node->split) {
-				// left only
-				return nearestInternal(node->left, pt, maxRadius, dist);
-			}
-			else if (ptR - maxRadius > node->split) {
-				// right only
-				return nearestInternal(node->right, pt, maxRadius, dist);
-			}
-			else {
-				// both
-
-				T *left, *right;
-				float distLeft, distRight;
-
-				left  = nearestInternal(node->left,  pt, maxRadius, &distLeft);
-				right = nearestInternal(node->right, pt, distLeft , &distRight);
-
-				if (left != NULL && distLeft <= distRight) {
-					*dist = distLeft;
-					return left;
-				}
-				else if (right != NULL && distRight <= distLeft) {
-					*dist = distRight;
-					return right;
-				}
-				else
-					return NULL;
-			}
-		}
-	}
-
-	/**
 	 * @brief Compute a bounding box for a set of items
 	 */
-	AABB buildAABB(std::vector<T *> & items) {
+	AABB buildAABB(std::vector<PolygonAccel *> & items) {
 		if (items.size() == 0)
 			return AABB();
 
@@ -270,25 +238,6 @@ private:
 		return box;
 	}
 
-	/**
-	 * @brief Print a view of the tree
-	 *
-	 * @param node  Root node
-	 * @param depth Recursion depth
-	 */
-	void printInternal(KDNode<T, R> *node, int depth) {
-		for (int i = 0; i < depth; i++)
-			std::cout << "\t";
-
-		if (is_leaf(node))
-			std::cout << "Leaf: " << node->nItems << " items" << std::endl;
-		else {
-			std::cout << "Node: split=" << node->split << std::endl;
-			printInternal(node->left, depth + 1);
-			printInternal(node->right, depth + 1);
-		}
-	}
-
 public:
 
 	/**
@@ -296,7 +245,7 @@ public:
 	 *
 	 * @param items       Items to contain in the tree
 	 */
-	KDTree<T, R>(std::vector<T *> & items) {
+	KDTree(std::vector<PolygonAccel *> & items) {
 		sceneBounds = buildAABB(items);
 		root = build(sceneBounds, items, 2, 0, -1);
 	}
@@ -311,21 +260,21 @@ public:
 	 *
 	 * @return Whether a collision occured
 	 */
-	bool intersect(Ray ray, R *result, float maxDepth) {
+	bool intersect(Ray ray, Collision *result, float maxDepth) {
 		float entry, exit;
 
 		if (!sceneBounds.intersects(ray, &entry, &exit))
 			return false;
 
-		std::vector<KDStackItem<T, R>> stack;
+		std::vector<KDStackItem> stack;
 
-		KDStackItem<T, R> item(root, entry, exit);
+		KDStackItem item(root, entry, exit);
 		stack.push_back(item);
 
-		KDNode<T, R> *currentNode;
+		KDNode *currentNode;
 
 		while (stack.size() != 0) {
-			KDStackItem<T, R> top = stack[stack.size() - 1];
+			KDStackItem top = stack[stack.size() - 1];
 			stack.pop_back();
 
 			currentNode = top.node;
@@ -335,7 +284,7 @@ public:
 			if (maxDepth != 0.0f && entry > maxDepth)
 				continue;
 
-			while (!is_leaf(currentNode)) {
+			while (!(currentNode->left == NULL && currentNode->right == NULL)) {
 				int dir = currentNode->dir;
 
 				float radius = currentNode->split;
@@ -346,12 +295,12 @@ public:
 
 				float t = (radius - origin) / direction;
 				
-				KDNode<T, R> *nearNode = currentNode->left;
-				KDNode<T, R> *farNode  = currentNode->right;
+				KDNode *nearNode = currentNode->left;
+				KDNode *farNode  = currentNode->right;
 
 				if (radius < origin)
 				{
-					KDNode<T, R> *temp = nearNode;
+					KDNode *temp = nearNode;
 					nearNode = farNode;
 					farNode = temp;
 				}
@@ -361,7 +310,7 @@ public:
 				else if (t <= entry)
 					currentNode = farNode;
 				else {
-					KDStackItem<T, R> nextItem(farNode, t, exit);
+					KDStackItem nextItem(farNode, t, exit);
 					stack.push_back(nextItem);
 
 					currentNode = nearNode;
@@ -379,31 +328,6 @@ public:
 		}
 
 		return false;
-	}
-
-	/**
-	 * @brief Find the item closest to a point
-	 *
-	 * @param pt        Point to search around
-	 * @param maxRadius Maximum distance
-	 * @param dist      Will be set to distance to item
-	 *
-	 * @return The nearest item or NULL
-	 */
-	T *nearest(Vec3 pt, float maxRadius, float *dist) {
-		if (maxRadius == 0.0f) {
-			Vec3 cross = sceneBounds.max - sceneBounds.min;
-			maxRadius = cross.len();
-		}
-
-		return nearestInternal(root, pt, maxRadius, dist);
-	}
-
-	/**
-	 * @brief Print a view of the tree
-	 */
-	void print() {
-		printInternal(root, 0);
 	}
 };
 
