@@ -36,8 +36,6 @@ struct KDNode {
     /** @brief Number of items in this node's bounding box */
     int nItems;
 
-    int id;
-
     /**
      * @brief Constructor
      *
@@ -135,11 +133,12 @@ private:
 	KDNode *build(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
 		KDNode *node = new KDNode(NULL, NULL, 0.0f, 0);
 
-		if (depth >= 2 || items.size() < 4)
+		// TODO: possibly traverse after construction to remove useless cells, etc.
+
+		if (depth >= 25 || items.size() < 4)
 			buildLeaf(node, items);
 		else {
-			// not a leaf
-
+#if 0
 			std::vector<float> splits;
 
 			for (int i = 0; i < items.size(); i++) {
@@ -165,9 +164,6 @@ private:
 			float surfaceArea = bounds.surfaceArea();
 
 			for (int i = 0; i < splits.size(); i++) {
-				if (i % 1000 == 0)
-					std::cout << i << std::endl;
-
 				float split = splits[i];
 				int dir = i % 3;
 
@@ -228,6 +224,26 @@ private:
 				node->left  = left;
 				node->right = right;
 			}
+#else
+			int dir = depth % 3;
+			float min = bounds.min.get(dir);
+			float max = bounds.max.get(dir);
+
+			node->dir = dir;
+			node->split = (max - min) / 2.0f + min;
+
+			AABB leftBB, rightBB;
+			bounds.split(node->split - min, dir, leftBB, rightBB);
+
+			std::vector<PolygonAccel *> leftItems;
+			std::vector<PolygonAccel *> rightItems;
+
+			countInBox(leftBB, items, leftItems);
+			countInBox(rightBB, items, rightItems);
+
+			node->left = build(leftBB, leftItems, depth + 1);
+			node->right = build(rightBB, rightItems, depth + 1);
+#endif
 		}
 
 		return node;
@@ -252,24 +268,19 @@ private:
 	 * @brief Check every item in a leaf node for intersection against a given ray
 	 */
 	bool intersectLeaf(KDNode *leaf, Ray ray, Collision *result, float entry, float exit) {
-		bool found = false;
+		result->distance = INFINITY32F;
 
 		Collision tmpResult;
 
 		for (int i = 0; i < leaf->nItems; i++) {
 			PolygonAccel *item = leaf->items[i];
 
-			if (item->intersects(ray, &tmpResult) && tmpResult.distance >= entry &&
-				tmpResult.distance <= exit &&
-				(!found || tmpResult.distance < result->distance))
-			{
-				found = true;
+			if (item->intersects(ray, &tmpResult) && /* tmpResult.distance >= entry && */
+				tmpResult.distance <= exit && tmpResult.distance < result->distance)
 				*result = tmpResult;
-				result->KD_NODE = leaf->id;
-			}
 		}
 
-		return found;
+		return result->distance < INFINITY32F;
 	}
 
 public:
@@ -277,7 +288,7 @@ public:
 	/**
 	 * @brief Constructor, builds a KD-Tree from the given items and bounds
 	 *
-	 * @param items       Items to contain in the tree
+	 * @param items Items to contain in the tree
 	 */
 	KDTree(std::vector<PolygonAccel *> & items) {
 		sceneBounds = buildAABB(items);
@@ -322,27 +333,24 @@ public:
 			while (!(currentNode->left == NULL && currentNode->right == NULL)) {
 				int dir = currentNode->dir;
 
-				float radius = currentNode->split;
-				float origin, direction;
+				float split = currentNode->split;
+				float origin = ray.origin.get(dir);
 
-				origin    = ray.origin.get(dir);
-				direction = ray.direction.get(dir);
-
-				float t = (radius - origin) / direction;
+				float t = (split - origin) * ray.inv_direction.get(dir);
 				
 				KDNode *nearNode = currentNode->left;
 				KDNode *farNode  = currentNode->right;
 
-				if (radius < origin) {
+				if (split < origin) {
 					KDNode *temp = nearNode;
 					nearNode = farNode;
 					farNode = temp;
 				}
 
-				if (t >= exit || t < 0)
-					currentNode = nearNode;
-				else if (t <= entry)
+				if (t <= entry)
 					currentNode = farNode;
+				else if (t >= exit || t < 0)
+					currentNode = nearNode;
 				else {
 					KDStackItem nextItem(farNode, t, exit);
 					stack.push_back(nextItem);
@@ -352,6 +360,7 @@ public:
 				}
 			}
 
+			// Again, nothing will be closer so we're done
 			if (intersectLeaf(currentNode, ray, result, entry, maxDepth > 0.0f ?
 				MIN2(maxDepth, exit) : exit))
 				return true;

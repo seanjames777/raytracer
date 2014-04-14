@@ -11,7 +11,7 @@
 #define _GLIMAGEDISPLAY_H
 
 #include <defs.h>
-#include <bitmap.h>
+#include <image.h>
 
 #define GLFW_INCLUDE_GLCOREARB
 #include <glfw/glfw3.h>
@@ -77,7 +77,7 @@ private:
 	GLFWwindow *window;
 
 	/** @brief Displayed image */
-	Bitmap *image;
+	Image *image;
 
 public:
 
@@ -88,7 +88,7 @@ public:
 	 * @param height Height of the display window
 	 * @param image  Image to display
 	 */
-	GLImageDisplay(int width, int height, Bitmap *image);
+	GLImageDisplay(int width, int height, Image *image);
 
 	/**
 	 * @brief Destructor

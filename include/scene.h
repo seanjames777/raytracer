@@ -13,7 +13,7 @@
 #include <polygon.h>
 #include <light.h>
 #include <camera.h>
-#include <bitmap.h>
+#include <image.h>
 #include <material.h>
 
 /**
@@ -37,11 +37,11 @@ public:
 	/** @brief Camera */
 	Camera *camera;
 
-	/** @brief Output Bitmap */
-	Bitmap *output;
+	/** @brief Output image */
+	Image *output;
 
-	/** @brief Environment bitmap */
-	Bitmap *environment;
+	/** @brief Environment image */
+	Image *environment;
 
 	/**
 	 * @brief Constructor
@@ -49,7 +49,7 @@ public:
 	 * @param camera Camera
 	 * @param output Output image
 	 */
-	Scene(Camera *camera, Bitmap *output, Bitmap *environment);
+	Scene(Camera *camera, Image *output, Image *environment);
 
 	/**
 	 * @brief Add a polygon to the scene

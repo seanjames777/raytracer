@@ -70,20 +70,25 @@ AABB PolygonAccel::getBBox() {
 }
 
 bool PolygonAccel::intersects(Ray ray, Collision *result) {
+	// http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
+	
 	int u = modlookup[k + 1];
 	int v = modlookup[k + 2];
 
-	// Find distance to plane. Start division early.
-	const float nd = 1.0f / (ray.direction.get(k)
-		+ n_u * ray.direction.get(u) + n_v * ray.direction.get(v));
+	const float dot = (ray.direction.get(k) + n_u * ray.direction.get(u) + n_v *
+		ray.direction.get(v));
+
+	if (dot == 0.0f)
+		return false;
+
+	const float nd = 1.0f / dot;
 	const float t_plane = (n_d - ray.origin.get(k)
 		- n_u * ray.origin.get(u) - n_v * ray.origin.get(v)) * nd;
 
-	// Backfacing or parallel to ray
+	// Behind camera
 	if (t_plane <= 0.0f)
 		return false;
 
-	// Find collision
 	const float hu = ray.origin.get(u) + t_plane * ray.direction.get(u);
 	const float hv = ray.origin.get(v) + t_plane * ray.direction.get(v);
 

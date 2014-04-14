@@ -12,7 +12,7 @@
 #include <defs.h>
 #include <rtmath.h>
 #include <scene.h>
-#include <bitmap.h>
+#include <image.h>
 #include <kdtree.h>
 #include <glimagedisplay.h>
 #include <timer.h>
@@ -161,20 +161,21 @@ private:
 							if (tree->intersect(r, &result, 0.0f))
 								sampleColor = shade(r, &result, 1);
 
-							//for (int i = 0; i < scene->polys.size(); i++)
-								//if (scene->polys[i]->intersects(r, &temp, 0.0f) && temp.distance < result.distance)
-									//result = temp;
+							/*bool found = false;
+							for (int i = 0; i < scene->polys.size(); i++)
+								if (scene->polyAccels[i].intersects(r, &temp) &&
+									(temp.distance < result.distance || !found))
+								{
+									result = temp;
+									found = true;
+								}
 
-							//if (result.polygon != NULL)
-								//sampleColor = shade(&result, 1);
+							if (found)
+								sampleColor = shade(r, &result, 1);*/
 
 							color += sampleColor * sampleContrib;
 						}
 					}
-
-					color.x = SATURATE(color.x);
-					color.y = SATURATE(color.y);
-					color.z = SATURATE(color.z);
 
 					scene->output->setPixel(x, y, Vec4(color, 1.0f));
 				}
@@ -338,9 +339,9 @@ public:
 			occl_ray.direction = samples[i];
 
 			Collision occl_result;
-			if (tree->intersect(occl_ray, &occl_result, settings.occlusionSamples))
+			if (tree->intersect(occl_ray, &occl_result, settings.occlusionDistance))
 				occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance /
-					settings.occlusionSamples));
+					settings.occlusionDistance));
 		}
 
 		return occlusion;

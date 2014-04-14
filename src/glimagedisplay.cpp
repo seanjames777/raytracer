@@ -24,6 +24,9 @@ const char *ps_source =
     "uniform sampler2D textureSampler;\n"
     "void main() {\n"
     "    out_color = texture(textureSampler, var_uv);\n"
+    "    out_color.rgb *= 2.0;\n"
+    "    out_color.rgb = out_color.rgb / (1.0 + out_color.rgb);\n"
+    "    out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
     "}\n";
 
 Vec2 vertices[6] = {
@@ -36,7 +39,7 @@ Vec2 vertices[6] = {
     Vec2(1, -1)
 };
 
-GLImageDisplay::GLImageDisplay(int width, int height, Bitmap *image)
+GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
     : width(width),
       height(height),
       image(image)
@@ -51,6 +54,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, Bitmap *image)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SRGB_CAPABLE, GL_FALSE); // Handled manually
 
     if (!(window = glfwCreateWindow(width, height, "Window", NULL, NULL))) {
         printf("Error opening glfw window\n");
@@ -77,8 +81,8 @@ GLImageDisplay::GLImageDisplay(int width, int height, Bitmap *image)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image->getWidth(), image->getHeight(), 0, GL_RGB,
-        GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image->getWidth(), image->getHeight(), 0, GL_RGBA,
+        GL_FLOAT, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     GLuint vs = glCreateShader(GL_VERTEX_SHADER);
@@ -139,7 +143,7 @@ GLImageDisplay::~GLImageDisplay() {
 void GLImageDisplay::refresh() {
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->getWidth(), image->getHeight(),
-        GL_RGB, GL_UNSIGNED_BYTE, image->getPixels());
+        GL_RGBA, GL_FLOAT, image->getPixels());
 
 	glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);

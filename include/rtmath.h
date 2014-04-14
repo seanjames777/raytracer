@@ -1062,6 +1062,9 @@ struct Ray {
 	Vec3 origin;     // Origin of the ray
 	Vec3 direction;  // Direction of the ray
 
+    Vec3 inv_direction;
+    bool sign[3];
+
 	/**
 	 * Empty constructor
 	 */
@@ -1074,6 +1077,10 @@ struct Ray {
 	Ray(Vec3 origin, Vec3 direction)
 		: origin(origin), direction(direction)
 	{
+        inv_direction = Vec3(1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z);
+        sign[0] = inv_direction.x < 0.0f;
+        sign[1] = inv_direction.y < 0.0f;
+        sign[2] = inv_direction.z < 0.0f;
 	}
 
 	/*
@@ -1083,65 +1090,6 @@ struct Ray {
 	inline Vec3 at(float t) {
         Vec3 b = direction * t;
 		return origin + b;
-	}
-};
-
-/*
- * An axis aligned plane
- */
-struct AAPlane {
-
-	int direction;  // Direction of the plane's normal: (0, 1, 2) = (X, Y, Z)
-	float radius;   // Distance from the origin to the plane
-
-	/*
-	 * Empty constructor does not generate a valid plane. Only useful for
-	 * array initialization
-	 */
-	AAPlane() {
-	}
-
-	/*
-	 * Constructor specifies plane direction and distance from origin
-	 */
-	AAPlane(int Direction, float Radius) 
-		: direction(Direction), 
-		  radius(Radius)
-	{
-	}
-
-	/*
-	 * Check whether the given Ray intersects the plane and return
-	 * the intersection distance in t_out
-	 */
-	void intersects(const Ray & r, float *t_out) {
-		switch(direction) {
-		case 0: // X
-			*t_out = (radius - r.origin.x) / r.direction.x;
-			return;
-		case 1: // Y
-			*t_out = (radius - r.origin.y) / r.direction.y;
-			return;
-		case 2: // Z
-			*t_out = (radius - r.origin.z) / r.direction.z;
-			return;
-		}
-	}
-
-	/*
-	 * Get the plane's normal as a vector
-	 */
-	Vec3 normal() {
-		switch(direction) {
-		case 0: // X
-			return Vec3(1, 0, 0);
-		case 1: // Y
-			return Vec3(0, 1, 0);
-		case 2: // Z
-			return Vec3(0, 0, 1);
-		}
-
-		return Vec3(); // Shouldn't happen
 	}
 };
 
@@ -1212,36 +1160,37 @@ public:
 	 * and tmax_out
 	 */
 	bool intersects(const Ray & r, float *tmin_out, float *tmax_out) {
-		// TODO
-		float tmin, tmax;
+        // http://people.csail.mit.edu/amy/papers/box-jgt.pdf
 
-		float txmin = (min.x - r.origin.x) / r.direction.x;
-		float txmax = (max.x - r.origin.x) / r.direction.x;
-		if (txmin > txmax) swap(&txmin, &txmax);
+        float tmin, tmax, tymin, tymax, tzmin, tzmax;
 
-		float tymin = (min.y - r.origin.y) / r.direction.y;
-		float tymax = (max.y - r.origin.y) / r.direction.y;
-		if (tymin > tymax) swap(&tymin, &tymax);
+#define bounds(n) ((n) == 0 ? (min) : (max))
 
-		if (txmin > tymax || tymin > txmax) return false;
+        tmin = (bounds(r.sign[0]).x - r.origin.x) * r.inv_direction.x;
+        tmax = (bounds(1 - r.sign[0]).x - r.origin.x) * r.inv_direction.x;
 
-		tmin = MAX2(txmin, tymin);
-		tmax = MIN2(txmax, tymax);
+        tymin = (bounds(r.sign[1]).y - r.origin.y) * r.inv_direction.y;
+        tymax = (bounds(1 - r.sign[1]).y - r.origin.y) * r.inv_direction.y;
 
-		float tzmin = (min.z - r.origin.z) / r.direction.z;
-		float tzmax = (max.z - r.origin.z) / r.direction.z;
-		if (tzmin > tzmax) swap(&tzmin, &tzmax);
+        if (tmin > tymax || tymin > tmax)
+            return false;
 
-		if (tmin > tzmax || tzmin > tmax)
-			return false;
+        tmin = MAX2(tymin, tmin);
+        tmax = MIN2(tymax, tmax);
 
-		tmin = MAX2(tmin, tzmin);
-		tmax = MIN2(tmax, tzmax);
+        tzmin = (bounds(r.sign[2]).z - r.origin.z) * r.inv_direction.z;
+        tzmax = (bounds(1 - r.sign[2]).z - r.origin.z) * r.inv_direction.z;
 
-		*tmin_out = tmin;
-		*tmax_out = tmax;
+        if (tmin > tzmax || tzmin > tmax)
+            return false;
 
-		return true;
+        tmin = MAX2(tzmin, tmin);
+        tmax = MIN2(tzmax, tmax);
+
+        *tmin_out = tmin;
+        *tmax_out = tmax;
+
+        return true;
 	}
 
 	/*
@@ -1273,10 +1222,7 @@ public:
 	 * Get the center point of this bounding box
 	 */
 	Vec3 center() {
-		Vec3 ext = max - min;
-		float p5 = 0.5f;
-		ext = ext * p5;
-		return min + ext;
+		return min + (max - min) * .05f;
 	}
 
 	/*

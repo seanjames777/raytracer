@@ -64,8 +64,6 @@ struct Collision {
 	/** @brief Polygon */
 	int polygonID;
 
-	int KD_NODE;
-
 	/**
 	 * @brief Empty constructor
 	 */

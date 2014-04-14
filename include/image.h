@@ -1,18 +1,23 @@
 /**
- * @file bitmap.h
+ * @file image.h
  *
- * @brief Bitmap load/save library
+ * @brief Image load/save/processing library
  *
  * @author Sean James
  */
 
-#ifndef _BITMAP_H
-#define _BITMAP_H
+#ifndef _IMAGE_H
+#define _IMAGE_H
 
 #include <defs.h>
 #include <rtmath.h>
 
+#include <ImfInputFile.h>
+#include <ImfOutputFile.h>
+#include <ImfChannelList.h>
+
 #define S_F2I(n) (unsigned char)((n) * 255.0f)
+#define S_I2F(n) ((float)(n) / 255.0f);
 #define BI_RGB   0
 
 #pragma pack(push, 1)
@@ -51,20 +56,17 @@ typedef struct {
  * @brief Stores an array of integral pixels with between 1 and 4 components and can load and store
  * bitmaps in the .bmp format
  */
-class Bitmap {
+class Image {
 private:
 
 	/** @brief Array of pixels */
-	unsigned char *pixels;
+	float *pixels;
 
 	/** @brief Image width */
 	int width;
 
 	/** @brief Image height */
 	int height;
-
-	/** @brief Number of channels */
-	int channels;
 
 	/**
      * @brief Populate the file header
@@ -79,13 +81,12 @@ private:
 public:
 
 	/**
-	 * @brief Constructor that creates a new bitmap
+	 * @brief Constructor. All images are 32 bit floating point images for now. TODO.
 	 *
 	 * @param width    Image width
 	 * @param height   Image height
-	 * @param channels Number of channels
 	 */
-	Bitmap(int width, int height, int channels);
+	Image(int width, int height);
 
 	/**
 	 * @brief Load a bitmap from a file
@@ -94,12 +95,12 @@ public:
 	 *
 	 * @return A pointer to a new bitmap on success, or NULL on error
      */
-    static Bitmap *load(std::string filename);
+    static Image *loadBMP(std::string filename);
 
     /**
-	 * @brief Destroy the bitmap
+	 * @brief Destroy the image
 	 */
-	~Bitmap();
+	~Image();
 
     /**
      * @brief Save the image to a .bmp file
@@ -108,12 +109,21 @@ public:
      *
      * @return True on success, or false on error
      */
-    bool save(std::string filename);
+    bool saveBMP(std::string filename);
+
+    /**
+     * @brief Save the image to a .exr file
+     *
+     * @param filename EXR file to save into
+     *
+     * @return True on success, or false on error
+     */
+    bool saveEXR(std::string filename);
 
 	/**
 	 * @brief Get a pointer to the array of pixels
 	 */
-	unsigned char *getPixels();
+	float *getPixels();
 
 	/**
 	 * @brief Sample a pixel as by UV coordinate
@@ -134,26 +144,14 @@ public:
     Vec4 getPixel(Vec3 norm);
 
 	/**
-	 * @brief Get a pixel by integer coordinate
-	 */
-	void getPixel(int x, int y, unsigned char *r, unsigned char *g, unsigned char *b,
-		unsigned char *a);
-
-	/**
 	 * @brief Set a pixel
 	 */
 	void setPixel(int x, int y, Vec4 color);
 
 	/**
-	 * @brief Set a pixel
-	 */
-	void setPixel(int x, int y, unsigned char r, unsigned char g, unsigned char b,
-		unsigned char a);
-
-	/**
 	 * @brief Set all pixels
 	 */
-	void setPixels(unsigned char *data);
+	void setPixels(float *data);
 
 	/**
 	 * @brief Get the width of the image in pixels
@@ -165,10 +163,15 @@ public:
 	 */
 	int getHeight();
 
-	/**
-	 * @brief Get the number of color channels per pixel
-	 */
-	int getChannels();
+    /**
+     * @brief Apply a gamma correction to the image
+     */
+    void applyGamma(float gamma);
+
+    /**
+     * @brief Apply tone mapping to the image
+     */
+    void applyTonemapping(float exposure);
 
 };
 
