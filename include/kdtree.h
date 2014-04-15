@@ -110,7 +110,17 @@ private:
      * @param dir    Direction to split root
      * @param depth  Recursion depth
      */
-    KDNode *build(AABB bounds, std::vector<PolygonAccel *> & items, int depth);
+    KDNode *buildMean(AABB bounds, std::vector<PolygonAccel *> & items, int depth);
+
+    /**
+     * @brief Build a KD tree according to the surface area heuristic
+     *
+     * @param bounds Bounding box containing all items
+     * @param items  Items to place in tree
+     * @param dir    Direction to split root
+     * @param depth  Recursion depth
+     */
+    KDNode *buildSAH(AABB bounds, std::vector<PolygonAccel *> & items, int depth);
 
     /**
      * @brief Compute a bounding box for a set of items
