@@ -68,7 +68,7 @@ Vec3 Material::shade(Ray ray, Collision *result, Scene *scene, Raytracer *raytra
         color += (lcolor * (diffuse * geomDiffuse * ndotl) + spec) * shadow;
     }
 
-    float occlusion = raytracer->getAmbientOcclusion(result, &resultEx) * .8f + .2f;
+    float occlusion = raytracer->getAmbientOcclusion(result, &resultEx);
     color = color * occlusion;
 
     return color;
