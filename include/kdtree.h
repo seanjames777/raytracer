@@ -14,70 +14,70 @@
 #include <polygon.h>
 
 /**
- * @brief A node in a KD tree
- */
-struct KDNode {
-
-    /** @brief Left sub-tree */
-    KDNode *left;
-
-    /** @brief Right sub-tree */
-    KDNode *right;
-
-    /** @brief World-space split position of the split plane along the node's axis */
-    float split;
-
-    /** @brief Split direction (x = 0, y = 1, z = 2) */
-    int dir;
-
-    /** @brief Items contained in this (leaf-only) node */
-    PolygonAccel **items;
-
-    /** @brief Number of items in this node's bounding box */
-    int nItems;
-
-    /**
-     * @brief Constructor
-     *
-     * @param left  Left sub-tree
-     * @param right Right sub-tree
-     * @param split World-space split position of the split plane along the node's axis
-     * @param dir   Split direction (x = 0, y = 1, z = 2)
-     */
-    KDNode(KDNode *left, KDNode *right, float split, int dir);
-
-};
-
-/**
- * @brief KD-tree traversal stack item
- */
-struct KDStackItem {
-
-    /** @brief KD-Node to traverse */
-    KDNode *node;
-
-    /** @brief Entry distance from ray origin */
-    float enter;
-
-    /** @brief Exit distance from ray origin */
-    float exit;
-
-    /**
-     * @brief Constructor
-     *
-     * @param node  KD-Node to traverse
-     * @param enter Entry distance from ray origin
-     * @param exit  Exit distance from ray origin
-     */
-    KDStackItem(KDNode *node, float enter, float exit);
-
-};
-
-/**
  * @brief KD-Tree
  */
 class KDTree {
 private:
+
+    /**
+     * @brief A node in a KD tree
+     */
+    struct KDNode {
+
+        /** @brief Left sub-tree */
+        KDNode *left;
+
+        /** @brief Right sub-tree */
+        KDNode *right;
+
+        /** @brief World-space split position of the split plane along the node's axis */
+        float split;
+
+        /** @brief Split direction (x = 0, y = 1, z = 2) */
+        int dir;
+
+        /** @brief Items contained in this (leaf-only) node */
+        PolygonAccel **items;
+
+        /** @brief Number of items in this node's bounding box */
+        int nItems;
+
+        /**
+         * @brief Constructor
+         *
+         * @param left  Left sub-tree
+         * @param right Right sub-tree
+         * @param split World-space split position of the split plane along the node's axis
+         * @param dir   Split direction (x = 0, y = 1, z = 2)
+         */
+        KDNode(KDNode *left, KDNode *right, float split, int dir);
+
+    };
+
+    /**
+     * @brief KD-tree traversal stack item
+     */
+    struct KDStackItem {
+
+        /** @brief KD-Node to traverse */
+        KDNode *node;
+
+        /** @brief Entry distance from ray origin */
+        float enter;
+
+        /** @brief Exit distance from ray origin */
+        float exit;
+
+        /**
+         * @brief Constructor
+         *
+         * @param node  KD-Node to traverse
+         * @param enter Entry distance from ray origin
+         * @param exit  Exit distance from ray origin
+         */
+        KDStackItem(KDNode *node, float enter, float exit);
+
+    };
 
     /** @brief Root of the KD-Tree */
     KDNode *root;

@@ -6,7 +6,7 @@
 
 #include <kdtree.h>
 
-KDNode::KDNode(KDNode *left, KDNode *right, float split, int dir)
+KDTree::KDNode::KDNode(KDNode *left, KDNode *right, float split, int dir)
   : left(left),
     right(right),
     split(split),
@@ -16,7 +16,7 @@ KDNode::KDNode(KDNode *left, KDNode *right, float split, int dir)
 {
 }
 
-KDStackItem::KDStackItem(KDNode *node, float enter, float exit)
+KDTree::KDStackItem::KDStackItem(KDNode *node, float enter, float exit)
     : node(node),
       enter(enter),
       exit(exit)
@@ -31,7 +31,7 @@ void KDTree::partition(AABB box, std::vector<PolygonAccel *> & items,
             contained.push_back(*it);
 }
 
-KDNode *KDTree::buildLeaf(std::vector<PolygonAccel *> & items) {
+KDTree::KDNode *KDTree::buildLeaf(std::vector<PolygonAccel *> & items) {
     KDNode *node = new KDNode(NULL, NULL, 0.0f, 0);
     node->nItems = items.size();
     node->items = new PolygonAccel *[node->nItems];
@@ -43,7 +43,7 @@ KDNode *KDTree::buildLeaf(std::vector<PolygonAccel *> & items) {
     return node;
 }
 
-KDNode *KDTree::buildSAH(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
+KDTree::KDNode *KDTree::buildSAH(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
     std::vector<float> splits;
 
     for (int i = 0; i < items.size(); i++) {
@@ -130,7 +130,7 @@ KDNode *KDTree::buildSAH(AABB bounds, std::vector<PolygonAccel *> & items, int d
     }
 }
 
-KDNode *KDTree::buildMean(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
+KDTree::KDNode *KDTree::buildMean(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
     // TODO: possibly traverse after construction to remove useless cells, etc.
 
     if (depth >= 25 || items.size() < 4)
