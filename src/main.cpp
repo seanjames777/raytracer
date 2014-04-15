@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
         ss.str("");
         ss << "output/frame" << i << ".bmp";
-        output->applyTonemapping(4.0f);
+        output->applyTonemapping(2.0f);
         output->applyGamma(1.0f / 2.2f);
         output->saveBMP(ss.str());
     }

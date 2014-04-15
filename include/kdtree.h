@@ -267,7 +267,9 @@ private:
     /**
      * @brief Check every item in a leaf node for intersection against a given ray
      */
-    bool intersectLeaf(KDNode *leaf, Ray ray, Collision *result, float entry, float exit) {
+    bool intersectLeaf(KDNode *leaf, Ray ray, Collision *result, float entry, float exit,
+        bool anyCollision)
+    {
         bool found = false;
         Collision tmpResult;
 
@@ -278,6 +280,10 @@ private:
                 tmpResult.distance <= exit && (tmpResult.distance < result->distance || !found))
             {
                 *result = tmpResult;
+
+                if (anyCollision)
+                    return true;
+
                 found = true;
             }
         }
@@ -301,13 +307,14 @@ public:
      * @brief Intersect a ray against the KD-Tree, returning the closest intersecting shape and
      * collision distance
      *
-     * @param ray      Ray to test against 
-     * @param result   Will be filled with collision information
-     * @param maxDepth Maximum search distance, or 0 for any distance
+     * @param ray          Ray to test against 
+     * @param result       Will be filled with collision information
+     * @param maxDepth     Maximum search distance, or 0 for any distance
+     * @param anyCollision Whether to stop after any collision or to find the closest collision
      *
      * @return Whether a collision occured
      */
-    bool intersect(Ray ray, Collision *result, float maxDepth) {
+    bool intersect(Ray ray, Collision *result, float maxDepth, bool anyCollision) {
         float entry, exit;
 
         if (!sceneBounds.intersects(ray, &entry, &exit))
@@ -364,7 +371,7 @@ public:
 
             // Again, nothing will be closer so we're done
             if (intersectLeaf(currentNode, ray, result, entry, maxDepth > 0.0f ?
-                MIN2(maxDepth, exit) : exit))
+                MIN2(maxDepth, exit) : exit, anyCollision))
                 return true;
         }
 

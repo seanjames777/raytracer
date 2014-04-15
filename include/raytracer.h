@@ -158,7 +158,7 @@ private:
 
                             Vec3 sampleColor = getEnvironment(r.direction);
 
-                            if (tree->intersect(r, &result, 0.0f))
+                            if (tree->intersect(r, &result, 0.0f, false))
                                 sampleColor = shade(r, &result, 1);
 
                             /*bool found = false;
@@ -309,7 +309,7 @@ public:
             Ray shadow_ray(origin, dir);
 
             Collision shadow_result;
-            if (!tree->intersect(shadow_ray, &shadow_result, maxDist))
+            if (!tree->intersect(shadow_ray, &shadow_result, maxDist, true))
                 shadow += 1.0f / nSamples;
         }
 
@@ -338,7 +338,7 @@ public:
             Ray occl_ray(origin, samples[i]);
 
             Collision occl_result;
-            if (tree->intersect(occl_ray, &occl_result, settings.occlusionDistance))
+            if (tree->intersect(occl_ray, &occl_result, settings.occlusionDistance, true))
                 occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance /
                     settings.occlusionDistance));
         }
@@ -367,7 +367,7 @@ public:
             Ray ind_ray(origin, samples[i]);
 
             Collision ind_result;
-            if (tree->intersect(ind_ray, &ind_result, 50.0f))
+            if (tree->intersect(ind_ray, &ind_result, 50.0f, false))
                 color += shade(ind_ray, &ind_result, depth + 1) * (1.0f / nSamples) *
                     (1.0f - SATURATE(ind_result.distance / 50.0f));
         }
