@@ -7,24 +7,24 @@
 #include <image.h>
 
 S_BITMAPFILEHEADER Image::createBitmapFileHeader() {
-	S_BITMAPFILEHEADER fileHeader;
+    S_BITMAPFILEHEADER fileHeader;
 
-	int pixelsPerRow = width * 3;
-	pixelsPerRow = pixelsPerRow % 4 != 0 ? pixelsPerRow + 4 - (pixelsPerRow % 4) : pixelsPerRow;
+    int pixelsPerRow = width * 3;
+    pixelsPerRow = pixelsPerRow % 4 != 0 ? pixelsPerRow + 4 - (pixelsPerRow % 4) : pixelsPerRow;
 
-	fileHeader.signature = 0x4D42;
-	fileHeader.reserved1 = 0;
-	fileHeader.reserved2 = 0;
-	fileHeader.pixelArrayOffset = sizeof(S_BITMAPFILEHEADER) + sizeof(S_BITMAPINFOHEADER);
-	fileHeader.fileSize = fileHeader.pixelArrayOffset + (pixelsPerRow * height);
+    fileHeader.signature = 0x4D42;
+    fileHeader.reserved1 = 0;
+    fileHeader.reserved2 = 0;
+    fileHeader.pixelArrayOffset = sizeof(S_BITMAPFILEHEADER) + sizeof(S_BITMAPINFOHEADER);
+    fileHeader.fileSize = fileHeader.pixelArrayOffset + (pixelsPerRow * height);
 
-	return fileHeader;
+    return fileHeader;
 }
 
 S_BITMAPINFOHEADER Image::createBitmapInfoHeader() {
-	S_BITMAPINFOHEADER infoHeader;
+    S_BITMAPINFOHEADER infoHeader;
 
-	int pixelsPerRow = width * 3;
+    int pixelsPerRow = width * 3;
     pixelsPerRow = pixelsPerRow % 4 != 0 ? pixelsPerRow + 4 - (pixelsPerRow % 4) : pixelsPerRow;
 
     infoHeader.headerSize = sizeof(S_BITMAPINFOHEADER);
@@ -39,82 +39,82 @@ S_BITMAPINFOHEADER Image::createBitmapInfoHeader() {
     infoHeader.numColors = 0;
     infoHeader.numImportant = 0;
 
-	return infoHeader;
+    return infoHeader;
 }
 
 Image *Image::loadBMP(std::string filename) {
-	std::ifstream in;
-	in.open(filename.c_str(), std::ios::binary | std::ios::in);
+    std::ifstream in;
+    in.open(filename.c_str(), std::ios::binary | std::ios::in);
 
-	if (!in.is_open()) {
-		std::cout << "Error opening '" << filename << "'" << std::endl;
-		return NULL;
-	}
+    if (!in.is_open()) {
+        std::cout << "Error opening '" << filename << "'" << std::endl;
+        return NULL;
+    }
 
-	S_BITMAPFILEHEADER fileHeader;
-	S_BITMAPINFOHEADER infoHeader;
+    S_BITMAPFILEHEADER fileHeader;
+    S_BITMAPINFOHEADER infoHeader;
 
-	in.read((char *)&fileHeader, sizeof(S_BITMAPFILEHEADER));
-	in.read((char *)&infoHeader, sizeof(S_BITMAPINFOHEADER));
+    in.read((char *)&fileHeader, sizeof(S_BITMAPFILEHEADER));
+    in.read((char *)&infoHeader, sizeof(S_BITMAPINFOHEADER));
 
-	int width = infoHeader.width;
-	int height = infoHeader.height;
-	int channels = infoHeader.bitsPerPixel / 8;
+    int width = infoHeader.width;
+    int height = infoHeader.height;
+    int channels = infoHeader.bitsPerPixel / 8;
 
-	int pixelsPerRow = width * channels;
-	pixelsPerRow = pixelsPerRow % 4 != 0 ? pixelsPerRow + 4 - (pixelsPerRow % 4) : pixelsPerRow;
+    int pixelsPerRow = width * channels;
+    pixelsPerRow = pixelsPerRow % 4 != 0 ? pixelsPerRow + 4 - (pixelsPerRow % 4) : pixelsPerRow;
 
-	in.seekg(fileHeader.pixelArrayOffset, in.beg);
+    in.seekg(fileHeader.pixelArrayOffset, in.beg);
 
-	unsigned char *readPixels = new unsigned char[infoHeader.imageSize];
+    unsigned char *readPixels = new unsigned char[infoHeader.imageSize];
 
-	in.read((char *)readPixels, infoHeader.imageSize);
+    in.read((char *)readPixels, infoHeader.imageSize);
 
-	in.close();
+    in.close();
 
-	Image *bmp = new Image(width, height);
-	float *arr = bmp->getPixels();
+    Image *bmp = new Image(width, height);
+    float *arr = bmp->getPixels();
 
-	for (int y = 0; y < height; y++) {
-		int i0 = y * pixelsPerRow;
-		int o0 = y * width * 4;
+    for (int y = 0; y < height; y++) {
+        int i0 = y * pixelsPerRow;
+        int o0 = y * width * 4;
 
-		for (int x = 0; x < width; x++) {
-			int i = i0 + x * channels;
-			int o = o0 + x * 4;
+        for (int x = 0; x < width; x++) {
+            int i = i0 + x * channels;
+            int o = o0 + x * 4;
 
-			switch (channels) {
-			case 1:
-				arr[o + 0] = S_I2F(readPixels[i]);
+            switch (channels) {
+            case 1:
+                arr[o + 0] = S_I2F(readPixels[i]);
                 arr[o + 1] = S_I2F(readPixels[i]);
                 arr[o + 2] = S_I2F(readPixels[i]);
                 arr[o + 3] = 1.0f;
-				break;
-			case 3:
-				arr[o + 0] = S_I2F(readPixels[i + 2]);
-				arr[o + 1] = S_I2F(readPixels[i + 1]);
-				arr[o + 2] = S_I2F(readPixels[i + 0]);
+                break;
+            case 3:
+                arr[o + 0] = S_I2F(readPixels[i + 2]);
+                arr[o + 1] = S_I2F(readPixels[i + 1]);
+                arr[o + 2] = S_I2F(readPixels[i + 0]);
                 arr[o + 3] = 1.0f;
-				break;
-			case 4:
-				arr[o + 0] = S_I2F(readPixels[i + 2]);
-				arr[o + 1] = S_I2F(readPixels[i + 1]);
-				arr[o + 2] = S_I2F(readPixels[i + 0]);
-				arr[o + 3] = S_I2F(readPixels[i + 3]);
+                break;
+            case 4:
+                arr[o + 0] = S_I2F(readPixels[i + 2]);
+                arr[o + 1] = S_I2F(readPixels[i + 1]);
+                arr[o + 2] = S_I2F(readPixels[i + 0]);
+                arr[o + 3] = S_I2F(readPixels[i + 3]);
 
-				break;
-			}
-		}
-	}
+                break;
+            }
+        }
+    }
 
-	return bmp;
+    return bmp;
 }
 
 Image::Image(int width, int height)
-	: width(width),
+    : width(width),
       height(height)
 {
-	pixels = new float[width * height * 4];
+    pixels = new float[width * height * 4];
 
     for (int y = 0; y < height; y++)
         for (int x = 0; x < width; x++) {
@@ -128,11 +128,11 @@ Image::Image(int width, int height)
 }
 
 Image::~Image() {
-	delete [] pixels;
+    delete [] pixels;
 }
 
 bool Image::saveBMP(std::string filename) {
-	int pixelsPerRow = width * 3;
+    int pixelsPerRow = width * 3;
     int pad = pixelsPerRow % 4 != 0 ? 4 - (pixelsPerRow % 4) : 0;
 
     char *padArr = new char[pad];
@@ -198,15 +198,15 @@ bool Image::saveEXR(std::string filename) {
 }
 
 Vec4 Image::getPixel(Vec2 uv) {
-	uv.x = uv.x - (int)uv.x;
-	uv.y = uv.y - (int)uv.y;
-	
-	int x = (int)(uv.x * (width - 1));
-	int y = (int)(uv.y * (height - 1));
+    uv.x = uv.x - (int)uv.x;
+    uv.y = uv.y - (int)uv.y;
+    
+    int x = (int)(uv.x * (width - 1));
+    int y = (int)(uv.y * (height - 1));
 
     // TODO: real filtering
 
-	return getPixel(x, y);
+    return getPixel(x, y);
 }
 
 Vec4 Image::getPixel(Vec3 norm) {
@@ -217,16 +217,16 @@ Vec4 Image::getPixel(Vec3 norm) {
 }
 
 Vec4 Image::getPixel(int x, int y) {
-	int i = (y * width + x) * 4;
+    int i = (y * width + x) * 4;
 
-	Vec4 color;
+    Vec4 color;
 
-	color.x = pixels[i + 0];
-	color.y = pixels[i + 1];
-	color.z = pixels[i + 2];
-	color.w = pixels[i + 3];
+    color.x = pixels[i + 0];
+    color.y = pixels[i + 1];
+    color.z = pixels[i + 2];
+    color.w = pixels[i + 3];
 
-	return color;
+    return color;
 }
 
 float *Image::getPixels() {
@@ -234,25 +234,25 @@ float *Image::getPixels() {
 }
 
 void Image::setPixel(int x, int y, Vec4 color) {
-	int i = (y * width + x) * 4;
+    int i = (y * width + x) * 4;
 
-	pixels[i + 0] = color.x;
-	pixels[i + 1] = color.y;
-	pixels[i + 2] = color.z;
-	pixels[i + 3] = color.w;
+    pixels[i + 0] = color.x;
+    pixels[i + 1] = color.y;
+    pixels[i + 2] = color.z;
+    pixels[i + 3] = color.w;
 }
 
 void Image::setPixels(float *data) {
-	size_t sz = width * 4 * height * sizeof(float);
-	memcpy(this->pixels, data, sz);
+    size_t sz = width * 4 * height * sizeof(float);
+    memcpy(this->pixels, data, sz);
 }
 
 int Image::getWidth() {
-	return width;
+    return width;
 }
 
 int Image::getHeight() {
-	return height;
+    return height;
 }
 
 void Image::applyGamma(float gamma) {

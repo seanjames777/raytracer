@@ -7,114 +7,114 @@
 #include <camera.h>
 
 void Camera::refresh() {
-	forward = target - position;
-	forward.normalize();
+    forward = target - position;
+    forward.normalize();
 
-	Vec3 gup = Vec3(0, 1, 0);
+    Vec3 gup = Vec3(0, 1, 0);
 
-	right = -forward.cross(gup);
-	right.normalize();
+    right = -forward.cross(gup);
+    right.normalize();
 
-	up = right.cross(forward);
-	up.normalize();
+    up = right.cross(forward);
+    up.normalize();
 
-	halfWidth  = tanf(fov / 2.0f) * focus;
-	halfHeight = halfWidth / aspect;
+    halfWidth  = tanf(fov / 2.0f) * focus;
+    halfHeight = halfWidth / aspect;
 }
 
 Camera::Camera(const Vec3 position, const Vec3 target, float aspect, float fov, float focus,
-	float aperture)
-	: position(position),
-	  target(target),
-	  aspect(aspect),
-	  fov(fov),
-	  focus(focus),
-	  aperture(aperture)
+    float aperture)
+    : position(position),
+      target(target),
+      aspect(aspect),
+      fov(fov),
+      focus(focus),
+      aperture(aperture)
 {
-	refresh();
+    refresh();
 }
 
 Ray Camera::getViewRay(float u, float v) {
-	float x = u * 2.0f - 1.0f;
-	float y = v * 2.0f - 1.0f;
+    float x = u * 2.0f - 1.0f;
+    float y = v * 2.0f - 1.0f;
 
-	Vec3 rightAmt = right * halfWidth  * x;
-	Vec3 upAmt    = up    * halfHeight * y;
+    Vec3 rightAmt = right * halfWidth  * x;
+    Vec3 upAmt    = up    * halfHeight * y;
 
-	Vec3 targ = forward * focus + rightAmt + upAmt;
-	Vec3 orig = position;
+    Vec3 targ = forward * focus + rightAmt + upAmt;
+    Vec3 orig = position;
 
-	if (aperture > 0.0f) {
-		Vec2 rCirc = randCircle(aperture);
+    if (aperture > 0.0f) {
+        Vec2 rCirc = randCircle(aperture);
 
-		orig = right * rCirc.x + up * rCirc.y;
-		targ = targ - orig;
+        orig = right * rCirc.x + up * rCirc.y;
+        targ = targ - orig;
 
-		orig = orig + position;
-	}
+        orig = orig + position;
+    }
 
-	targ.normalize();
+    targ.normalize();
 
-	return Ray(orig, targ);
+    return Ray(orig, targ);
 }
 
 Vec3 Camera::getPosition() {
-	return position;
+    return position;
 }
 
 void Camera::setPosition(const Vec3 position) {
-	this->position = position;
-	refresh();
+    this->position = position;
+    refresh();
 }
 
 Vec3 Camera::getForward() {
-	return forward;
+    return forward;
 }
 
 Vec3 Camera::getRight() {
-	return right;
+    return right;
 }
 
 Vec3 Camera::getUp() {
-	return up;
+    return up;
 }
 
 Vec3 Camera::getTarget() {
-	return target;
+    return target;
 }
 
 float Camera::getFOV() {
-	return fov;
+    return fov;
 }
 
 void Camera::setFOV(float fov) {
-	this->fov = fov;
-	refresh();
+    this->fov = fov;
+    refresh();
 }
 
 float Camera::getAspectRatio() {
-	return aspect;
+    return aspect;
 }
 
 void Camera::setAspectRatio(float aspectRatio) {
-	this->aspect = aspectRatio;
-	refresh();
+    this->aspect = aspectRatio;
+    refresh();
 }
 
 float Camera::getFocalLength() {
-	return focus;
+    return focus;
 }
 
 void Camera::setFocalLength(float focus) {
-	this->focus = focus;
-	refresh();
+    this->focus = focus;
+    refresh();
 }
 
 float Camera::getAperture() {
-	return aperture;
+    return aperture;
 }
 
 void Camera::setAperture(float aperture) {
-	this->aperture = aperture;
-	refresh();
+    this->aperture = aperture;
+    refresh();
 }

@@ -55,50 +55,50 @@ inline const char *getErrorString(GLenum error) {
 class GLImageDisplay {
 private:
 
-	/** @brief OpenGL texture */
-	GLuint texture;
+    /** @brief OpenGL texture */
+    GLuint texture;
 
-	/** @brief Shader program */
-	GLuint shaders;
+    /** @brief Shader program */
+    GLuint shaders;
 
-	/** @brief Vertex buffer */
-	GLuint vb;
+    /** @brief Vertex buffer */
+    GLuint vb;
 
-	/** @brief Vertex array object */
-	GLuint va;
+    /** @brief Vertex array object */
+    GLuint va;
 
-	/** @brief Window width */
-	int width;
+    /** @brief Window width */
+    int width;
 
-	/** @brief Window height */
-	int height;
+    /** @brief Window height */
+    int height;
 
-	/** @brief GLFW window */
-	GLFWwindow *window;
+    /** @brief GLFW window */
+    GLFWwindow *window;
 
-	/** @brief Displayed image */
-	Image *image;
+    /** @brief Displayed image */
+    Image *image;
 
 public:
 
-	/**
-	 * @brief Constructor
-	 *
-	 * @param width  Width of the display window
-	 * @param height Height of the display window
-	 * @param image  Image to display
-	 */
-	GLImageDisplay(int width, int height, Image *image);
+    /**
+     * @brief Constructor
+     *
+     * @param width  Width of the display window
+     * @param height Height of the display window
+     * @param image  Image to display
+     */
+    GLImageDisplay(int width, int height, Image *image);
 
-	/**
-	 * @brief Destructor
-	 */
-	~GLImageDisplay();
+    /**
+     * @brief Destructor
+     */
+    ~GLImageDisplay();
 
-	/**
-	 * @brief Copy the image into GPU memory and refresh the display output
-	 */
-	void refresh();
+    /**
+     * @brief Copy the image into GPU memory and refresh the display output
+     */
+    void refresh();
 
 };
 

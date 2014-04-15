@@ -8,69 +8,68 @@
 #include <raytracer.h>
 
 Material::Material(Vec3 ambient, Vec3 diffuse, Vec3 specular, float specularPower,
-	float reflection, float refraction, float ior)
-	: ambient(ambient),
-	  diffuse(diffuse),
-	  specular(specular),
-	  specularPower(specularPower),
-	  reflection(reflection),
-	  refraction(refraction),
-	  ior(ior)
+    float reflection, float refraction, float ior)
+    : ambient(ambient),
+      diffuse(diffuse),
+      specular(specular),
+      specularPower(specularPower),
+      reflection(reflection),
+      refraction(refraction),
+      ior(ior)
 {
 }
 
 Vec3 Material::shade(Ray ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
-	//float k = SATURATE((result->distance - 10.0f) / (30.0f - 10.0f));
-	//return Vec3(k, k, k);
-	CollisionEx resultEx;
-	scene->polys[result->polygonID].getCollisionEx(ray, result, &resultEx, true);
+    CollisionEx resultEx;
+    scene->polys[result->polygonID].getCollisionEx(ray, result, &resultEx, true);
 
-	Vec3 color = Vec3(0, 0, 0);
-	color += ambient;
+    //return resultEx.normal;
 
-	Vec3 reflection = Vec3(0, 0, 0);
+    Vec3 color = Vec3(0, 0, 0);
+    color += ambient;
 
-	if (this->reflection > 0.0f)
-		reflection = raytracer->getEnvironmentReflection(result, &resultEx) * this->reflection;
+    Vec3 reflection = Vec3(0, 0, 0);
 
-	Vec3 refraction = Vec3(0, 0, 0);
+    if (this->reflection > 0.0f)
+        reflection = raytracer->getEnvironmentReflection(result, &resultEx) * this->reflection;
 
-	if (this->refraction > 0.0f)
-		refraction = raytracer->getEnvironmentRefraction(result, ior, &resultEx) * this->refraction;
+    Vec3 refraction = Vec3(0, 0, 0);
 
-	float schlick = 1.0f;
+    if (this->refraction > 0.0f)
+        refraction = raytracer->getEnvironmentRefraction(result, ior, &resultEx) * this->refraction;
 
-	if (this->reflection > 0.0f && this->refraction > 0.0f)
-		schlick = Vec3::schlick(-resultEx.ray.direction, resultEx.normal, 1.0f, ior);
+    float schlick = 1.0f;
 
-	color += refraction * (1.0f - schlick) + reflection * schlick;
+    if (this->reflection > 0.0f && this->refraction > 0.0f)
+        schlick = Vec3::schlick(-resultEx.ray.direction, resultEx.normal, 1.0f, ior);
 
-	//color += raytracer->getIndirectLighting(result, &resultEx, depth);
+    color += refraction * (1.0f - schlick) + reflection * schlick;
 
-	Vec3 geomDiffuse = Vec3(resultEx.color.x, resultEx.color.y, resultEx.color.z);
+    //color += raytracer->getIndirectLighting(result, &resultEx, depth);
 
-	for (auto it = scene->lights.begin(); it != scene->lights.end(); it++) {
-		Light *light = *it;
-		float shadow = raytracer->getShadow(result, &resultEx, light);
-		shadow = 1.0f;
+    Vec3 geomDiffuse = Vec3(resultEx.color.x, resultEx.color.y, resultEx.color.z);
 
-		Vec3 lcolor =  light->getColor(resultEx.position);
-		Vec3  ldir  = -light->getDirection(resultEx.position);
+    for (auto it = scene->lights.begin(); it != scene->lights.end(); it++) {
+        Light *light = *it;
+        float shadow = raytracer->getShadow(result, &resultEx, light) * .8f + .2f;
 
-		float ndotl =  SATURATE(resultEx.normal.dot(ldir));
+        Vec3 lcolor =  light->getColor(resultEx.position);
+        Vec3  ldir  = -light->getDirection(resultEx.position);
 
-		Vec3  view  =  resultEx.ray.direction;
-		Vec3  ref   =  ldir.reflect(resultEx.normal);
+        float ndotl =  SATURATE(resultEx.normal.dot(ldir));
 
-		float rdotv =  SATURATE(ref.dot(view));
-		float specf =  powf(rdotv, specularPower);
-		Vec3 spec  =  specular * specf;
+        Vec3  view  =  resultEx.ray.direction;
+        Vec3  ref   =  ldir.reflect(resultEx.normal);
 
-		color += (lcolor * (diffuse * geomDiffuse * ndotl) + spec) * shadow;
-	}
+        float rdotv =  SATURATE(ref.dot(view));
+        float specf =  powf(rdotv, specularPower);
+        Vec3 spec  =  specular * specf;
 
-	float occlusion = raytracer->getAmbientOcclusion(result, &resultEx);
-	//color = color * occlusion;
+        color += (lcolor * (diffuse * geomDiffuse * ndotl) + spec) * shadow;
+    }
 
-	return color;
+    float occlusion = raytracer->getAmbientOcclusion(result, &resultEx) * .8f + .2f;
+    color = color * occlusion;
+
+    return color;
 }

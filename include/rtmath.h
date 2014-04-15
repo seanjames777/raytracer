@@ -1059,38 +1059,34 @@ struct Mat4x4 {
  */
 struct Ray {
 
-	Vec3 origin;     // Origin of the ray
-	Vec3 direction;  // Direction of the ray
+    Vec3 origin;        // Origin of the ray
+    Vec3 direction;     // Direction of the ray
+    Vec3 inv_direction; // 1 / ray direction
 
-    Vec3 inv_direction;
-    bool sign[3];
+    /**
+     * Empty constructor
+     */
+    Ray() {
+    }
 
-	/**
-	 * Empty constructor
-	 */
-	Ray() {
-	}
+    /*
+     * Constructor accepts an origin and a direction
+     */
+    Ray(Vec3 origin, Vec3 direction)
+        : origin(origin),
+          direction(direction),
+          inv_direction(Vec3(1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z))
+    {
+    }
 
-	/*
-	 * Constructor accepts an origin and a direction
-	 */
-	Ray(Vec3 origin, Vec3 direction)
-		: origin(origin), direction(direction)
-	{
-        inv_direction = Vec3(1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z);
-        sign[0] = inv_direction.x < 0.0f;
-        sign[1] = inv_direction.y < 0.0f;
-        sign[2] = inv_direction.z < 0.0f;
-	}
-
-	/*
-	 * Get the point a distance t from the origin in the direction
-	 * 'direction'
-	 */
-	inline Vec3 at(float t) {
+    /*
+     * Get the point a distance t from the origin in the direction
+     * 'direction'
+     */
+    inline Vec3 at(float t) {
         Vec3 b = direction * t;
-		return origin + b;
-	}
+        return origin + b;
+    }
 };
 
 /*
@@ -1099,139 +1095,139 @@ struct Ray {
 struct AABB {
 private:
 
-	/*
-	 * Swap the 32 bit floating point numbers at two locations
-	 */
-	inline void swap(float *a, float *b) {
-		float temp = *a;
-		*a = *b;
-		*b = temp;
-	}
+    /*
+     * Swap the 32 bit floating point numbers at two locations
+     */
+    inline void swap(float *a, float *b) {
+        float temp = *a;
+        *a = *b;
+        *b = temp;
+    }
 
 public:
 
-	Vec3 min;  // The minimum point of the AABB
-	Vec3 max;  // The maximum point of the AABB
+    Vec3 min;  // The minimum point of the AABB
+    Vec3 max;  // The maximum point of the AABB
 
-	/*
-	 * Empty constructor does not generate a valid bounding box,
-	 * only useful for array initialization
-	 */
-	AABB()
-	{
-	}
+    /*
+     * Empty constructor does not generate a valid bounding box,
+     * only useful for array initialization
+     */
+    AABB()
+    {
+    }
 
-	/*
-	 * Constructor accepts minimum and maximum points
-	 */
-	AABB(const Vec3 & Min, const Vec3 & Max) 
-		: min(Min), max(Max)
-	{
-		join(Min);
-		join(Max);
-	}
+    /*
+     * Constructor accepts minimum and maximum points
+     */
+    AABB(const Vec3 & Min, const Vec3 & Max) 
+        : min(Min), max(Max)
+    {
+        join(Min);
+        join(Max);
+    }
 
-	/*
-	 * Add a point to the bounding box, adjusting the min and
-	 * max points as necessary
-	 */
-	void join(const Vec3 & pt) {
-		min.x = MIN2(min.x, pt.x);
-		min.y = MIN2(min.y, pt.y);
-		min.z = MIN2(min.z, pt.z);
+    /*
+     * Add a point to the bounding box, adjusting the min and
+     * max points as necessary
+     */
+    void join(const Vec3 & pt) {
+        min.x = MIN2(min.x, pt.x);
+        min.y = MIN2(min.y, pt.y);
+        min.z = MIN2(min.z, pt.z);
 
-		max.x = MAX2(max.x, pt.x);
-		max.y = MAX2(max.y, pt.y);
-		max.z = MAX2(max.z, pt.z);
-	}
+        max.x = MAX2(max.x, pt.x);
+        max.y = MAX2(max.y, pt.y);
+        max.z = MAX2(max.z, pt.z);
+    }
 
-	/*
-	 * Add the range specified by another bounding box, adjusting
-	 * the min and max points as necessary
-	 */
-	void join(const AABB & box) {
-		join(box.min);
-		join(box.max);
-	}
+    /*
+     * Add the range specified by another bounding box, adjusting
+     * the min and max points as necessary
+     */
+    void join(const AABB & box) {
+        join(box.min);
+        join(box.max);
+    }
 
-	/*
-	 * Check whether the given ray intersects this AABB, setting
-	 * the nearest and farthest intersection points in tmin_out
-	 * and tmax_out
-	 */
-	bool intersects(const Ray & r, float *tmin_out, float *tmax_out) {
+    /*
+     * Check whether the given ray intersects this AABB, setting
+     * the nearest and farthest intersection points in tmin_out
+     * and tmax_out
+     */
+    bool intersects(const Ray & r, float *tmin_out, float *tmax_out) {
         // http://people.csail.mit.edu/amy/papers/box-jgt.pdf
 
-        float tmin, tmax, tymin, tymax, tzmin, tzmax;
+        float tmin, tmax;
 
-#define bounds(n) ((n) == 0 ? (min) : (max))
+        float txmin = (min.x - r.origin.x) * r.inv_direction.x;
+        float txmax = (max.x - r.origin.x) * r.inv_direction.x;
+        if (txmin > txmax) swap(&txmin, &txmax);
 
-        tmin = (bounds(r.sign[0]).x - r.origin.x) * r.inv_direction.x;
-        tmax = (bounds(1 - r.sign[0]).x - r.origin.x) * r.inv_direction.x;
+        float tymin = (min.y - r.origin.y) * r.inv_direction.y;
+        float tymax = (max.y - r.origin.y) * r.inv_direction.y;
+        if (tymin > tymax) swap(&tymin, &tymax);
 
-        tymin = (bounds(r.sign[1]).y - r.origin.y) * r.inv_direction.y;
-        tymax = (bounds(1 - r.sign[1]).y - r.origin.y) * r.inv_direction.y;
+        if (txmin > tymax || tymin > txmax) return false;
 
-        if (tmin > tymax || tymin > tmax)
-            return false;
+        tmin = MAX2(txmin, tymin);
+        tmax = MIN2(txmax, tymax);
 
-        tmin = MAX2(tymin, tmin);
-        tmax = MIN2(tymax, tmax);
-
-        tzmin = (bounds(r.sign[2]).z - r.origin.z) * r.inv_direction.z;
-        tzmax = (bounds(1 - r.sign[2]).z - r.origin.z) * r.inv_direction.z;
+        float tzmin = (min.z - r.origin.z) * r.inv_direction.z;
+        float tzmax = (max.z - r.origin.z) * r.inv_direction.z;
+        if (tzmin > tzmax) swap(&tzmin, &tzmax);
 
         if (tmin > tzmax || tzmin > tmax)
             return false;
 
-        tmin = MAX2(tzmin, tmin);
-        tmax = MIN2(tzmax, tmax);
+        tmin = MAX2(tmin, tzmin);
+        tmax = MIN2(tmax, tzmax);
 
         *tmin_out = tmin;
         *tmax_out = tmax;
 
         return true;
-	}
+    }
 
-	/*
-	 * Whether this AABB contains a given point
-	 */
-	bool contains(const Vec3 & vec) {
-		return (vec.x >= min.x && vec.x <= max.x && 
-			    vec.y >= min.y && vec.y <= max.y && 
-				vec.z >= min.z && vec.z <= max.z);
-	}
+    /*
+     * Whether this AABB contains a given point
+     */
+    bool contains(const Vec3 & vec) {
+        return (vec.x >= min.x && vec.x <= max.x && 
+                vec.y >= min.y && vec.y <= max.y && 
+                vec.z >= min.z && vec.z <= max.z);
+    }
 
-	/*
-	 * Whether this bounding box overlaps another at all
-	 */
-	bool intersectsBbox(const AABB & other) {
-		if (other.min.x > max.x || other.max.x < min.x)
-			return false;
+    /*
+     * Whether this bounding box overlaps another at all
+     */
+    bool intersectsBbox(const AABB & other) {
+        if (other.min.x > max.x || other.max.x < min.x)
+            return false;
 
-		if (other.min.y > max.y || other.max.y < min.y)
-			return false;
+        if (other.min.y > max.y || other.max.y < min.y)
+            return false;
 
-		if (other.min.z > max.z || other.max.z < min.z)
-			return false;
+        if (other.min.z > max.z || other.max.z < min.z)
+            return false;
 
-		return true;
-	}
+        return true;
+    }
 
-	/*
-	 * Get the center point of this bounding box
-	 */
-	Vec3 center() {
-		return min + (max - min) * .05f;
-	}
+    /*
+     * Get the center point of this bounding box
+     */
+    Vec3 center() {
+        return min + (max - min) * .05f;
+    }
 
-	/*
-	 * Calculate the surface area of this bounding box
-	 */
-	float surfaceArea() {
-		Vec3 ext = max - min;
-		return 2 * (ext.x * ext.y + ext.x * ext.z + ext.y * ext.z);
-	}
+    /*
+     * Calculate the surface area of this bounding box
+     */
+    float surfaceArea() {
+        Vec3 ext = max - min;
+        return 2 * (ext.x * ext.y + ext.x * ext.z + ext.y * ext.z);
+    }
 
     /*
      * Split the bounding box
@@ -1260,12 +1256,12 @@ public:
  * A tuple containing two 32 bit integers
  */
 struct int2 {
-	int x, y;
+    int x, y;
 
-	int2(int X, int Y)
-		: x(X), y(Y)
-	{
-	}
+    int2(int X, int Y)
+        : x(X), y(Y)
+    {
+    }
 };
 
 // TODO

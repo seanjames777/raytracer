@@ -59,16 +59,16 @@ typedef struct {
 class Image {
 private:
 
-	/** @brief Array of pixels */
-	float *pixels;
+    /** @brief Array of pixels */
+    float *pixels;
 
-	/** @brief Image width */
-	int width;
+    /** @brief Image width */
+    int width;
 
-	/** @brief Image height */
-	int height;
+    /** @brief Image height */
+    int height;
 
-	/**
+    /**
      * @brief Populate the file header
      */
     S_BITMAPFILEHEADER createBitmapFileHeader();
@@ -80,27 +80,27 @@ private:
 
 public:
 
-	/**
-	 * @brief Constructor. All images are 32 bit floating point images for now. TODO.
-	 *
-	 * @param width    Image width
-	 * @param height   Image height
-	 */
-	Image(int width, int height);
+    /**
+     * @brief Constructor. All images are 32 bit floating point images for now. TODO.
+     *
+     * @param width    Image width
+     * @param height   Image height
+     */
+    Image(int width, int height);
 
-	/**
-	 * @brief Load a bitmap from a file
-	 *
-	 * @param filename BMP file to load
-	 *
-	 * @return A pointer to a new bitmap on success, or NULL on error
+    /**
+     * @brief Load a bitmap from a file
+     *
+     * @param filename BMP file to load
+     *
+     * @return A pointer to a new bitmap on success, or NULL on error
      */
     static Image *loadBMP(std::string filename);
 
     /**
-	 * @brief Destroy the image
-	 */
-	~Image();
+     * @brief Destroy the image
+     */
+    ~Image();
 
     /**
      * @brief Save the image to a .bmp file
@@ -120,20 +120,20 @@ public:
      */
     bool saveEXR(std::string filename);
 
-	/**
-	 * @brief Get a pointer to the array of pixels
-	 */
-	float *getPixels();
+    /**
+     * @brief Get a pointer to the array of pixels
+     */
+    float *getPixels();
 
-	/**
-	 * @brief Sample a pixel as by UV coordinate
-	 */
-	Vec4 getPixel(Vec2 uv);
+    /**
+     * @brief Sample a pixel as by UV coordinate
+     */
+    Vec4 getPixel(Vec2 uv);
 
-	/**
-	 * @brief Get a pixel by integer coordinate
-	 */
-	Vec4 getPixel(int x, int y);
+    /**
+     * @brief Get a pixel by integer coordinate
+     */
+    Vec4 getPixel(int x, int y);
 
     /**
      * @brief Sample a pixel by direction vector, assuming the image is an equirectangular
@@ -143,25 +143,25 @@ public:
      */
     Vec4 getPixel(Vec3 norm);
 
-	/**
-	 * @brief Set a pixel
-	 */
-	void setPixel(int x, int y, Vec4 color);
+    /**
+     * @brief Set a pixel
+     */
+    void setPixel(int x, int y, Vec4 color);
 
-	/**
-	 * @brief Set all pixels
-	 */
-	void setPixels(float *data);
+    /**
+     * @brief Set all pixels
+     */
+    void setPixels(float *data);
 
-	/**
-	 * @brief Get the width of the image in pixels
-	 */
-	int getWidth();
+    /**
+     * @brief Get the width of the image in pixels
+     */
+    int getWidth();
 
-	/**
-	 * @brief Get the height of the image in pixels
-	 */
-	int getHeight();
+    /**
+     * @brief Get the height of the image in pixels
+     */
+    int getHeight();
 
     /**
      * @brief Apply a gamma correction to the image

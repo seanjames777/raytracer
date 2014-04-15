@@ -19,30 +19,30 @@
 class Timer {
 private:
 
-	/** @brief Time the timer was started */
-	timeval startTime;
+    /** @brief Time the timer was started */
+    timeval startTime;
 
 public:
 
-	/**
-	 * @brief Constructor
-	 */
-	Timer();
+    /**
+     * @brief Constructor
+     */
+    Timer();
 
-	/**
-	 * @brief Reset the timer
-	 */
-	void reset();
+    /**
+     * @brief Reset the timer
+     */
+    void reset();
 
-	/**
-	 * @brief Get the difference between the stop and start times in milliseconds
-	 */
-	double getElapsedMilliseconds();
+    /**
+     * @brief Get the difference between the stop and start times in milliseconds
+     */
+    double getElapsedMilliseconds();
 
-	/**
-	 * @brief Get the total CPU time used by the process in milliseconds
-	 */
-	double getCPUTime();
+    /**
+     * @brief Get the total CPU time used by the process in milliseconds
+     */
+    double getCPUTime();
 
 };
 

@@ -133,7 +133,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
 }
 
 GLImageDisplay::~GLImageDisplay() {
-	glfwTerminate();
+    glfwTerminate();
 }
 
 /*
@@ -145,8 +145,8 @@ void GLImageDisplay::refresh() {
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->getWidth(), image->getHeight(),
         GL_RGBA, GL_FLOAT, image->getPixels());
 
-	glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shaders);
     glBindVertexArray(va);
@@ -154,16 +154,16 @@ void GLImageDisplay::refresh() {
     glBindBuffer(GL_ARRAY_BUFFER, vb);
     glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0);
 
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glDisableVertexAttribArray(0);
     glUseProgram(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
 
     GLCHECK();
 
-	glfwSwapBuffers(window);
+    glfwSwapBuffers(window);
     glfwPollEvents();
 }

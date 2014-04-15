@@ -17,65 +17,65 @@
 class PointLight : public Light {
 private:
 
-	/** @brief Position */
-	Vec3  position;
+    /** @brief Position */
+    Vec3  position;
 
-	/** @brief Color */
-	Vec3 color;
+    /** @brief Color */
+    Vec3 color;
 
-	/** @brief Radius */
-	float radius;
+    /** @brief Radius */
+    float radius;
 
-	/** @brief Squared range */
-	float range2;
+    /** @brief Squared range */
+    float range2;
 
-	/** @brief Exponent of falloff curve */
-	float power;
+    /** @brief Exponent of falloff curve */
+    float power;
 
-	/** @brief Whether this light casts shadows */
-	bool shadow;
+    /** @brief Whether this light casts shadows */
+    bool shadow;
 
 public:
 
-	/**
-	 * @brief Constructor
-	 *
-	 * @param position Position of the light
-	 * @param color    Color of the light
-	 * @param radius   Radius of the light. 0 for a point light.
-	 * @param range    Maximum lit distance for falloff curve
-	 * @param power    Exponent of the falloff curve
-	 * @param shadow   Whether this light casts shadows
-	 */
-	PointLight(Vec3 position, Vec3 color, float radius, float range, float power, bool shadow);
+    /**
+     * @brief Constructor
+     *
+     * @param position Position of the light
+     * @param color    Color of the light
+     * @param radius   Radius of the light. 0 for a point light.
+     * @param range    Maximum lit distance for falloff curve
+     * @param power    Exponent of the falloff curve
+     * @param shadow   Whether this light casts shadows
+     */
+    PointLight(Vec3 position, Vec3 color, float radius, float range, float power, bool shadow);
 
-	/**
-	 * @brief Get the direction of the point light at a given point
-	 */
-	Vec3 getDirection(Vec3 pos);
+    /**
+     * @brief Get the direction of the point light at a given point
+     */
+    Vec3 getDirection(Vec3 pos);
 
-	/**
-	 * @brief Get the color of the point light at a given point
-	 */
-	Vec3 getColor(Vec3 pos);
+    /**
+     * @brief Get the color of the point light at a given point
+     */
+    Vec3 getColor(Vec3 pos);
 
-	/**
-	 * @brief Whether this point light casts shadows
-	 */
-	bool castsShadows();
+    /**
+     * @brief Whether this point light casts shadows
+     */
+    bool castsShadows();
 
-	/**
-	 * @brief Get the direction of a set of shadow testing rays. Samples are added to a vector to
-	 * allow for stratefied sampling and to allow lights to return variable numbers of samples.
-	 * Note that the number of samples returned may not be the same as nSamples. For example, a
-	 * point light with no radius does not need more than one sample, while stratification requires
-	 * perfect square numbers of samples.
-	 *
-	 * @param at       Location to sample from
-	 * @param samples  Vector of samples to add to
-	 * @param nSamples Number of samples to compute
-	 */
-	void getShadowDir(Vec3 at, std::vector<Vec3> & samples, int nSamples);
+    /**
+     * @brief Get the direction of a set of shadow testing rays. Samples are added to a vector to
+     * allow for stratefied sampling and to allow lights to return variable numbers of samples.
+     * Note that the number of samples returned may not be the same as nSamples. For example, a
+     * point light with no radius does not need more than one sample, while stratification requires
+     * perfect square numbers of samples.
+     *
+     * @param at       Location to sample from
+     * @param samples  Vector of samples to add to
+     * @param nSamples Number of samples to compute
+     */
+    void getShadowDir(Vec3 at, std::vector<Vec3> & samples, int nSamples);
 
 };
 
