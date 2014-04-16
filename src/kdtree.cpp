@@ -23,41 +23,42 @@ KDTree::KDStackItem::KDStackItem(KDNode *node, float enter, float exit)
 {
 }
 
-void KDTree::partition(AABB box, std::vector<PolygonAccel *> & items,
-    std::vector<PolygonAccel *> & contained)
+KDTree::SAHEvent::SAHEvent(float position, EVENTTYPE type, PolygonAccel *poly)
+    : position(position),
+      type(type),
+      poly(poly)
 {
-    for (auto it = items.begin(); it != items.end(); it++)
-        if (box.intersectsBbox((*it)->getBBox()))
-            contained.push_back(*it);
 }
 
-KDTree::KDNode *KDTree::buildLeaf(std::vector<PolygonAccel *> & items) {
-    KDNode *node = new KDNode(NULL, NULL, 0.0f, 0);
-    node->nItems = items.size();
-    node->items = new PolygonAccel *[node->nItems];
+#if 0
+void KDTree::partitionSAH(std::vector<SAHEvent> & events, std::vector<int> & left,
+    std::vector<int> & right)
+{
+    int countL = 0;
+    int countR = events.size() / 2;
+    bool prevEnd = false;
 
-    int i = 0;
-    for (auto it = items.begin(); it != items.end(); it++)
-        node->items[i++] = *it;
+    for (int i = 0; i < events.size(); i++) {
+        SAHEvent event = events[i];
 
-    return node;
-}
+        if (prevEnd)
+            countR--;
 
-KDTree::KDNode *KDTree::buildSAH(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
-    std::vector<float> splits;
+        if (event.type == EVENTTYPE_BEGIN) {
+            countL++;
+            prevEnd = false;
+        }
+        else
+            prevEnd = true;
 
-    for (int i = 0; i < items.size(); i++) {
-        // TODO: calculate bbox while building instead of storing at runtime
-        AABB box = items[i]->getBBox();
-
-        splits.push_back(box.min.x);
-        splits.push_back(box.min.y);
-        splits.push_back(box.min.z);
-        splits.push_back(box.max.x);
-        splits.push_back(box.max.y);
-        splits.push_back(box.max.z);
+        left.push_back(countL);
+        right.push_back(countR);
     }
+}
 
+KDTree::KDNode *KDTree::buildSAHRec(AABB bounds, std::vector<SAHEvent> & d0,
+    std::vector<SAHEvent> & d1, std::vector<SAHEvent> & d2, int depth)
+{
     float minSplitVal = INFINITY32F;
     AABB minLeft, minRight;
     int minDir;
@@ -115,8 +116,8 @@ KDTree::KDNode *KDTree::buildSAH(AABB bounds, std::vector<PolygonAccel *> & item
         rightItems.clear();
     }
 
-    partition(minLeft, items, leftItems);
-    partition(minRight, items, rightItems);
+    partitionMean(minLeft, items, leftItems);
+    partitionMean(minRight, items, rightItems);
 
     int count = leftItems.size() + rightItems.size();
 
@@ -128,6 +129,46 @@ KDTree::KDNode *KDTree::buildSAH(AABB bounds, std::vector<PolygonAccel *> & item
 
         return new KDNode(left, right, minSplitDist, minDir);
     }
+}
+
+KDTree::KDNode *KDTree::buildSAH(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
+    std::vector<SAHEvent> d0, d1, d2;
+
+    for (int i = 0; i < items.size(); i++) {
+        // TODO: calculate bbox while building instead of storing at runtime
+        AABB box = items[i]->getBBox();
+
+        d0.push_back(SAHEvent(box.min.x, EVENTTYPE_BEGIN, items[i]));
+        d1.push_back(SAHEvent(box.min.y, EVENTTYPE_BEGIN, items[i]));
+        d2.push_back(SAHEvent(box.min.z, EVENTTYPE_BEGIN, items[i]));
+
+        d0.push_back(SAHEvent(box.max.x, EVENTTYPE_END, items[i]));
+        d1.push_back(SAHEvent(box.max.y, EVENTTYPE_END, items[i]));
+        d2.push_back(SAHEvent(box.max.z, EVENTTYPE_END, items[i]));
+    }
+
+    return buildSAHRec(bounds, items, depth);
+}
+#endif
+
+void KDTree::partitionMean(AABB box, std::vector<PolygonAccel *> & items,
+    std::vector<PolygonAccel *> & contained)
+{
+    for (auto it = items.begin(); it != items.end(); it++)
+        if (box.intersectsBbox((*it)->getBBox()))
+            contained.push_back(*it);
+}
+
+KDTree::KDNode *KDTree::buildLeaf(std::vector<PolygonAccel *> & items) {
+    KDNode *node = new KDNode(NULL, NULL, 0.0f, 0);
+    node->nItems = items.size();
+    node->items = new PolygonAccel *[node->nItems];
+
+    int i = 0;
+    for (auto it = items.begin(); it != items.end(); it++)
+        node->items[i++] = *it;
+
+    return node;
 }
 
 KDTree::KDNode *KDTree::buildMean(AABB bounds, std::vector<PolygonAccel *> & items, int depth) {
@@ -147,8 +188,8 @@ KDTree::KDNode *KDTree::buildMean(AABB bounds, std::vector<PolygonAccel *> & ite
         std::vector<PolygonAccel *> leftItems;
         std::vector<PolygonAccel *> rightItems;
 
-        partition(leftBB, items, leftItems);
-        partition(rightBB, items, rightItems);
+        partitionMean(leftBB, items, leftItems);
+        partitionMean(rightBB, items, rightItems);
 
         KDNode *left = buildMean(leftBB, leftItems, depth + 1);
         KDNode *right = buildMean(rightBB, rightItems, depth + 1);

@@ -79,6 +79,32 @@ private:
 
     };
 
+    /**
+     * @brief KD-tree SAH event
+     */
+    struct SAHEvent {
+        /** @brief Position */
+        float position;
+
+        /** @brief Type of event */
+        enum EVENTTYPE {
+            EVENTTYPE_BEGIN,
+            EVENTTYPE_END
+        } type;
+
+        /** @brief Polygon */
+        PolygonAccel *poly;
+
+        /**
+         * @brief Constructor
+         *
+         * @param position Position
+         * @param type     Type of event
+         * @param poly     Polygon
+         */
+        SAHEvent(float position, EVENTTYPE type, PolygonAccel *poly);
+    };
+
     /** @brief Root of the KD-Tree */
     KDNode *root;
 
@@ -92,7 +118,7 @@ private:
      * @param items     Items to check
      * @param contained Vector to fill with items overlapping box
      */
-    void partition(AABB box, std::vector<PolygonAccel *> & items,
+    void partitionMean(AABB box, std::vector<PolygonAccel *> & items,
         std::vector<PolygonAccel *> & contained);
 
     /**
@@ -112,6 +138,9 @@ private:
      */
     KDNode *buildMean(AABB bounds, std::vector<PolygonAccel *> & items, int depth);
 
+#if 0
+    KDTree::KDNode *KDTree::buildSAHRec(AABB bounds, std::vector<SAHEvent> & events, int depth);
+
     /**
      * @brief Build a KD tree according to the surface area heuristic
      *
@@ -121,6 +150,7 @@ private:
      * @param depth  Recursion depth
      */
     KDNode *buildSAH(AABB bounds, std::vector<PolygonAccel *> & items, int depth);
+#endif
 
     /**
      * @brief Compute a bounding box for a set of items

@@ -7,7 +7,8 @@
 #include <fbxloader.h>
 #include <fbxsdk.h>
 
-void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute)
+void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, Mat4x4 transform,
+    Mat4x4 transformInverseTranspose)
 {
     if (attribute->GetAttributeType() != FbxNodeAttribute::eMesh)
         return;
@@ -89,8 +90,9 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute)
             }
 
             Vertex vertex;
-            vertex.position = Vec3((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
-            vertex.normal = Vec3((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
+            vertex.position = transform * Vec3((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
+            vertex.normal = transformInverseTranspose * Vec3((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
+            vertex.normal.normalize();
             vertex.uv = Vec2((float)vertexUV[0], (float)vertexUV[1]);
             vertex.color = Vec4((float)vertexColor[0], (float)vertexColor[1], (float)vertexColor[2], (float)vertexColor[3]);
 
@@ -99,17 +101,17 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute)
     }
 }
 
-void addNode(std::vector<Vertex> & vertices, FbxNode *node) {
-    for (int i = 0; i < node->GetNodeAttributeCount(); i++) {
-        addAttribute(vertices, node->GetNodeAttributeByIndex(i));
-    }
+void addNode(std::vector<Vertex> & vertices, FbxNode *node, Mat4x4 transform,
+    Mat4x4 transformInverseTranspose) {
+    for (int i = 0; i < node->GetNodeAttributeCount(); i++)
+        addAttribute(vertices, node->GetNodeAttributeByIndex(i), transform,
+            transformInverseTranspose);
 
-    for (int i = 0; i < node->GetChildCount(); i++) {
-        addNode(vertices, node->GetChild(i));
-    }
+    for (int i = 0; i < node->GetChildCount(); i++)
+        addNode(vertices, node->GetChild(i), transform, transformInverseTranspose);
 }
 
-void FbxLoader::load(std::string filename, std::vector<Polygon> & polys) {
+void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, Mat4x4 transform) {
     FbxManager *fbxManager = FbxManager::Create();
     FbxIOSettings *ioSettings = FbxIOSettings::Create(fbxManager, filename.c_str());
     fbxManager->SetIOSettings(ioSettings);
@@ -126,9 +128,11 @@ void FbxLoader::load(std::string filename, std::vector<Polygon> & polys) {
 
     std::vector<Vertex> vertices;
 
+    Mat4x4 transformInverseTranspose = Mat4x4::transpose(Mat4x4::inverse(transform));
+
     if (rootNode != NULL)
         for (int i = 0; i < rootNode->GetChildCount(); i++)
-            addNode(vertices, rootNode->GetChild(i));
+            addNode(vertices, rootNode->GetChild(i), transform, transformInverseTranspose);
 
     fbxManager->Destroy();
 
@@ -137,4 +141,14 @@ void FbxLoader::load(std::string filename, std::vector<Polygon> & polys) {
             vertices[i + 0],
             vertices[i + 1],
             vertices[i + 2]));
+}
+
+void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, Vec3 translation,
+    Vec3 rotation, Vec3 scale)
+{
+    Mat4x4 transform = Mat4x4::scale(scale.x, scale.y, scale.z) *
+        Mat4x4::yawPitchRoll(rotation.x, rotation.y, rotation.z) *
+        Mat4x4::translation(translation.x, translation.y, translation.z);
+
+    return load(filename, polys, transform);
 }
