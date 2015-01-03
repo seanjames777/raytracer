@@ -37,21 +37,21 @@ bool PointLight::castsShadows() {
     return shadow;
 }
 
-void PointLight::getShadowDir(vec3 at, std::vector<vec3> & samples, int nSamples) {
+void PointLight::getShadowDir(vec3 at, vec3 *samples, int nSamples) {
     if (radius == 0.0f || nSamples == 1) {
         vec3 dir = this->position - at;
-        samples.push_back(dir);
+        samples[0] = dir;
         return;
     }
 
     int sqrtNSamples = sqrt(nSamples);
     nSamples = sqrtNSamples * sqrtNSamples;
 
-    std::vector<vec3> sphere;
+    vec3 sphere[MAX_SHADOW_SAMPLES];
     randSphere(sphere, sqrtNSamples);
 
     for (int i = 0; i < nSamples; i++) {
         vec3 dir = (sphere[i] * radius + position) - at;
-        samples.push_back(dir);
+        samples[i] = dir;
     }
 }

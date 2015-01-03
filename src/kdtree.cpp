@@ -17,13 +17,6 @@ KDTree::KDNode::KDNode(KDNode *left, KDNode *right, float split_dist,
 {
 }
 
-KDTree::KDStackFrame::KDStackFrame(KDNode *node, float enter, float exit)
-    : node(node),
-      enter(enter),
-      exit(exit)
-{
-}
-
 void KDTree::partition(const AABB & box, const std::vector<Triangle *> & triangles,
     std::vector<Triangle *> & contained)
 {
@@ -43,7 +36,7 @@ KDTree::KDNode *KDTree::buildLeaf(const std::vector<Triangle *> & triangles) {
     // TODO: delete the setup triangles. Might also want to change constructor of KDNode
     // to do this stuff, especially to not mix allocations
 
-    return new KDNode(NULL, NULL, 0.0f, setup, num_triangles, 0);
+    return new KDNode(NULL, NULL, 0.0f, setup, num_triangles, 4); // TODO constant
 }
 
 KDTree::KDNode *KDTree::buildMean(AABB bounds, const std::vector<Triangle *> & triangles, int depth) {
@@ -62,6 +55,9 @@ KDTree::KDNode *KDTree::buildMean(AABB bounds, const std::vector<Triangle *> & t
 
         std::vector<Triangle *> leftItems;
         std::vector<Triangle *> rightItems;
+
+        leftItems.reserve(triangles.size()); // TODO
+        rightItems.reserve(triangles.size()); // TODO
 
         partition(leftBB, triangles, leftItems);
         partition(rightBB, triangles, rightItems);
@@ -115,6 +111,8 @@ KDTree::KDTree(const std::vector<Triangle> & triangles) {
     // triangle data anyway.
     std::vector<Triangle *> pointers;
 
+    pointers.reserve(triangles.size());
+
     for (auto & it : triangles)
         pointers.push_back(const_cast<Triangle *>(&it));
 
@@ -128,26 +126,27 @@ bool KDTree::intersect(Ray ray, Collision *result, float maxDepth, bool anyColli
     if (!sceneBounds.intersects(ray, &entry, &exit))
         return false;
 
-    std::vector<KDStackFrame> stack;
+    KDStackFrame stack[64]; // TODO max size
+    KDStackFrame *curr_stack = stack;
 
-    KDStackFrame item(root, entry, exit);
-    stack.push_back(item);
+    curr_stack->node = root;
+    curr_stack->enter = entry;
+    curr_stack->exit = exit;
+    curr_stack++;
 
     KDNode *currentNode;
 
-    while (stack.size() != 0) {
-        KDStackFrame top = stack[stack.size() - 1];
-        stack.pop_back();
-
-        currentNode = top.node;
-        entry = top.enter;
-        exit = top.exit;
+    while (curr_stack != stack) {
+        curr_stack--;
+        currentNode = curr_stack->node;
+        entry = curr_stack->enter;
+        exit = curr_stack->exit;
 
         // Nothing will be closer, give up
         if (maxDepth > 0.0f && entry > maxDepth)
             return false;
 
-        while (!(currentNode->left == NULL && currentNode->right == NULL)) {
+        while (!(currentNode->flags & 4)) {
             int dir = currentNode->flags & 3;
 
             float split = currentNode->split_dist;
@@ -169,8 +168,10 @@ bool KDTree::intersect(Ray ray, Collision *result, float maxDepth, bool anyColli
             else if (t <= entry)
                 currentNode = farNode;
             else {
-                KDStackFrame nextItem(farNode, t, exit);
-                stack.push_back(nextItem);
+                curr_stack->node = farNode;
+                curr_stack->enter = t;
+                curr_stack->exit = exit;
+                curr_stack++;
 
                 currentNode = nearNode;
                 exit = t;

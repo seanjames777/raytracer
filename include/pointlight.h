@@ -75,7 +75,7 @@ public:
      * @param samples  Vector of samples to add to
      * @param nSamples Number of samples to compute
      */
-    void getShadowDir(vec3 at, std::vector<vec3> & samples, int nSamples);
+    void getShadowDir(vec3 at, vec3 *samples, int nSamples);
 
 };
 

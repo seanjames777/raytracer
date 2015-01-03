@@ -56,7 +56,7 @@ private:
      * @param photons     Vector which will be filled with photons
      * @param num_photons Number of photons to emit
      */
-    void photon_map(std::vector<Photon> & photons, int num_photons) {
+    /*void photon_map(std::vector<Photon> & photons, int num_photons) {
         std::vector<vec3> samples;
         randSphere(samples, num_photons);
 
@@ -64,7 +64,7 @@ private:
             Photon p(samples[i] * 5.0f, vec3(1.0f, 1.0f, 1.0f), vec3());
             photons.push_back(p);
         }
-    }
+    }*/
 
     /**
      * @brief Project photons into the output image for visualization
@@ -327,9 +327,9 @@ public:
 
         float shadow = 0.0f;
 
-        std::vector<vec3> samples;
+        vec3 samples[MAX_SHADOW_SAMPLES]; // TODO
         light->getShadowDir(origin, samples, settings.shadowSamples);
-        int nSamples = samples.size();
+        int nSamples = settings.shadowSamples;
 
         for (int i = 0; i < nSamples; i++) {
             vec3 dir = samples[i];
@@ -359,7 +359,7 @@ public:
         int sqrtNSamples = sqrt(settings.occlusionSamples);
         int nSamples = sqrtNSamples * sqrtNSamples;
 
-        std::vector<vec3> samples; // TODO
+        vec3 samples[MAX_AO_SAMPLES]; // TODO
         randHemisphereCos(normal, samples, sqrtNSamples);
 
         for (int i = 0; i < nSamples; i++) {

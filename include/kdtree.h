@@ -40,7 +40,6 @@ private:
      * @brief KD-tree traversal stack item
      */
     struct KDStackFrame {
-
         /** @brief KD-Node to traverse */
         KDNode *node;
 
@@ -49,16 +48,6 @@ private:
 
         /** @brief Exit distance from ray origin */
         float exit;
-
-        /**
-         * @brief Constructor
-         *
-         * @param node  KD-Node to traverse
-         * @param enter Entry distance from ray origin
-         * @param exit  Exit distance from ray origin
-         */
-        KDStackFrame(KDNode *node, float enter, float exit);
-
     };
 
     KDNode *root;

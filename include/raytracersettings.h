@@ -9,6 +9,9 @@
 #ifndef _RAYTRACERSETTINGS_H
 #define _RAYTRACERSETTINGS_H
 
+#define MAX_SHADOW_SAMPLES 64
+#define MAX_AO_SAMPLES     64
+
 struct RaytracerSettings {
     /** @brief Image width */
     int width;

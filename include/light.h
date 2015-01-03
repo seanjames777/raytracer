@@ -10,6 +10,7 @@
 #define _LIGHT_H
 
 #include <rtmath.h>
+#include <raytracersettings.h>
 
 /**
  * @brief Photon
@@ -66,7 +67,7 @@ public:
      * @param samples  Vector of samples to add to
      * @param nSamples Number of samples to compute
      */
-    virtual void getShadowDir(vec3 at, std::vector<vec3> & samples, int nSamples) = 0;
+    virtual void getShadowDir(vec3 at, vec3 *samples, int nSamples) = 0;
 };
 
 #endif

@@ -1,7 +1,8 @@
 #include "rtmath.h"
 
-void randSphere(std::vector<vec3> & samples, int sqrtSamples) {
+void randSphere(vec3 *samples, int sqrtSamples) {
     float sampleRange = 1.0f / sqrtSamples;
+    int idx = 0;
 
     for (int i = 0; i < sqrtSamples; i++) {
         for (int j = 0; j < sqrtSamples; j++) {
@@ -22,7 +23,7 @@ void randSphere(std::vector<vec3> & samples, int sqrtSamples) {
                 vec3(0, 1, 0) * z +
                 vec3(0, 0, 1) * r * sinf(theta);
 
-            samples.push_back(n);
+            samples[idx++] = n;
         }
     }
 }
@@ -42,8 +43,10 @@ vec2 randCircle(float rad) {
     return vec2(r * cosf(t), r * sinf(t));
 }
 
-void randHemisphereCos(vec3 norm, std::vector<vec3> & samples, int sqrtSamples) {
+void randHemisphereCos(vec3 norm, vec3 *samples, int sqrtSamples) {
     float sampleRange = 1.0f / sqrtSamples;
+
+    int idx = 0;
 
     for (int i = 0; i < sqrtSamples; i++) {
         for (int j = 0; j < sqrtSamples; j++) {
@@ -72,7 +75,7 @@ void randHemisphereCos(vec3 norm, std::vector<vec3> & samples, int sqrtSamples) 
                 norm * sqrtf(1.0f - u1) +
                 forward * r * sinf(theta);
 
-            samples.push_back(n);
+            samples[idx++] = n;
         }
     }
 }

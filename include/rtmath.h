@@ -224,9 +224,9 @@ public:
 // TODO
 #define randf(min, max) (min + ((float)rand() / (float)RAND_MAX) * (max - min))
 
-void randSphere(std::vector<vec3> & samples, int sqrtSamples);
+void randSphere(vec3 *samples, int sqrtSamples);
 vec2 randCircle(float rad);
-void randHemisphereCos(vec3 norm, std::vector<vec3> & samples, int sqrtSamples);
+void randHemisphereCos(vec3 norm, vec3 *samples, int sqrtSamples);
 
 // };
 
