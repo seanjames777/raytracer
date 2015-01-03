@@ -7,12 +7,12 @@
 #include <polygon.h>
 
 // TODO Align me
-static const int modlookup[5] = { 0, 1, 2, 0, 1 };
+static const int modlookup[5] = { 0, 1, 2, 0, 1 }; // TODO: questionable optimization
 
 Vertex::Vertex() {
 }
 
-Vertex::Vertex(Vec3 position, Vec3 normal, Vec2 uv, Vec4 color) 
+Vertex::Vertex(vec3 position, vec3 normal, vec2 uv, vec4 color)
     : position(position),
       normal(normal),
       uv(uv),
@@ -25,37 +25,37 @@ Collision::Collision()
 {
 }
 
-PolygonAccel::PolygonAccel(Vec3 v1, Vec3 v2, Vec3 v3, unsigned int polygonID)
+PolygonAccel::PolygonAccel(vec3 v1, vec3 v2, vec3 v3, unsigned int polygonID)
     : polygonID(polygonID)
 {
     // Edges and normal
-    Vec3 b = v3 - v1;
-    Vec3 c = v2 - v1;
-    Vec3 n = c.cross(b);
+    vec3 b = v3 - v1;
+    vec3 c = v2 - v1;
+    vec3 n = cross(c, b);
 
     // Choose which dimension to project
-    if (abs(n.x) > abs(n.y))
-        k = abs(n.x) > abs(n.z) ? 0 : 2;
+    if (fabs(n.x) > fabs(n.y))
+        k = fabs(n.x) > fabs(n.z) ? 0 : 2;
     else
-        k = abs(n.y) > abs(n.z) ? 1 : 2;
+        k = fabs(n.y) > fabs(n.z) ? 1 : 2;
 
     int u = modlookup[k + 1];
     int v = modlookup[k + 2];
 
-    n = n / n.get(k);
+    n = n / n.v[k];
 
-    n_u = n.get(u);
-    n_v = n.get(v);
-    n_d = v1.dot(n);
+    n_u = n.v[u];
+    n_v = n.v[v];
+    n_d = dot(v1, n);
 
-    float denom = b.get(u) * c.get(v) - b.get(v) * c.get(u);
-    b_nu = -b.get(v) / denom;
-    b_nv =  b.get(u) / denom;
-    b_d  =  (b.get(v) * v1.get(u) - b.get(u) * v1.get(v)) / denom;
+    float denom = b.v[u] * c.v[v] - b.v[v] * c.v[u];
+    b_nu = -b.v[v] / denom;
+    b_nv =  b.v[u] / denom;
+    b_d  =  (b.v[v] * v1.v[u] - b.v[u] * v1.v[v]) / denom;
 
-    c_nu =  c.get(v) / denom;
-    c_nv = -c.get(u) / denom;
-    c_d  =  (c.get(u) * v1.get(v) - c.get(v) * v1.get(u)) / denom;
+    c_nu =  c.v[v] / denom;
+    c_nv = -c.v[u] / denom;
+    c_d  =  (c.v[u] * v1.v[v] - c.v[v] * v1.v[u]) / denom;
 
     AABB box(v1, v1);
     box.join(v2);
@@ -71,26 +71,26 @@ AABB PolygonAccel::getBBox() {
 
 bool PolygonAccel::intersects(Ray ray, Collision *result) {
     // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
-    
+
     int u = modlookup[k + 1];
     int v = modlookup[k + 2];
 
-    const float dot = (ray.direction.get(k) + n_u * ray.direction.get(u) + n_v *
-        ray.direction.get(v));
+    const float dot = (ray.direction.v[k] + n_u * ray.direction.v[u] + n_v *
+        ray.direction.v[v]);
 
     if (dot == 0.0f)
         return false;
 
     const float nd = 1.0f / dot;
-    const float t_plane = (n_d - ray.origin.get(k)
-        - n_u * ray.origin.get(u) - n_v * ray.origin.get(v)) * nd;
+    const float t_plane = (n_d - ray.origin.v[k]
+        - n_u * ray.origin.v[u] - n_v * ray.origin.v[v]) * nd;
 
     // Behind camera
     if (t_plane <= 0.0f)
         return false;
 
-    const float hu = ray.origin.get(u) + t_plane * ray.direction.get(u);
-    const float hv = ray.origin.get(v) + t_plane * ray.direction.get(v);
+    const float hu = ray.origin.v[u] + t_plane * ray.direction.v[u];
+    const float hv = ray.origin.v[v] + t_plane * ray.direction.v[v];
 
     const float beta  = (hu * b_nu + hv * b_nv + b_d);
     if (beta < 0.0f)
@@ -119,14 +119,10 @@ Polygon::Polygon(Vertex v1, Vertex v2, Vertex v3)
       v2(v2),
       v3(v3)
 {
-    Vec3 b = v3.position - v1.position;
-    Vec3 c = v2.position - v1.position;
+    vec3 b = normalize(v3.position - v1.position);
+    vec3 c = normalize(v2.position - v1.position);
 
-    b.normalize();
-    c.normalize();
-
-    normal = c.cross(b);
-    normal.normalize();
+    normal = normalize(cross(c, b));
 }
 
 void Polygon::getCollisionEx(Ray ray, Collision *collision, CollisionEx *collisionEx,
@@ -139,19 +135,19 @@ void Polygon::getCollisionEx(Ray ray, Collision *collision, CollisionEx *collisi
     if (interpolate) {
         float alpha = 1.0f - collision->beta - collision->gamma;
 
-        Vec3 an = v1.normal * alpha;
-        Vec3 bn = v2.normal * collision->beta;
-        Vec3 cn = v3.normal * collision->gamma;
+        vec3 an = v1.normal * alpha;
+        vec3 bn = v2.normal * collision->beta;
+        vec3 cn = v3.normal * collision->gamma;
         collisionEx->normal = an + bn + cn;
 
-        Vec2 auv = v1.uv * alpha;
-        Vec2 buv = v2.uv * collision->beta;
-        Vec2 cuv = v3.uv * collision->gamma;
+        vec2 auv = v1.uv * alpha;
+        vec2 buv = v2.uv * collision->beta;
+        vec2 cuv = v3.uv * collision->gamma;
         collisionEx->uv = auv + buv + cuv;
 
-        Vec4 acolor = v1.color * alpha;
-        Vec4 bcolor = v2.color * collision->beta;
-        Vec4 ccolor = v3.color * collision->gamma;
+        vec4 acolor = v1.color * alpha;
+        vec4 bcolor = v2.color * collision->beta;
+        vec4 ccolor = v3.color * collision->gamma;
         collisionEx->color = acolor + bcolor + ccolor;
     }
 }

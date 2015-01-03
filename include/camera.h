@@ -18,28 +18,25 @@ class Camera {
 private:
 
     /** @brief Position */
-    Vec3 position;
+    vec3 position;
 
     /** @brief Forward direction */
-    Vec3 forward;
+    vec3 forward;
 
     /** @brief Right directiom */
-    Vec3 right;
+    vec3 right;
 
     /** @brief Up direction */
-    Vec3 up;
+    vec3 up;
 
     /** @brief Target position */
-    Vec3 target;
+    vec3 target;
 
     /** @brief Field of view */
     float fov;
 
     /** @brief Aspect ratio */
     float aspect;
-
-    /** @brief Update values */
-    void refresh();
 
     /** @brief Focal distance */
     float focus;
@@ -53,6 +50,9 @@ private:
     /** @brief Half the height of the view plane */
     float halfHeight;
 
+    /** @brief Update values */
+    void refresh();
+
 public:
 
     /**
@@ -65,7 +65,7 @@ public:
      * @param focus    Focal distance
      * @param aperture Aperture radius. 0 for pinhole camera
      */
-    Camera(const Vec3 position, const Vec3 target, float aspect, float fov,
+    Camera(const vec3 position, const vec3 target, float aspect, float fov,
         float focus, float aperture);
 
     /**
@@ -79,32 +79,32 @@ public:
     /**
      * @brief Get the camera position
      */
-    Vec3 getPosition();
+    vec3 getPosition();
 
     /**
      * @brief Set the camera position
      */
-    void setPosition(const Vec3 position);
+    void setPosition(const vec3 position);
 
     /**
      * @brief Get the forward vector of the camera
      */
-    Vec3 getForward();
+    vec3 getForward();
 
     /**
      * @brief Get the right vector of the camera
      */
-    Vec3 getRight();
+    vec3 getRight();
 
     /**
      * @brief Get the up vector of the camera
      */
-    Vec3 getUp();
+    vec3 getUp();
 
     /**
      * @brief Get the camera target
      */
-    Vec3 getTarget();
+    vec3 getTarget();
 
     /**
      * @brief Get the field of view of the camera

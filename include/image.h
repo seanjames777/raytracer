@@ -9,12 +9,12 @@
 #ifndef _IMAGE_H
 #define _IMAGE_H
 
-#include <defs.h>
 #include <rtmath.h>
+#include <string>
 
-#include <ImfInputFile.h>
-#include <ImfOutputFile.h>
-#include <ImfChannelList.h>
+//#include <ImfInputFile.h>
+//#include <ImfOutputFile.h>
+//#include <ImfChannelList.h>
 
 #define S_F2I(n) (unsigned char)((n) * 255.0f)
 #define S_I2F(n) ((float)(n) / 255.0f);
@@ -118,7 +118,7 @@ public:
      *
      * @return True on success, or false on error
      */
-    bool saveEXR(std::string filename);
+    //bool saveEXR(std::string filename);
 
     /**
      * @brief Get a pointer to the array of pixels
@@ -128,12 +128,12 @@ public:
     /**
      * @brief Sample a pixel as by UV coordinate
      */
-    Vec4 getPixel(Vec2 uv);
+    vec4 getPixel(vec2 uv);
 
     /**
      * @brief Get a pixel by integer coordinate
      */
-    Vec4 getPixel(int x, int y);
+    vec4 getPixel(int x, int y);
 
     /**
      * @brief Sample a pixel by direction vector, assuming the image is an equirectangular
@@ -141,12 +141,12 @@ public:
      *
      * @param norm Direction to sample
      */
-    Vec4 getPixel(Vec3 norm);
+    vec4 getPixel(vec3 norm);
 
     /**
      * @brief Set a pixel
      */
-    void setPixel(int x, int y, Vec4 color);
+    void setPixel(int x, int y, vec4 color);
 
     /**
      * @brief Set all pixels

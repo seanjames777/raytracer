@@ -9,7 +9,6 @@
 #ifndef _KDTREE_H
 #define _KDTREE_H
 
-#include <defs.h>
 #include <rtmath.h>
 #include <polygon.h>
 

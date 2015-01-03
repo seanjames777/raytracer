@@ -9,7 +9,6 @@
 #ifndef _SCENE_H
 #define _SCENE_H
 
-#include <defs.h>
 #include <polygon.h>
 #include <light.h>
 #include <camera.h>

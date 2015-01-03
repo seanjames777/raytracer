@@ -9,7 +9,6 @@
 #ifndef _TIMER_H
 #define _TIMER_H
 
-#include <defs.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 

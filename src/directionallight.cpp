@@ -6,18 +6,18 @@
 
 #include "directionallight.h"
 
-DirectionalLight::DirectionalLight(Vec3 direction, Vec3 color, bool shadow)
-    : direction(direction), 
-      color(color), 
+DirectionalLight::DirectionalLight(vec3 direction, vec3 color, bool shadow)
+    : direction(direction),
+      color(color),
       shadow(shadow)
 {
 }
 
-Vec3 DirectionalLight::getDirection(Vec3 pos) {
+vec3 DirectionalLight::getDirection(vec3 pos) {
     return direction;
 }
 
-Vec3 DirectionalLight::getColor(Vec3 pos) {
+vec3 DirectionalLight::getColor(vec3 pos) {
     return color;
 }
 
@@ -25,6 +25,6 @@ bool DirectionalLight::castsShadows() {
     return shadow;
 }
 
-Vec3 DirectionalLight::getShadowDir(Vec3 at) {
+vec3 DirectionalLight::getShadowDir(vec3 at) {
     return -direction;
 }

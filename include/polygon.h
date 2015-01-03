@@ -9,7 +9,6 @@
 #ifndef _POLYGON_H
 #define _POLYGON_H
 
-#include <defs.h>
 #include <rtmath.h>
 
 /**
@@ -21,16 +20,16 @@ public:
     // TODO: padding/alignment
 
     /** @brief Position */
-    Vec3 position;
+    vec3 position;
 
     /** @brief Normal */
-    Vec3 normal;
+    vec3 normal;
 
     /** @brief UV */
-    Vec2 uv;
+    vec2 uv;
 
     /** @brief Vertex color */
-    Vec4 color;
+    vec4 color;
 
     /**
      * @brief Empty constructor
@@ -45,7 +44,7 @@ public:
      * @param uv       UV
      * @param color    Color
      */
-    Vertex(Vec3 position, Vec3 normal, Vec2 uv, Vec4 color);
+    Vertex(vec3 position, vec3 normal, vec2 uv, vec4 color);
 };
 
 /**
@@ -75,19 +74,19 @@ struct Collision {
  */
 struct CollisionEx {
     /** @brief Position of collision */
-    Vec3 position;
+    vec3 position;
 
     /** @brief Normal at collision location, derived from polygon vertices */
-    Vec3 polyNormal;
+    vec3 polyNormal;
 
     /** @brief Interpolated normal */
-    Vec3 normal;
+    vec3 normal;
 
     /** @brief Interpolated UV */
-    Vec2 uv;
+    vec2 uv;
 
     /** @brief Interpolated color */
-    Vec4 color;
+    vec4 color;
 
     /** @brief Ray */
     Ray ray;
@@ -114,12 +113,12 @@ struct PolygonAccel {
     unsigned int polygonID;
 
     // Bounding box
-    Vec3 min;
+    vec3 min;
     int pad3;
-    Vec3 max;
+    vec3 max;
     int pad4;
 
-    PolygonAccel(Vec3 p1, Vec3 p2, Vec3 p3, unsigned int polygonID);
+    PolygonAccel(vec3 p1, vec3 p2, vec3 p3, unsigned int polygonID);
 
     /**
      * @brief Ray/shape intersection test
@@ -156,7 +155,7 @@ public:
     Vertex v3;
 
     /** @brief Normal */
-    Vec3 normal;
+    vec3 normal;
 
     /**
      * @brief Empty constructor

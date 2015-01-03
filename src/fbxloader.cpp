@@ -6,9 +6,11 @@
 
 #include <fbxloader.h>
 #include <fbxsdk.h>
+#include <cassert>
+#include <iostream>
 
-void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, Mat4x4 transform,
-    Mat4x4 transformInverseTranspose)
+void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, mat4x4 transform,
+    mat4x4 transformInverseTranspose)
 {
     if (attribute->GetAttributeType() != FbxNodeAttribute::eMesh)
         return;
@@ -19,22 +21,22 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, M
     int nVertices = mesh->GetControlPointsCount();
 
     int nLayers = mesh->GetLayerCount();
-    ASSERT(nLayers == 1);
-    
+    assert(nLayers == 1);
+
     FbxLayer *layer0 = mesh->GetLayer(0);
 
     FbxLayerElementNormal *norms = layer0->GetNormals();
-    ASSERT(norms->GetMappingMode() == FbxLayerElement::eByControlPoint ||
+    assert(norms->GetMappingMode() == FbxLayerElement::eByControlPoint ||
         norms->GetMappingMode() == FbxLayerElement::eByPolygonVertex);
-    ASSERT(norms->GetReferenceMode() == FbxLayerElement::eDirect ||
+    assert(norms->GetReferenceMode() == FbxLayerElement::eDirect ||
         norms->GetReferenceMode() == FbxLayerElement::eIndexToDirect);
 
     FbxLayerElementUV *uvs = layer0->GetUVs();
 
     if (uvs != NULL) {
-        ASSERT(uvs->GetMappingMode() == FbxLayerElement::eByControlPoint ||
+        assert(uvs->GetMappingMode() == FbxLayerElement::eByControlPoint ||
             uvs->GetMappingMode() == FbxLayerElement::eByPolygonVertex);
-        ASSERT(uvs->GetReferenceMode() == FbxLayerElement::eDirect ||
+        assert(uvs->GetReferenceMode() == FbxLayerElement::eDirect ||
             uvs->GetReferenceMode() == FbxLayerElement::eIndexToDirect);
     }
     else {
@@ -44,9 +46,9 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, M
     FbxLayerElementVertexColor *colors = layer0->GetVertexColors();
 
     if (colors != NULL) {
-        ASSERT(colors->GetMappingMode() == FbxLayerElement::eByControlPoint ||
+        assert(colors->GetMappingMode() == FbxLayerElement::eByControlPoint ||
             colors->GetMappingMode() == FbxLayerElement::eByPolygonVertex);
-        ASSERT(colors->GetReferenceMode() == FbxLayerElement::eDirect ||
+        assert(colors->GetReferenceMode() == FbxLayerElement::eDirect ||
             colors->GetReferenceMode() == FbxLayerElement::eIndexToDirect);
     }
     else {
@@ -54,7 +56,7 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, M
     }
 
     for (int i = 0; i < mesh->GetPolygonCount(); i++) {
-        ASSERT(mesh->GetPolygonSize(i) == 3);
+        assert(mesh->GetPolygonSize(i) == 3);
 
         for (int j = 0; j < 3; j++) {
             int vertIdx = mesh->GetPolygonVertex(i, j);
@@ -89,20 +91,25 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, M
                 }
             }
 
+            vec4 position((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2], 1.0f);
+            position = transform * position; // TODO w / ?
+
+            vec4 normal((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2], 0.0f);
+            normal = transformInverseTranspose * normal;
+
             Vertex vertex;
-            vertex.position = transform * Vec3((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
-            vertex.normal = transformInverseTranspose * Vec3((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
-            vertex.normal.normalize();
-            vertex.uv = Vec2((float)vertexUV[0], (float)vertexUV[1]);
-            vertex.color = Vec4((float)vertexColor[0], (float)vertexColor[1], (float)vertexColor[2], (float)vertexColor[3]);
+            vertex.position = position.xyz();
+            vertex.normal = normalize(normal.xyz());
+            vertex.uv = vec2((float)vertexUV[0], (float)vertexUV[1]);
+            vertex.color = vec4((float)vertexColor[0], (float)vertexColor[1], (float)vertexColor[2], (float)vertexColor[3]);
 
             vertices.push_back(vertex);
         }
     }
 }
 
-void addNode(std::vector<Vertex> & vertices, FbxNode *node, Mat4x4 transform,
-    Mat4x4 transformInverseTranspose) {
+void addNode(std::vector<Vertex> & vertices, FbxNode *node, mat4x4 transform,
+    mat4x4 transformInverseTranspose) {
     for (int i = 0; i < node->GetNodeAttributeCount(); i++)
         addAttribute(vertices, node->GetNodeAttributeByIndex(i), transform,
             transformInverseTranspose);
@@ -111,14 +118,14 @@ void addNode(std::vector<Vertex> & vertices, FbxNode *node, Mat4x4 transform,
         addNode(vertices, node->GetChild(i), transform, transformInverseTranspose);
 }
 
-void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, Mat4x4 transform) {
+void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, mat4x4 transform) {
     FbxManager *fbxManager = FbxManager::Create();
     FbxIOSettings *ioSettings = FbxIOSettings::Create(fbxManager, filename.c_str());
     fbxManager->SetIOSettings(ioSettings);
 
     FbxImporter *importer = FbxImporter::Create(fbxManager, "");
 
-    ASSERT(importer->Initialize(filename.c_str(), -1, fbxManager->GetIOSettings()));
+    assert(importer->Initialize(filename.c_str(), -1, fbxManager->GetIOSettings()));
 
     FbxScene *scene = FbxScene::Create(fbxManager, "scene");
     importer->Import(scene);
@@ -128,7 +135,7 @@ void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, Mat4x4 
 
     std::vector<Vertex> vertices;
 
-    Mat4x4 transformInverseTranspose = Mat4x4::transpose(Mat4x4::inverse(transform));
+    mat4x4 transformInverseTranspose = transpose(inverse(transform));
 
     if (rootNode != NULL)
         for (int i = 0; i < rootNode->GetChildCount(); i++)
@@ -143,12 +150,12 @@ void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, Mat4x4 
             vertices[i + 2]));
 }
 
-void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, Vec3 translation,
-    Vec3 rotation, Vec3 scale)
+void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, vec3 translation_v,
+    vec3 rotation_v, vec3 scale_v)
 {
-    Mat4x4 transform = Mat4x4::scale(scale.x, scale.y, scale.z) *
-        Mat4x4::yawPitchRoll(rotation.x, rotation.y, rotation.z) *
-        Mat4x4::translation(translation.x, translation.y, translation.z);
+    mat4x4 transform = scale(scale_v.x, scale_v.y, scale_v.z) *
+        yawPitchRoll(rotation_v.x, rotation_v.y, rotation_v.z) *
+        translation(translation_v.x, translation_v.y, translation_v.z);
 
     return load(filename, polys, transform);
 }

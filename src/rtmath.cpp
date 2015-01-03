@@ -1,6 +1,6 @@
 #include "rtmath.h"
 
-void randSphere(std::vector<Vec3> & samples, int sqrtSamples) {
+void randSphere(std::vector<vec3> & samples, int sqrtSamples) {
     float sampleRange = 1.0f / sqrtSamples;
 
     for (int i = 0; i < sqrtSamples; i++) {
@@ -18,16 +18,16 @@ void randSphere(std::vector<Vec3> & samples, int sqrtSamples) {
             float z = u1 * 2.0f - 1.0f;
             float r = sqrtf(1.0f - z * z);
 
-            Vec3 n = Vec3(1, 0, 0) * r * cosf(theta) +
-                Vec3(0, 1, 0) * z +
-                Vec3(0, 0, 1) * r * sinf(theta);
+            vec3 n = vec3(1, 0, 0) * r * cosf(theta) +
+                vec3(0, 1, 0) * z +
+                vec3(0, 0, 1) * r * sinf(theta);
 
             samples.push_back(n);
         }
     }
 }
 
-Vec2 randCircle(float rad) {
+vec2 randCircle(float rad) {
     float t = 2 * (float)M_PI * rad * randf(0.0f, 1.0f);
 
     float r1 = rad * randf(0.0f, 1.0f);
@@ -39,10 +39,10 @@ Vec2 randCircle(float rad) {
     if (u > 1.0f)
         r = 2.0f - u;
 
-    return Vec2(r * cosf(t), r * sinf(t));
+    return vec2(r * cosf(t), r * sinf(t));
 }
 
-void randHemisphereCos(Vec3 norm, std::vector<Vec3> & samples, int sqrtSamples) {
+void randHemisphereCos(vec3 norm, std::vector<vec3> & samples, int sqrtSamples) {
     float sampleRange = 1.0f / sqrtSamples;
 
     for (int i = 0; i < sqrtSamples; i++) {
@@ -60,18 +60,15 @@ void randHemisphereCos(Vec3 norm, std::vector<Vec3> & samples, int sqrtSamples) 
             float r = sqrtf(u1);
 
             // TODO: find something better
-            Vec3 forward = Vec3(0, 0.3f, 0.35f);
-            forward.normalize();
-            
-            if (abs(norm.dot(forward)) == 1.0f)
-                forward = Vec3(0, -1, 0);
+            vec3 forward = normalize(vec3(0.1f, 0.3f, 0.35f));
 
-            Vec3 right = forward.cross(norm);
-            right.normalize();
-            forward = norm.cross(right);
-            forward.normalize();
+            if (abs(dot(norm, forward)) == 1.0f)
+                forward = vec3(0, -1, 0);
 
-            Vec3 n = right * r * cosf(theta) +
+            vec3 right = normalize(cross(forward, norm));
+            forward = normalize(cross(norm, right));
+
+            vec3 n = right * r * cosf(theta) +
                 norm * sqrtf(1.0f - u1) +
                 forward * r * sinf(theta);
 

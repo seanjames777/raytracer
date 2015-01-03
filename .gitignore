@@ -1,7 +1,5 @@
 .DS_Store
-obj/
-bin/
-output.bmp
-output/
+out/
+build/
 *.sublime-project
 *.sublime-workspace

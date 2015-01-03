@@ -18,10 +18,10 @@ class PointLight : public Light {
 private:
 
     /** @brief Position */
-    Vec3  position;
+    vec3  position;
 
     /** @brief Color */
-    Vec3 color;
+    vec3 color;
 
     /** @brief Radius */
     float radius;
@@ -47,17 +47,17 @@ public:
      * @param power    Exponent of the falloff curve
      * @param shadow   Whether this light casts shadows
      */
-    PointLight(Vec3 position, Vec3 color, float radius, float range, float power, bool shadow);
+    PointLight(vec3 position, vec3 color, float radius, float range, float power, bool shadow);
 
     /**
      * @brief Get the direction of the point light at a given point
      */
-    Vec3 getDirection(Vec3 pos);
+    vec3 getDirection(vec3 pos);
 
     /**
      * @brief Get the color of the point light at a given point
      */
-    Vec3 getColor(Vec3 pos);
+    vec3 getColor(vec3 pos);
 
     /**
      * @brief Whether this point light casts shadows
@@ -75,7 +75,7 @@ public:
      * @param samples  Vector of samples to add to
      * @param nSamples Number of samples to compute
      */
-    void getShadowDir(Vec3 at, std::vector<Vec3> & samples, int nSamples);
+    void getShadowDir(vec3 at, std::vector<vec3> & samples, int nSamples);
 
 };
 

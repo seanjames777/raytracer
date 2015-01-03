@@ -5,6 +5,7 @@
  */
 
 #include <glimagedisplay.h>
+#include <iostream>
 
 const char *vs_source =
     "#version 330 core\n"
@@ -29,14 +30,14 @@ const char *ps_source =
     "    out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
     "}\n";
 
-Vec2 vertices[6] = {
-    Vec2(-1, -1),
-    Vec2(-1, 1),
-    Vec2(1, 1),
+vec2 vertices[6] = {
+    vec2(-1, -1),
+    vec2(-1, 1),
+    vec2(1, 1),
 
-    Vec2(-1, -1),
-    Vec2(1, 1),
-    Vec2(1, -1)
+    vec2(-1, -1),
+    vec2(1, 1),
+    vec2(1, -1)
 };
 
 GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
@@ -68,7 +69,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
 
     glGenBuffers(1, &vb);
     glBindBuffer(GL_ARRAY_BUFFER, vb);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vec2) * 6, vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * 6, vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindVertexArray(0);

@@ -5,6 +5,8 @@
  */
 
 #include <image.h>
+#include <fstream>
+#include <iostream>
 
 S_BITMAPFILEHEADER Image::createBitmapFileHeader() {
     S_BITMAPFILEHEADER fileHeader;
@@ -170,7 +172,7 @@ bool Image::saveBMP(std::string filename) {
     return true;
 }
 
-bool Image::saveEXR(std::string filename) {
+/*bool Image::saveEXR(std::string filename) {
     // TODO error checks here and in saveBMP
 
     Imf::Header header(width, height);
@@ -195,12 +197,12 @@ bool Image::saveEXR(std::string filename) {
     file.writePixels(height);
 
     return true;
-}
+}*/
 
-Vec4 Image::getPixel(Vec2 uv) {
+vec4 Image::getPixel(vec2 uv) {
     uv.x = uv.x - (int)uv.x;
     uv.y = uv.y - (int)uv.y;
-    
+
     int x = (int)(uv.x * (width - 1));
     int y = (int)(uv.y * (height - 1));
 
@@ -209,17 +211,17 @@ Vec4 Image::getPixel(Vec2 uv) {
     return getPixel(x, y);
 }
 
-Vec4 Image::getPixel(Vec3 norm) {
-    Vec2 uv = Vec2(atan2f(norm.z, norm.x) + M_PI, acosf(-norm.y));
-    uv = uv / Vec2(2.0f * M_PI, M_PI);
+vec4 Image::getPixel(vec3 norm) {
+    vec2 uv = vec2(atan2f(norm.z, norm.x) + M_PI, acosf(-norm.y));
+    uv = uv / vec2(2.0f * M_PI, M_PI);
 
     return getPixel(uv);
 }
 
-Vec4 Image::getPixel(int x, int y) {
+vec4 Image::getPixel(int x, int y) {
     int i = (y * width + x) * 4;
 
-    Vec4 color;
+    vec4 color;
 
     color.x = pixels[i + 0];
     color.y = pixels[i + 1];
@@ -233,7 +235,7 @@ float *Image::getPixels() {
     return pixels;
 }
 
-void Image::setPixel(int x, int y, Vec4 color) {
+void Image::setPixel(int x, int y, vec4 color) {
     int i = (y * width + x) * 4;
 
     pixels[i + 0] = color.x;

@@ -9,7 +9,6 @@
 #ifndef _LIGHT_H
 #define _LIGHT_H
 
-#include <defs.h>
 #include <rtmath.h>
 
 /**
@@ -17,13 +16,13 @@
  */
 struct Photon {
     /** @brief Photon position */
-    Vec3 position;
+    vec3 position;
 
     /** @brief Red, green, blue power */
-    Vec3 power;
+    vec3 power;
 
     /** @brief Incident direction */
-    Vec3 direction;
+    vec3 direction;
 
     /**
      * @brief Constructor
@@ -32,7 +31,7 @@ struct Photon {
      * @param power     Red, green, blue power
      * @param direction Incident direction
      */
-    Photon(Vec3 position, Vec3 power, Vec3 direction);
+    Photon(vec3 position, vec3 power, vec3 direction);
 };
 
 /**
@@ -44,12 +43,12 @@ public:
     /**
      * @brief Get the direction of the light at a certain point
      */
-    virtual Vec3 getDirection(Vec3 pos)  = 0;
+    virtual vec3 getDirection(vec3 pos)  = 0;
 
     /**
      * @brief Get the color of the light at a certain point
      */
-    virtual Vec3 getColor(Vec3 pos) = 0;
+    virtual vec3 getColor(vec3 pos) = 0;
 
     /**
      * @brief Get whether this light casts shadows
@@ -67,7 +66,7 @@ public:
      * @param samples  Vector of samples to add to
      * @param nSamples Number of samples to compute
      */
-    virtual void getShadowDir(Vec3 at, std::vector<Vec3> & samples, int nSamples) = 0;
+    virtual void getShadowDir(vec3 at, std::vector<vec3> & samples, int nSamples) = 0;
 };
 
 #endif

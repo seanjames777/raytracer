@@ -7,22 +7,18 @@
 #include <camera.h>
 
 void Camera::refresh() {
-    forward = target - position;
-    forward.normalize();
+    forward = normalize(target - position);
 
-    Vec3 gup = Vec3(0, 1, 0);
+    vec3 gup = vec3(0, 1, 0);
 
-    right = -forward.cross(gup);
-    right.normalize();
-
-    up = right.cross(forward);
-    up.normalize();
+    right = normalize(-cross(forward, gup));
+    up = normalize(cross(right, forward));
 
     halfWidth  = tanf(fov / 2.0f) * focus;
     halfHeight = halfWidth / aspect;
 }
 
-Camera::Camera(const Vec3 position, const Vec3 target, float aspect, float fov, float focus,
+Camera::Camera(const vec3 position, const vec3 target, float aspect, float fov, float focus,
     float aperture)
     : position(position),
       target(target),
@@ -38,14 +34,14 @@ Ray Camera::getViewRay(float u, float v) {
     float x = u * 2.0f - 1.0f;
     float y = v * 2.0f - 1.0f;
 
-    Vec3 rightAmt = right * halfWidth  * x;
-    Vec3 upAmt    = up    * halfHeight * y;
+    vec3 rightAmt = right * halfWidth  * x;
+    vec3 upAmt    = up    * halfHeight * y;
 
-    Vec3 targ = forward * focus + rightAmt + upAmt;
-    Vec3 orig = position;
+    vec3 targ = forward * focus + rightAmt + upAmt;
+    vec3 orig = position;
 
     if (aperture > 0.0f) {
-        Vec2 rCirc = randCircle(aperture);
+        vec2 rCirc = randCircle(aperture);
 
         orig = right * rCirc.x + up * rCirc.y;
         targ = targ - orig;
@@ -53,33 +49,33 @@ Ray Camera::getViewRay(float u, float v) {
         orig = orig + position;
     }
 
-    targ.normalize();
+    targ = normalize(targ);
 
     return Ray(orig, targ);
 }
 
-Vec3 Camera::getPosition() {
+vec3 Camera::getPosition() {
     return position;
 }
 
-void Camera::setPosition(const Vec3 position) {
+void Camera::setPosition(const vec3 position) {
     this->position = position;
     refresh();
 }
 
-Vec3 Camera::getForward() {
+vec3 Camera::getForward() {
     return forward;
 }
 
-Vec3 Camera::getRight() {
+vec3 Camera::getRight() {
     return right;
 }
 
-Vec3 Camera::getUp() {
+vec3 Camera::getUp() {
     return up;
 }
 
-Vec3 Camera::getTarget() {
+vec3 Camera::getTarget() {
     return target;
 }
 

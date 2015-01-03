@@ -9,7 +9,6 @@
 #ifndef _FBXLOADER_H
 #define _FBXLOADER_H
 
-#include <defs.h>
 #include <polygon.h>
 
 class FbxLoader {
@@ -23,7 +22,7 @@ public:
      * @param transform Transformation matrix to apply to vertices
      */
     static void load(std::string filename, std::vector<Polygon> & polys,
-        Mat4x4 transform = Mat4x4::identity());
+        mat4x4 transform = mat4x4());
 
     /**
      * @brief Load polygons from an FBX file
@@ -35,7 +34,7 @@ public:
      * @param scale       Scale to apply to vertices
      */
     static void load(std::string filename, std::vector<Polygon> & polys,
-        Vec3 translation, Vec3 rotation, Vec3 scale);
+        vec3 translation, vec3 rotation, vec3 scale);
 
 };
 

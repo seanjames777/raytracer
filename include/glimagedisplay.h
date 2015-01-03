@@ -10,7 +10,6 @@
 #ifndef _GLIMAGEDISPLAY_H
 #define _GLIMAGEDISPLAY_H
 
-#include <defs.h>
 #include <image.h>
 
 #define GLFW_INCLUDE_GLCOREARB
@@ -43,9 +42,9 @@ inline const char *getErrorString(GLenum error) {
         std::cout << "GL Error check failed:" << std::endl;                   \
         std::cout << "    At: " << __FILE__ << ":" << __LINE__ << std::endl;  \
         std::cout << " Error: " << getErrorString(error) << std::endl;        \
-        __debugbreak();                                                       \
+        /* __debugbreak(); */                                                 \
         /* getchar(); */                                                      \
-        /* exit(0); */                                                        \
+        exit(-1);                                                             \
     }                                                                         \
 }
 

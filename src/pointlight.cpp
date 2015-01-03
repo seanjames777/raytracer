@@ -6,27 +6,26 @@
 
 #include "pointlight.h"
 
-PointLight::PointLight(Vec3 position, Vec3 color, float radius, float range, float power,
+PointLight::PointLight(vec3 position, vec3 color, float radius, float range, float power,
     bool shadow)
-    : position(position), 
+    : position(position),
       color(color),
       radius(radius),
-      range2(range * range), 
-      power(power), 
+      range2(range * range),
+      power(power),
       shadow(shadow)
 {
 }
 
-Vec3 PointLight::getDirection(Vec3 pos) {
-    Vec3 dir = pos - position;
-    dir.normalize();
+vec3 PointLight::getDirection(vec3 pos) {
+    vec3 dir = normalize(pos - position);
 
     return dir;
 }
 
-Vec3 PointLight::getColor(Vec3 pos) {
-    Vec3 diff = pos - position;
-    float dist2 = diff.len2();
+vec3 PointLight::getColor(vec3 pos) {
+    vec3 diff = pos - position;
+    float dist2 = length2(diff);
 
     float falloff = 1.0f - SATURATE(dist2 / range2);
     falloff = powf(falloff, power);
@@ -38,9 +37,9 @@ bool PointLight::castsShadows() {
     return shadow;
 }
 
-void PointLight::getShadowDir(Vec3 at, std::vector<Vec3> & samples, int nSamples) {
+void PointLight::getShadowDir(vec3 at, std::vector<vec3> & samples, int nSamples) {
     if (radius == 0.0f || nSamples == 1) {
-        Vec3 dir = this->position - at;
+        vec3 dir = this->position - at;
         samples.push_back(dir);
         return;
     }
@@ -48,11 +47,11 @@ void PointLight::getShadowDir(Vec3 at, std::vector<Vec3> & samples, int nSamples
     int sqrtNSamples = sqrt(nSamples);
     nSamples = sqrtNSamples * sqrtNSamples;
 
-    std::vector<Vec3> sphere;
+    std::vector<vec3> sphere;
     randSphere(sphere, sqrtNSamples);
 
     for (int i = 0; i < nSamples; i++) {
-        Vec3 dir = (sphere[i] * radius + position) - at;
+        vec3 dir = (sphere[i] * radius + position) - at;
         samples.push_back(dir);
     }
 }

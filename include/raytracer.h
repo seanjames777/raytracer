@@ -9,7 +9,6 @@
 #ifndef _RAYTRACER_H
 #define _RAYTRACER_H
 
-#include <defs.h>
 #include <rtmath.h>
 #include <scene.h>
 #include <image.h>
@@ -17,6 +16,8 @@
 #include <glimagedisplay.h>
 #include <timer.h>
 #include <raytracersettings.h>
+#include <unistd.h>
+#include <iostream>
 
 #include <thread>
 #include <atomic>
@@ -32,7 +33,7 @@ private:
     Scene *scene;
 
     /** @brief Work queue */
-    std::vector<int2> blocks;
+    std::vector<vector<int, 2>> blocks;
 
     /** @brief Work queue lock */
     std::mutex blocksLock;
@@ -56,11 +57,11 @@ private:
      * @param num_photons Number of photons to emit
      */
     void photon_map(std::vector<Photon> & photons, int num_photons) {
-        std::vector<Vec3> samples;
+        std::vector<vec3> samples;
         randSphere(samples, num_photons);
 
         for (int i = 0; i < samples.size(); i++) {
-            Photon p(samples[i] * 5.0f, Vec3(1.0f, 1.0f, 1.0f), Vec3());
+            Photon p(samples[i] * 5.0f, vec3(1.0f, 1.0f, 1.0f), vec3());
             photons.push_back(p);
         }
     }
@@ -69,16 +70,16 @@ private:
      * @brief Project photons into the output image for visualization
      */
     void photon_vis(std::vector<Photon> & photons) {
-        Mat4x4 view = Mat4x4::lookAtRH(scene->camera->getPosition(), scene->camera->getTarget(), scene->camera->getUp());
-        Mat4x4 projection = Mat4x4::perspectiveRH(scene->camera->getFOV(), scene->camera->getAspectRatio(), 0.01f, 100.0f);
-        Mat4x4 vp = projection * view;
+        mat4x4 view = lookAtRH(scene->camera->getPosition(), scene->camera->getTarget(), scene->camera->getUp());
+        mat4x4 projection = perspectiveRH(scene->camera->getFOV(), scene->camera->getAspectRatio(), 0.01f, 100.0f);
+        mat4x4 vp = projection * view;
 
         for (int i = 0; i < photons.size(); i++) {
             Photon p = photons[i];
 
-            Vec4 pos = vp * Vec4(p.position, 1);
+            vec4 pos = vp * vec4(p.position, 1);
             pos = pos / pos.w;
-            pos = (pos / 2.0) + 0.5;
+            pos = (pos / 2.0f) + 0.5f;
 
             int x = (int)(pos.x * (scene->output->getWidth() - 1));
             int y = (int)(pos.y * (scene->output->getHeight() - 1));
@@ -89,7 +90,7 @@ private:
             if (y < 0 || y >= scene->output->getHeight())
                 continue;
 
-            scene->output->setPixel(x, y, Vec4(1, 1, 1, 1));
+            scene->output->setPixel(x, y, vec4(1, 1, 1, 1));
         }
     }
 
@@ -99,8 +100,8 @@ private:
      * @param result Collision information
      * @param depth  Recursion depth
      */
-    Vec3 shade(Ray ray, Collision *result, int depth) {
-        Vec3 color = Vec3(0.0f, 0.0f, 0.0f);
+    vec3 shade(Ray ray, Collision *result, int depth) {
+        vec3 color = vec3(0.0f, 0.0f, 0.0f);
 
         if (depth > settings.maxDepth)
             return color;
@@ -125,7 +126,7 @@ private:
                 continue;
             }
 
-            int2 args = blocks[0];
+            vector<int, 2> args = blocks[0];
             blocks.erase(blocks.begin(), blocks.begin() + 1);
             blocksLock.unlock();
 
@@ -143,7 +144,7 @@ private:
                     if (x >= width || y >= height)
                         continue;
 
-                    Vec3 color = Vec3(0.0f, 0.0f, 0.0f);
+                    vec3 color = vec3(0.0f, 0.0f, 0.0f);
 
                     for (int p = 0; p < settings.pixelSamples; p++) {
                         float v = (float)(y + p * sampleOffset) / (float)height;
@@ -156,7 +157,7 @@ private:
                             Collision result, temp;
                             result.distance = INFINITY32F;
 
-                            Vec3 sampleColor = getEnvironment(r.direction);
+                            vec3 sampleColor = getEnvironment(r.direction);
 
                             if (tree->intersect(r, &result, 0.0f, false))
                                 sampleColor = shade(r, &result, 1);
@@ -177,7 +178,7 @@ private:
                         }
                     }
 
-                    scene->output->setPixel(x, y, Vec4(color, 1.0f));
+                    scene->output->setPixel(x, y, vec4(color, 1.0f));
                 }
             }
 
@@ -194,7 +195,7 @@ private:
                 int by = (x / 16) % 2;
                 int b = bx ^ by;
                 float c = b > 0 ? 0.8f : 0.7f;
-                scene->output->setPixel(x, y, Vec4(c, c, c, 1.0f));
+                scene->output->setPixel(x, y, vec4(c, c, c, 1.0f));
             }
     }
 
@@ -249,6 +250,29 @@ public:
         workers.clear();
     }
 
+    void printProgress(int nBlocksW, int nBlocksH, bool clear) {
+        const int max_count = 26;
+
+        if (clear) {
+            for (int i = 0; i < max_count + 3; i++)
+                std::cout << (unsigned char)8;
+        }
+
+        std::cout << "[";
+
+        float progress = 1.0f - (float)blocksUnfinished / (float)(nBlocksH * nBlocksW);
+
+        int count = (int)(progress * (float)max_count);
+
+        for (int i = 0; i < count; i++)
+            std::cout << "\u2587";
+
+        for (int i = 0; i < max_count - count; i++)
+            std::cout << " ";
+
+        std::cout << " ]" << std::flush;
+    }
+
     /**
      * @brief Render the scene into the scene's output image
      */
@@ -261,17 +285,30 @@ public:
         blocksLock.lock();
         for (int y = 0; y < nBlocksH; y++)
             for (int x = 0; x < nBlocksW; x++)
-                blocks.push_back(int2(x, y));
+                blocks.push_back(vector<int, 2>(x, y));
 
         blocksUnfinished = blocks.size();
         blocksLock.unlock();
+
+        int time = 0;
+
+        printProgress(nBlocksW, nBlocksH, false);
 
         if (display != NULL) {
             while (blocksUnfinished > 0) {
                 display->refresh();
                 usleep(33000);
+                time += 33;
+
+                if (time > 250) {
+                    printProgress(nBlocksW, nBlocksH, true);
+                    time = 0;
+                }
             }
         }
+
+        printProgress(nBlocksW, nBlocksH, true);
+        std::cout << std::endl;
 
         //std::vector<Photon> photons;
         //photon_map(photons, 50);
@@ -293,17 +330,17 @@ public:
         if (!light->castsShadows())
             return 1.0f;
 
-        Vec3 origin = resultEx->position + resultEx->normal * .01f;
-        
+        vec3 origin = resultEx->position + resultEx->normal * .001f;
+
         float shadow = 0.0f;
 
-        std::vector<Vec3> samples;
+        std::vector<vec3> samples;
         light->getShadowDir(origin, samples, settings.shadowSamples);
         int nSamples = samples.size();
 
         for (int i = 0; i < nSamples; i++) {
-            Vec3 dir = samples[i];
-            float maxDist = dir.len();
+            vec3 dir = samples[i];
+            float maxDist = length(dir);
             dir = dir / maxDist;
 
             Ray shadow_ray(origin, dir);
@@ -324,14 +361,14 @@ public:
      * @return A floating point number ranging from 0 (fully occluded) to 1 (fully visible)
      */
     float getAmbientOcclusion(Collision *result, CollisionEx *resultEx) {
-        Vec3 origin = resultEx->position + resultEx->normal * .001f;
+        vec3 origin = resultEx->position + resultEx->normal * .001f;
 
         float occlusion = 1.0f;
 
         int sqrtNSamples = sqrt(settings.occlusionSamples);
         int nSamples = sqrtNSamples * sqrtNSamples;
 
-        std::vector<Vec3> samples;
+        std::vector<vec3> samples;
         randHemisphereCos(resultEx->normal, samples, sqrtNSamples);
 
         for (int i = 0; i < nSamples; i++) {
@@ -351,16 +388,16 @@ public:
      *
      * @param result Information about location being shaded
      */
-    Vec3 getIndirectLighting(Collision *result, CollisionEx *resultEx, int depth) {
+    vec3 getIndirectLighting(Collision *result, CollisionEx *resultEx, int depth) {
         // TODO: normal
-        Vec3 origin = resultEx->position + resultEx->normal * .001f;
+        vec3 origin = resultEx->position + resultEx->normal * .001f;
 
-        Vec3 color = Vec3(0, 0, 0);
+        vec3 color = vec3(0, 0, 0);
 
         int sqrtNSamples = sqrt(settings.indirectSamples);
         int nSamples = sqrtNSamples * sqrtNSamples;
 
-        std::vector<Vec3> samples;
+        std::vector<vec3> samples;
         randHemisphereCos(resultEx->normal, samples, sqrtNSamples);
 
         for (int i = 0; i < nSamples; i++) {
@@ -381,20 +418,20 @@ public:
      *
      * @param norm Direction to sample the environment
      */
-    Vec3 getEnvironment(Vec3 norm) {
+    vec3 getEnvironment(vec3 norm) {
         if (scene->environment != NULL) {
-            Vec4 sample = scene->environment->getPixel(norm);
-            return Vec3(sample.x, sample.y, sample.z);
+            vec4 sample = scene->environment->getPixel(norm);
+            return vec3(sample.x, sample.y, sample.z);
         }
 
-        return Vec3(0, 0, 0);
+        return vec3(0, 0, 0);
     }
 
     /**
      * @brief Get the environment reflection at a point across a normal
      */
-    Vec3 getEnvironmentReflection(Collision *result, CollisionEx *resultEx) {
-        return getEnvironment(resultEx->ray.direction.reflect(resultEx->normal));
+    vec3 getEnvironmentReflection(Collision *result, CollisionEx *resultEx) {
+        return getEnvironment(reflect(resultEx->ray.direction, resultEx->normal));
     }
 
     /**
@@ -404,8 +441,8 @@ public:
      * @param result Collision information
      * @param ior    Index of refraction of material
      */
-    Vec3 getEnvironmentRefraction(Collision *result, float ior, CollisionEx *resultEx) {
-        return getEnvironment(resultEx->ray.direction.refract(resultEx->normal, 1.0f, ior));
+    vec3 getEnvironmentRefraction(Collision *result, float ior, CollisionEx *resultEx) {
+        return getEnvironment(refract(resultEx->ray.direction, resultEx->normal, 1.0f, ior));
     }
 };
 

@@ -73,8 +73,8 @@ KDTree::KDNode *KDTree::buildSAHRec(AABB bounds, std::vector<SAHEvent> & d0,
         float split = splits[i];
         int dir = i % 3;
 
-        float min = bounds.min.get(dir);
-        float max = bounds.max.get(dir);
+        float min = bounds.min.v[dir];
+        float max = bounds.max.v[dir];
 
         if (split < min || split > max)
             continue;
@@ -87,8 +87,8 @@ KDTree::KDNode *KDTree::buildSAHRec(AABB bounds, std::vector<SAHEvent> & d0,
         for (int j = 0; j < items.size(); j++) {
             AABB box = items[j]->getBBox();
 
-            float min = box.min.get(dir);
-            float max = box.max.get(dir);
+            float min = box.min.v[dir];
+            float max = box.max.v[dir];
 
             if (min <= split && max >= split) {
                 countL++;
@@ -178,8 +178,8 @@ KDTree::KDNode *KDTree::buildMean(AABB bounds, std::vector<PolygonAccel *> & ite
         return buildLeaf(items);
     else {
         int dir = depth % 3;
-        float min = bounds.min.get(dir);
-        float max = bounds.max.get(dir);
+        float min = bounds.min.v[dir];
+        float max = bounds.max.v[dir];
         float split = (max - min) / 2.0f + min;
 
         AABB leftBB, rightBB;
@@ -268,10 +268,10 @@ bool KDTree::intersect(Ray ray, Collision *result, float maxDepth, bool anyColli
             int dir = currentNode->dir;
 
             float split = currentNode->split;
-            float origin = ray.origin.get(dir);
+            float origin = ray.origin.v[dir];
 
-            float t = (split - origin) * ray.inv_direction.get(dir);
-            
+            float t = (split - origin) * ray.inv_direction.v[dir];
+
             KDNode *nearNode = currentNode->left;
             KDNode *farNode  = currentNode->right;
 

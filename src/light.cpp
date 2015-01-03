@@ -6,7 +6,7 @@
 
 #include "light.h"
 
-Photon::Photon(Vec3 position, Vec3 power, Vec3 direction)
+Photon::Photon(vec3 position, vec3 power, vec3 direction)
     : position(position),
       power(power),
       direction(direction)

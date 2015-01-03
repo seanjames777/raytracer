@@ -5,6 +5,7 @@
  */
 
 #include <timer.h>
+#include <cassert>
 
 Timer::Timer() {
     gettimeofday(&startTime, NULL);
@@ -27,7 +28,7 @@ double Timer::getElapsedMilliseconds() {
 
 double Timer::getCPUTime() {
     rusage usage;
-    ASSERT(getrusage(RUSAGE_SELF, &usage) == 0);
+    assert(getrusage(RUSAGE_SELF, &usage) == 0);
 
     double time = 0.0f;
 

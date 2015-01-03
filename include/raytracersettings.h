@@ -9,8 +9,6 @@
 #ifndef _RAYTRACERSETTINGS_H
 #define _RAYTRACERSETTINGS_H
 
-#include <defs.h>
-
 struct RaytracerSettings {
     /** @brief Image width */
     int width;
