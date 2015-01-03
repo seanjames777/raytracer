@@ -68,7 +68,7 @@ private:
     /*
      * Swap the 32 bit floating point numbers at two locations
      */
-    inline void swap(float *a, float *b) {
+    inline static void swap(float *a, float *b) {
         float temp = *a;
         *a = *b;
         *b = temp;
@@ -83,8 +83,7 @@ public:
      * Empty constructor does not generate a valid bounding box,
      * only useful for array initialization
      */
-    AABB()
-    {
+    AABB() {
     }
 
     /*
@@ -125,7 +124,7 @@ public:
      * the nearest and farthest intersection points in tmin_out
      * and tmax_out
      */
-    bool intersects(const Ray & r, float *tmin_out, float *tmax_out) {
+    bool intersects(const Ray & r, float *tmin_out, float *tmax_out) const {
         // http://people.csail.mit.edu/amy/papers/box-jgt.pdf
 
         float tmin, tmax;
@@ -162,7 +161,7 @@ public:
     /*
      * Whether this AABB contains a given point
      */
-    bool contains(const vec3 & vec) {
+    bool contains(const vec3 & vec) const {
         return (vec.x >= min.x && vec.x <= max.x &&
                 vec.y >= min.y && vec.y <= max.y &&
                 vec.z >= min.z && vec.z <= max.z);
@@ -171,7 +170,7 @@ public:
     /*
      * Whether this bounding box overlaps another at all
      */
-    bool intersectsBbox(const AABB & other) {
+    bool intersectsBbox(const AABB & other) const {
         if (other.min.x > max.x || other.max.x < min.x)
             return false;
 
@@ -187,14 +186,14 @@ public:
     /*
      * Get the center point of this bounding box
      */
-    vec3 center() {
+    vec3 center() const {
         return min + (max - min) * .05f;
     }
 
     /*
      * Calculate the surface area of this bounding box
      */
-    float surfaceArea() {
+    float surfaceArea() const {
         vec3 ext = max - min;
         return 2 * (ext.x * ext.y + ext.x * ext.z + ext.y * ext.z);
     }
@@ -202,7 +201,7 @@ public:
     /*
      * Split the bounding box
      */
-    AABB split(float dist, int axis, AABB & left, AABB & right) {
+    AABB split(float dist, int axis, AABB & left, AABB & right) const {
         switch(axis) {
         case 0:
             left = AABB(min, vec3(min.x + dist, max.y, max.z));

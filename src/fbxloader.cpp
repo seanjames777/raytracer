@@ -118,7 +118,7 @@ void addNode(std::vector<Vertex> & vertices, FbxNode *node, mat4x4 transform,
         addNode(vertices, node->GetChild(i), transform, transformInverseTranspose);
 }
 
-void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, mat4x4 transform) {
+void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, mat4x4 transform) {
     FbxManager *fbxManager = FbxManager::Create();
     FbxIOSettings *ioSettings = FbxIOSettings::Create(fbxManager, filename.c_str());
     fbxManager->SetIOSettings(ioSettings);
@@ -144,13 +144,13 @@ void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, mat4x4 
     fbxManager->Destroy();
 
     for (int i = 0; i < vertices.size(); i += 3)
-        polys.push_back(Polygon(
+        polys.push_back(Triangle(
             vertices[i + 0],
             vertices[i + 1],
             vertices[i + 2]));
 }
 
-void FbxLoader::load(std::string filename, std::vector<Polygon> & polys, vec3 translation_v,
+void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, vec3 translation_v,
     vec3 rotation_v, vec3 scale_v)
 {
     mat4x4 transform = scale(scale_v.x, scale_v.y, scale_v.z) *

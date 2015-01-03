@@ -21,7 +21,7 @@ public:
      * @param polys     Vector to which polygons will be added
      * @param transform Transformation matrix to apply to vertices
      */
-    static void load(std::string filename, std::vector<Polygon> & polys,
+    static void load(std::string filename, std::vector<Triangle> & polys,
         mat4x4 transform = mat4x4());
 
     /**
@@ -33,7 +33,7 @@ public:
      * @param rotation    Rotation to apply to vertices
      * @param scale       Scale to apply to vertices
      */
-    static void load(std::string filename, std::vector<Polygon> & polys,
+    static void load(std::string filename, std::vector<Triangle> & polys,
         vec3 translation, vec3 rotation, vec3 scale);
 
 };

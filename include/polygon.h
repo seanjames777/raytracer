@@ -11,90 +11,60 @@
 
 #include <rtmath.h>
 
-/**
- * @brief Vertex data layout
- */
 struct Vertex {
-public:
-
-    // TODO: padding/alignment
-
-    /** @brief Position */
     vec3 position;
-
-    /** @brief Normal */
     vec3 normal;
-
-    /** @brief UV */
     vec2 uv;
-
-    /** @brief Vertex color */
     vec4 color;
 
-    /**
-     * @brief Empty constructor
-     */
     Vertex();
 
-    /**
-     * @brief Constructor
-     *
-     * @param position Position
-     * @param normal   Normal
-     * @param uv       UV
-     * @param color    Color
-     */
     Vertex(vec3 position, vec3 normal, vec2 uv, vec4 color);
 };
 
-/**
- * @brief Information about a collision
- */
+struct Triangle {
+    Vertex       v1;
+    Vertex       v2;
+    Vertex       v3;
+    vec3         normal;
+    AABB         bbox;
+    unsigned int triangle_id;
+
+    // TODO other constructors
+
+    Triangle(Vertex v1, Vertex v2, Vertex v3);
+
+    Vertex interpolate(float beta, float gamma);
+};
+
+class VertexBuffer {
+private:
+
+    Vertex       *vertices;
+    unsigned int *indices;
+    unsigned int  num_vertices;
+    unsigned int  num_indices;
+
+public:
+
+    VertexBuffer(
+        Vertex       *vertices,
+        unsigned int *indices,
+        unsigned int  num_vertices,
+        unsigned int  num_indices);
+
+    ~VertexBuffer();
+
+};
+
 struct Collision {
-    /** @brief Collision distance */
     float distance;
-
-    /** @brief Beta barycentric coordinate */
     float beta;
-
-    /** @brief Gamma barycentric coordinate */
     float gamma;
-
-    /** @brief Polygon */
-    int polygonID;
-
-    /**
-     * @brief Empty constructor
-     */
-    Collision();
+    unsigned int triangle_id;
 };
 
-/**
- * @brief Additional information about a collision
- */
-struct CollisionEx {
-    /** @brief Position of collision */
-    vec3 position;
-
-    /** @brief Normal at collision location, derived from polygon vertices */
-    vec3 polyNormal;
-
-    /** @brief Interpolated normal */
-    vec3 normal;
-
-    /** @brief Interpolated UV */
-    vec2 uv;
-
-    /** @brief Interpolated color */
-    vec4 color;
-
-    /** @brief Ray */
-    Ray ray;
-};
-
-#pragma pack(push, 1)
-
-struct PolygonAccel {
+struct SetupTriangle {
     float n_u; // normal.u / normal.k
     float n_v; // normal.v / normal.h
     float n_d; // constant of plane equation
@@ -104,21 +74,17 @@ struct PolygonAccel {
     float b_nu;
     float b_nv;
     float b_d;
-    int pad1;
 
     // line equation AB
     float c_nu;
     float c_nv;
     float c_d;
-    unsigned int polygonID;
 
-    // Bounding box
-    vec3 min;
-    int pad3;
-    vec3 max;
-    int pad4;
+    unsigned int triangle_id;
 
-    PolygonAccel(vec3 p1, vec3 p2, vec3 p3, unsigned int polygonID);
+    char pad[4];
+
+    SetupTriangle(const Triangle & triangle);
 
     /**
      * @brief Ray/shape intersection test
@@ -129,53 +95,6 @@ struct PolygonAccel {
      * @return Whether there was a collision
      */
     bool intersects(Ray ray, Collision *result);
-
-    /**
-     * @brief Get the axis-aligned bounding box for this shape
-     */
-    AABB getBBox();
-
-};
-
-#pragma pack(pop)
-
-/**
- * @brief Triangle shape
- */
-struct Polygon {
-public:
-
-    /** @brief Vertex 1 */
-    Vertex v1;
-
-    /** @brief Vertex 2 */
-    Vertex v2;
-
-    /** @brief Vertex 3 */
-    Vertex v3;
-
-    /** @brief Normal */
-    vec3 normal;
-
-    /**
-     * @brief Empty constructor
-     */
-    Polygon();
-
-    /**
-     * @brief Constructor
-     *
-     * @param v1 Vertex 1
-     * @param v2 Vertex 2
-     * @param v3 Vertex 3
-     */
-    Polygon(Vertex v1, Vertex v2, Vertex v3);
-
-    /**
-     * @brief Get more information about a collision
-     */
-    void getCollisionEx(Ray ray, Collision *collision, CollisionEx *collisionEx, bool interpolate);
-
 };
 
 #endif

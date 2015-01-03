@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     Material *chrome = new Material(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f),
         vec3(1.0f, 1.0f, 1.0f), 16.0f, 0.0f, 0.0f, 10.0f);
 
-    std::vector<Polygon> polys;
+    std::vector<Triangle> polys;
     FbxLoader::load(
         PathUtil::prependExecutableDirectory("content/models/dragon.fbx"),
         polys, vec3(0, 0, 0), vec3(-M_PI / 2.0f, 0, 0), vec3(1.2f, 1.2f, 1.2f));

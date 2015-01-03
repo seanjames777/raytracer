@@ -106,7 +106,7 @@ private:
         if (depth > settings.maxDepth)
             return color;
 
-        Material *material = scene->materialMap[result->polygonID];
+        Material *material = scene->materialMap[result->triangle_id];
 
         // TODO: might be better to pass ray by pointer or something
         color = material->shade(ray, result, scene, this, depth);
@@ -211,12 +211,7 @@ public:
           scene(scene),
           tree(NULL)
     {
-        std::vector<PolygonAccel *> accelPtrs;
-
-        for (int i = 0; i < scene->polyAccels.size(); i++)
-            accelPtrs.push_back(&scene->polyAccels[i]);
-
-        tree = new KDTree(accelPtrs);
+        tree = new KDTree(scene->triangles);
 
         srand((unsigned)time(0));
     }
@@ -326,11 +321,9 @@ public:
      *
      * @return A floating point number ranging from 0 (fully shadowed) to 1 (fully lit)
      */
-    float getShadow(Collision *result, CollisionEx *resultEx, Light *light) {
+    float getShadow(const vec3 & origin, Light *light) {
         if (!light->castsShadows())
             return 1.0f;
-
-        vec3 origin = resultEx->position + resultEx->normal * .001f;
 
         float shadow = 0.0f;
 
@@ -360,16 +353,14 @@ public:
      *
      * @return A floating point number ranging from 0 (fully occluded) to 1 (fully visible)
      */
-    float getAmbientOcclusion(Collision *result, CollisionEx *resultEx) {
-        vec3 origin = resultEx->position + resultEx->normal * .001f;
-
+    float getAmbientOcclusion(const vec3 & origin, const vec3 & normal) {
         float occlusion = 1.0f;
 
         int sqrtNSamples = sqrt(settings.occlusionSamples);
         int nSamples = sqrtNSamples * sqrtNSamples;
 
-        std::vector<vec3> samples;
-        randHemisphereCos(resultEx->normal, samples, sqrtNSamples);
+        std::vector<vec3> samples; // TODO
+        randHemisphereCos(normal, samples, sqrtNSamples);
 
         for (int i = 0; i < nSamples; i++) {
             Ray occl_ray(origin, samples[i]);
@@ -388,7 +379,7 @@ public:
      *
      * @param result Information about location being shaded
      */
-    vec3 getIndirectLighting(Collision *result, CollisionEx *resultEx, int depth) {
+    /*vec3 getIndirectLighting(Collision *result, CollisionEx *resultEx, int depth) {
         // TODO: normal
         vec3 origin = resultEx->position + resultEx->normal * .001f;
 
@@ -410,7 +401,7 @@ public:
         }
 
         return color;
-    }
+    }*/
 
     /**
      * @brief Sample the environment map, if there is one. Otherwise, returns the background
@@ -418,7 +409,7 @@ public:
      *
      * @param norm Direction to sample the environment
      */
-    vec3 getEnvironment(vec3 norm) {
+    vec3 getEnvironment(const vec3 & norm) {
         if (scene->environment != NULL) {
             vec4 sample = scene->environment->getPixel(norm);
             return vec3(sample.x, sample.y, sample.z);
@@ -430,8 +421,8 @@ public:
     /**
      * @brief Get the environment reflection at a point across a normal
      */
-    vec3 getEnvironmentReflection(Collision *result, CollisionEx *resultEx) {
-        return getEnvironment(reflect(resultEx->ray.direction, resultEx->normal));
+    vec3 getEnvironmentReflection(const vec3 & direction, const vec3 & normal) {
+        return getEnvironment(reflect(direction, normal));
     }
 
     /**
@@ -441,8 +432,8 @@ public:
      * @param result Collision information
      * @param ior    Index of refraction of material
      */
-    vec3 getEnvironmentRefraction(Collision *result, float ior, CollisionEx *resultEx) {
-        return getEnvironment(refract(resultEx->ray.direction, resultEx->normal, 1.0f, ior));
+    vec3 getEnvironmentRefraction(const vec3 & direction, const vec3 & normal, float ior) {
+        return getEnvironment(refract(direction, normal, 1.0f, ior));
     }
 };
 

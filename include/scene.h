@@ -21,11 +21,9 @@
 struct Scene {
 public:
 
-    /** @brief Set of polygons */
-    std::vector<Polygon> polys;
+    unsigned int poly_id;
 
-    /** @brief Polygon acceleration data */
-    std::vector<PolygonAccel> polyAccels;
+    std::vector<Triangle> triangles;
 
     /** @brief Set of lights */
     std::vector<Light *> lights;
@@ -51,19 +49,13 @@ public:
     Scene(Camera *camera, Image *output, Image *environment);
 
     /**
-     * @brief Add a polygon to the scene
-     *
-     * @param polygon  Polygon to add
-     * @param material Material for polygon
-     */
-    void addPoly(Polygon poly, Material *material);
-
-    /**
      * @brief Add a light to the scene
      *
      * @param light Light to add
      */
     void addLight(Light *light);
+
+    void addPoly(Triangle triangle, Material *material);
 
 };
 

@@ -6,9 +6,6 @@
 
 #include <polygon.h>
 
-// TODO Align me
-static const int modlookup[5] = { 0, 1, 2, 0, 1 }; // TODO: questionable optimization
-
 Vertex::Vertex() {
 }
 
@@ -20,14 +17,67 @@ Vertex::Vertex(vec3 position, vec3 normal, vec2 uv, vec4 color)
 {
 }
 
-Collision::Collision()
-    : distance(INFINITY32F)
+Triangle::Triangle(Vertex v1, Vertex v2, Vertex v3)
+    : v1(v1),
+      v2(v2),
+      v3(v3),
+      triangle_id(0) // TODO kinda annoying
 {
+    bbox = AABB(v1.position, v1.position);
+    bbox.join(v2.position);
+    bbox.join(v3.position);
+
+    vec3 b = normalize(v3.position - v1.position);
+    vec3 c = normalize(v2.position - v1.position);
+
+    normal = normalize(cross(c, b));
 }
 
-PolygonAccel::PolygonAccel(vec3 v1, vec3 v2, vec3 v3, unsigned int polygonID)
-    : polygonID(polygonID)
+Vertex Triangle::interpolate(float beta, float gamma) {
+    float alpha = 1.0f - beta - gamma;
+
+    // TODO:
+    //    - Face normal vs. intepolated normal
+    //    - Position could be retrieved from ray origin + direction * distance instead
+
+    return Vertex(
+        v1.position * alpha + v2.position * beta + v3.position * gamma,
+        v1.normal   * alpha + v2.normal   * beta + v3.normal   * gamma,
+        v1.uv       * alpha + v2.uv       * beta + v3.uv       * gamma,
+        v1.color    * alpha + v2.color    * beta + v3.color    * gamma);
+}
+
+VertexBuffer::VertexBuffer(
+    Vertex       *vertices,
+    unsigned int *indices,
+    unsigned int  num_vertices,
+    unsigned int  num_indices)
+    : num_vertices(num_vertices),
+      num_indices(num_indices)
 {
+    // TODO out of memory
+
+    this->vertices = (Vertex *)malloc(sizeof(Vertex) * num_vertices);
+    memcpy(this->vertices, vertices, sizeof(Vertex) * num_vertices);
+
+    this->indices = (unsigned int *)malloc(sizeof(unsigned int) * num_indices);
+    memcpy(this->indices, indices, sizeof(unsigned int) * num_indices);
+}
+
+VertexBuffer::~VertexBuffer() {
+    free(vertices);
+    free(indices);
+}
+
+SetupTriangle::SetupTriangle(const Triangle & triangle)
+    : triangle_id(triangle.triangle_id)
+{
+    static const int mod_table[5] = { 0, 1, 2, 0, 1 };
+
+    const vec3 & v1 = triangle.v1.position;
+    const vec3 & v2 = triangle.v2.position;
+    const vec3 & v3 = triangle.v3.position;
+
     // Edges and normal
     vec3 b = v3 - v1;
     vec3 c = v2 - v1;
@@ -39,8 +89,8 @@ PolygonAccel::PolygonAccel(vec3 v1, vec3 v2, vec3 v3, unsigned int polygonID)
     else
         k = fabs(n.y) > fabs(n.z) ? 1 : 2;
 
-    int u = modlookup[k + 1];
-    int v = modlookup[k + 2];
+    int u = mod_table[k + 1]; // TODO %
+    int v = mod_table[k + 2];
 
     n = n / n.v[k];
 
@@ -56,47 +106,43 @@ PolygonAccel::PolygonAccel(vec3 v1, vec3 v2, vec3 v3, unsigned int polygonID)
     c_nu =  c.v[v] / denom;
     c_nv = -c.v[u] / denom;
     c_d  =  (c.v[u] * v1.v[v] - c.v[v] * v1.v[u]) / denom;
-
-    AABB box(v1, v1);
-    box.join(v2);
-    box.join(v3);
-
-    min = box.min;
-    max = box.max;
 }
 
-AABB PolygonAccel::getBBox() {
-    return AABB(min, max);
-}
+bool SetupTriangle::intersects(Ray ray, Collision *result) {
+    static const int mod_table[5] = { 0, 1, 2, 0, 1 };
 
-bool PolygonAccel::intersects(Ray ray, Collision *result) {
     // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
 
-    int u = modlookup[k + 1];
-    int v = modlookup[k + 2];
+    // TODO: lots of branching here.
+    // TODO: might be better to *not* precompute stuff for memory bandwidth
+    // TODO: inline this?
 
-    const float dot = (ray.direction.v[k] + n_u * ray.direction.v[u] + n_v *
+    int u = mod_table[k + 1];
+    int v = mod_table[k + 2];
+
+    float dot = (ray.direction.v[k] + n_u * ray.direction.v[u] + n_v *
         ray.direction.v[v]);
 
+    // TODO: necessary?
     if (dot == 0.0f)
         return false;
 
-    const float nd = 1.0f / dot;
-    const float t_plane = (n_d - ray.origin.v[k]
+    float nd = 1.0f / dot;
+    float t_plane = (n_d - ray.origin.v[k]
         - n_u * ray.origin.v[u] - n_v * ray.origin.v[v]) * nd;
 
     // Behind camera
     if (t_plane <= 0.0f)
         return false;
 
-    const float hu = ray.origin.v[u] + t_plane * ray.direction.v[u];
-    const float hv = ray.origin.v[v] + t_plane * ray.direction.v[v];
+    float hu = ray.origin.v[u] + t_plane * ray.direction.v[u];
+    float hv = ray.origin.v[v] + t_plane * ray.direction.v[v];
 
-    const float beta  = (hu * b_nu + hv * b_nv + b_d);
+    float beta  = (hu * b_nu + hv * b_nv + b_d);
     if (beta < 0.0f)
         return false;
 
-    const float gamma = (hu * c_nu + hv * c_nv + c_d);
+    float gamma = (hu * c_nu + hv * c_nv + c_d);
     if (gamma < 0.0f)
         return false;
 
@@ -106,48 +152,7 @@ bool PolygonAccel::intersects(Ray ray, Collision *result) {
     result->distance = t_plane;
     result->beta = beta;
     result->gamma = gamma;
-    result->polygonID = polygonID;
+    result->triangle_id = triangle_id;
 
     return true;
-}
-
-Polygon::Polygon() {
-}
-
-Polygon::Polygon(Vertex v1, Vertex v2, Vertex v3)
-    : v1(v1),
-      v2(v2),
-      v3(v3)
-{
-    vec3 b = normalize(v3.position - v1.position);
-    vec3 c = normalize(v2.position - v1.position);
-
-    normal = normalize(cross(c, b));
-}
-
-void Polygon::getCollisionEx(Ray ray, Collision *collision, CollisionEx *collisionEx,
-    bool interpolate)
-{
-    collisionEx->ray = ray;
-    collisionEx->position = ray.at(collision->distance);
-    collisionEx->polyNormal = normal;
-
-    if (interpolate) {
-        float alpha = 1.0f - collision->beta - collision->gamma;
-
-        vec3 an = v1.normal * alpha;
-        vec3 bn = v2.normal * collision->beta;
-        vec3 cn = v3.normal * collision->gamma;
-        collisionEx->normal = an + bn + cn;
-
-        vec2 auv = v1.uv * alpha;
-        vec2 buv = v2.uv * collision->beta;
-        vec2 cuv = v3.uv * collision->gamma;
-        collisionEx->uv = auv + buv + cuv;
-
-        vec4 acolor = v1.color * alpha;
-        vec4 bcolor = v2.color * collision->beta;
-        vec4 ccolor = v3.color * collision->gamma;
-        collisionEx->color = acolor + bcolor + ccolor;
-    }
 }
