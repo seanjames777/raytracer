@@ -23,17 +23,34 @@
 class KDTree {
 private:
 
+    enum KDNodeFlags {
+        // If the node is a leaf, the bottom 31 bits are the size and the top
+        // bit is 1. Otherwise, the node is not a leaf, so the top bit is 0
+        // and the bottom two bits are the split direction.
+
+        KD_SIZE_MASK       = ~(1 << 31),
+        KD_SPLIT_DIR_X     =   0,
+        KD_SPLIT_DIR_Y     =   1,
+        KD_SPLIT_DIR_Z     =   2,
+        KD_SPLIT_DIR_MASK  =   3,
+        KD_IS_LEAF         =   1 << 31,
+    };
+
     // TODO cache alignment, maybe compact, and child node heap?
     struct KDNode {
+        // 32 bytes = 1/2 cache line
+
         KDNode        *left;
         KDNode        *right;
-        float          split_dist;
         SetupTriangle *triangles;
-        unsigned int   num_triangles;
-        unsigned int   flags; // TODO document, maybe switch back to dir
+        float          split_dist;
+        unsigned int   flags;
 
         KDNode(KDNode *left, KDNode *right, float split_dist,
-            SetupTriangle *triangles, unsigned int num_triangles, unsigned int flags);
+            SetupTriangle *triangles, unsigned int flags);
+
+        ~KDNode();
+
     };
 
     /**
@@ -97,7 +114,7 @@ private:
      * @param exit         Maximum collision distance
      * @param anyCollision Whether to accept any collision or to find the closest
      */
-    bool intersectLeaf(KDNode *leaf, Ray ray, Collision *result, float entry, float exit,
+    bool intersectLeaf(KDNode *leaf, const Ray & ray, Collision *result, float entry, float exit,
         bool anyCollision);
 
 public:
@@ -119,7 +136,7 @@ public:
      *
      * @return Whether a collision occured
      */
-    bool intersect(Ray ray, Collision *result, float maxDepth, bool anyCollision);
+    bool intersect(const Ray & ray, Collision *result, float maxDepth, bool anyCollision);
 
 };
 

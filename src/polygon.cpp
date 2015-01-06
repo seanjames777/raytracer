@@ -4,6 +4,8 @@
  * @author Sean James
  */
 
+// TODO: triangle.cpp?
+
 #include <polygon.h>
 
 Vertex::Vertex() {

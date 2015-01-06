@@ -76,7 +76,7 @@ private:
     GLFWwindow *window;
 
     /** @brief Displayed image */
-    Image *image;
+    std::shared_ptr<Image> image;
 
 public:
 
@@ -87,7 +87,7 @@ public:
      * @param height Height of the display window
      * @param image  Image to display
      */
-    GLImageDisplay(int width, int height, Image *image);
+    GLImageDisplay(int width, int height, std::shared_ptr<Image> image);
 
     /**
      * @brief Destructor

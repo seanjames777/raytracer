@@ -8,110 +8,6 @@
 #include <fstream>
 #include <iostream>
 
-S_BITMAPFILEHEADER Image::createBitmapFileHeader() {
-    S_BITMAPFILEHEADER fileHeader;
-
-    int pixelsPerRow = width * 3;
-    pixelsPerRow = pixelsPerRow % 4 != 0 ? pixelsPerRow + 4 - (pixelsPerRow % 4) : pixelsPerRow;
-
-    fileHeader.signature = 0x4D42;
-    fileHeader.reserved1 = 0;
-    fileHeader.reserved2 = 0;
-    fileHeader.pixelArrayOffset = sizeof(S_BITMAPFILEHEADER) + sizeof(S_BITMAPINFOHEADER);
-    fileHeader.fileSize = fileHeader.pixelArrayOffset + (pixelsPerRow * height);
-
-    return fileHeader;
-}
-
-S_BITMAPINFOHEADER Image::createBitmapInfoHeader() {
-    S_BITMAPINFOHEADER infoHeader;
-
-    int pixelsPerRow = width * 3;
-    pixelsPerRow = pixelsPerRow % 4 != 0 ? pixelsPerRow + 4 - (pixelsPerRow % 4) : pixelsPerRow;
-
-    infoHeader.headerSize = sizeof(S_BITMAPINFOHEADER);
-    infoHeader.width = width;
-    infoHeader.height = height;
-    infoHeader.planes = 1;
-    infoHeader.bitsPerPixel = (short)(3 * 8);
-    infoHeader.compression = BI_RGB;
-    infoHeader.imageSize = (pixelsPerRow * height);
-    infoHeader.hres = 2834;
-    infoHeader.vres = 2834;
-    infoHeader.numColors = 0;
-    infoHeader.numImportant = 0;
-
-    return infoHeader;
-}
-
-Image *Image::loadBMP(std::string filename) {
-    std::ifstream in;
-    in.open(filename.c_str(), std::ios::binary | std::ios::in);
-
-    if (!in.is_open()) {
-        std::cout << "Error opening '" << filename << "'" << std::endl;
-        return NULL;
-    }
-
-    S_BITMAPFILEHEADER fileHeader;
-    S_BITMAPINFOHEADER infoHeader;
-
-    in.read((char *)&fileHeader, sizeof(S_BITMAPFILEHEADER));
-    in.read((char *)&infoHeader, sizeof(S_BITMAPINFOHEADER));
-
-    int width = infoHeader.width;
-    int height = infoHeader.height;
-    int channels = infoHeader.bitsPerPixel / 8;
-
-    int pixelsPerRow = width * channels;
-    pixelsPerRow = pixelsPerRow % 4 != 0 ? pixelsPerRow + 4 - (pixelsPerRow % 4) : pixelsPerRow;
-
-    in.seekg(fileHeader.pixelArrayOffset, in.beg);
-
-    unsigned char *readPixels = new unsigned char[infoHeader.imageSize];
-
-    in.read((char *)readPixels, infoHeader.imageSize);
-
-    in.close();
-
-    Image *bmp = new Image(width, height);
-    float *arr = bmp->getPixels();
-
-    for (int y = 0; y < height; y++) {
-        int i0 = y * pixelsPerRow;
-        int o0 = y * width * 4;
-
-        for (int x = 0; x < width; x++) {
-            int i = i0 + x * channels;
-            int o = o0 + x * 4;
-
-            switch (channels) {
-            case 1:
-                arr[o + 0] = S_I2F(readPixels[i]);
-                arr[o + 1] = S_I2F(readPixels[i]);
-                arr[o + 2] = S_I2F(readPixels[i]);
-                arr[o + 3] = 1.0f;
-                break;
-            case 3:
-                arr[o + 0] = S_I2F(readPixels[i + 2]);
-                arr[o + 1] = S_I2F(readPixels[i + 1]);
-                arr[o + 2] = S_I2F(readPixels[i + 0]);
-                arr[o + 3] = 1.0f;
-                break;
-            case 4:
-                arr[o + 0] = S_I2F(readPixels[i + 2]);
-                arr[o + 1] = S_I2F(readPixels[i + 1]);
-                arr[o + 2] = S_I2F(readPixels[i + 0]);
-                arr[o + 3] = S_I2F(readPixels[i + 3]);
-
-                break;
-            }
-        }
-    }
-
-    return bmp;
-}
-
 Image::Image(int width, int height)
     : width(width),
       height(height)
@@ -131,91 +27,6 @@ Image::Image(int width, int height)
 
 Image::~Image() {
     delete [] pixels;
-}
-
-bool Image::saveBMP(std::string filename) {
-    int pixelsPerRow = width * 3;
-    int pad = pixelsPerRow % 4 != 0 ? 4 - (pixelsPerRow % 4) : 0;
-
-    char *padArr = new char[pad];
-    memset(padArr, 0, pad);
-
-    std::ofstream out;
-    out.open(filename.c_str(), std::ios::binary | std::ios::out);
-
-    S_BITMAPFILEHEADER fileHeader = createBitmapFileHeader();
-    S_BITMAPINFOHEADER infoHeader = createBitmapInfoHeader();
-
-    out.write((char *)&fileHeader, sizeof(S_BITMAPFILEHEADER));
-    out.write((char *)&infoHeader, sizeof(S_BITMAPINFOHEADER));
-
-    for (int y = 0; y < height; y++) {
-        int i0 = (height - y - 1) * width * 4;
-
-        for (int x = 0; x < width; x++) {
-            int i = i0 + x * 4;
-
-            unsigned char r = S_F2I(pixels[i + 0]);
-            unsigned char g = S_F2I(pixels[i + 1]);
-            unsigned char b = S_F2I(pixels[i + 2]);
-
-            out.write((char *)&b, 1);
-            out.write((char *)&g, 1);
-            out.write((char *)&r, 1);
-        }
-
-        out.write(padArr, pad);
-    }
-
-    out.close();
-
-    return true;
-}
-
-/*bool Image::saveEXR(std::string filename) {
-    // TODO error checks here and in saveBMP
-
-    Imf::Header header(width, height);
-    header.channels().insert("R", Imf::Channel(Imf::FLOAT));
-    header.channels().insert("G", Imf::Channel(Imf::FLOAT));
-    header.channels().insert("B", Imf::Channel(Imf::FLOAT));
-    header.channels().insert("A", Imf::Channel(Imf::FLOAT));
-
-    Imf::OutputFile file(filename.c_str(), header);
-
-    Imf::FrameBuffer frameBuffer;
-    frameBuffer.insert("R", Imf::Slice(Imf::FLOAT, (char *)pixels + sizeof(float) * 0,
-        sizeof(float) * 4, sizeof(float) * 4 * width));
-    frameBuffer.insert("G", Imf::Slice(Imf::FLOAT, (char *)pixels + sizeof(float) * 1,
-        sizeof(float) * 4, sizeof(float) * 4 * width));
-    frameBuffer.insert("B", Imf::Slice(Imf::FLOAT, (char *)pixels + sizeof(float) * 2,
-        sizeof(float) * 4, sizeof(float) * 4 * width));
-    frameBuffer.insert("A", Imf::Slice(Imf::FLOAT, (char *)pixels + sizeof(float) * 3,
-        sizeof(float) * 4, sizeof(float) * 4 * width));
-
-    file.setFrameBuffer(frameBuffer);
-    file.writePixels(height);
-
-    return true;
-}*/
-
-vec4 Image::getPixel(vec2 uv) {
-    uv.x = uv.x - (int)uv.x;
-    uv.y = uv.y - (int)uv.y;
-
-    int x = (int)(uv.x * (width - 1));
-    int y = (int)(uv.y * (height - 1));
-
-    // TODO: real filtering
-
-    return getPixel(x, y);
-}
-
-vec4 Image::getPixel(vec3 norm) {
-    vec2 uv = vec2(atan2f(norm.z, norm.x) + M_PI, acosf(-norm.y));
-    uv = uv / vec2(2.0f * M_PI, M_PI);
-
-    return getPixel(uv);
 }
 
 vec4 Image::getPixel(int x, int y) {
@@ -282,4 +93,84 @@ void Image::applyTonemapping(float exposure) {
             pixels[i + 2] = pixels[i + 2] * exposure;
             pixels[i + 2] /= 1.0f + pixels[i + 2];
         }
+}
+
+Sampler::Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode borderU,
+    BorderMode borderV)
+    : minFilter(minFilter),
+      magFilter(magFilter),
+      borderU(borderU),
+      borderV(borderV)
+{
+    // TODO make these functions cool
+}
+
+vec4 Sampler::sampleBorder(Image *image, int x, int y) {
+    int width = image->getWidth();
+    int height = image->getHeight();
+
+    // TODO: Because the address mode is fixed, the branch predictor will
+    // hopefully not get too confused by the switches.
+    // TODO: handle non power of two
+
+    switch(borderU) {
+    case Clamp:
+        x &= ~(x >> 31);            // Less than 0, fill 0's
+        x |= (width - 1 - x) >> 31; // Greater than width - 1, fill 1's
+    case Wrap:
+        x &= (width - 1);           // Wrap around width - 1
+        break;
+    }
+
+    switch(borderV) {
+    case Clamp:
+        y &= ~(y >> 31);
+        y |= (height - 1 - y) >> 31;
+    case Wrap:
+        y &= (height - 1);
+        break;
+    }
+
+    return image->getPixel(x, y);
+}
+
+vec4 Sampler::sample(Image *image, vec2 uv) {
+    // TODO: pixel centers?
+
+    float x = uv.x * (image->getWidth() - 1);
+    float y = uv.y * (image->getHeight() - 1);
+
+    int x0 = (int)x;
+    int y0 = (int)y;
+
+    switch(minFilter) {
+    case Nearest:
+        return sampleBorder(image, x0, y0);
+    case Linear:
+    case MipLinear:
+        // TODO: Might be able to reuse some component of border logic
+        // TODO: Might be worth doing a full distance-weighted blend instead of
+        // bilinear.
+
+        // These should be nearby in the cache due to tiling
+        vec4 s0 = sampleBorder(image, x0,     y0);
+        vec4 s1 = sampleBorder(image, x0 + 1, y0);
+        vec4 s2 = sampleBorder(image, x0,     y0 + 1);
+        vec4 s3 = sampleBorder(image, x0 + 1, y0 + 1);
+
+        float du = x - x0;
+        float dv = y - y0;
+
+        vec4 t0 = du * s1 + (1.0f - du) * s0;
+        vec4 t1 = du * s3 + (1.0f - du) * s2;
+
+        return dv * t1 + (1.0f - dv) * t0;
+    }
+}
+
+vec4 Sampler::sample(Image *image, vec3 norm) {
+    vec2 uv = vec2(atan2f(norm.z, norm.x) + M_PI, acosf(-norm.y));
+    uv = uv / vec2(2.0f * M_PI, M_PI);
+
+    return sample(image, uv);
 }

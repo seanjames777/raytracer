@@ -13,6 +13,7 @@
 #include <rtmath.h>
 #include <light.h>
 #include <polygon.h>
+#include <image.h>
 
 class Raytracer;
 class Scene;
@@ -45,6 +46,9 @@ private:
     /** @brief Index of refraction */
     float ior;
 
+    std::shared_ptr<Image> diffuse_texture;
+    std::shared_ptr<Sampler> diffuse_sampler;
+
 public:
 
     /**
@@ -59,13 +63,14 @@ public:
      * @param ior           Index of refraction
      */
     Material(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower, float reflection,
-        float refraction, float ior);
+        float refraction, float ior, std::shared_ptr<Sampler> diffuse_sampler,
+        std::shared_ptr<Image> diffuse_texture);
 
     /**
      * @brief Shade the surface for a given collision and light source. Will be called for each
      * light source and mixed externally with shadows, reflections, etc.
      */
-    vec3 shade(Ray ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth);
+    vec3 shade(const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth);
 
 };
 

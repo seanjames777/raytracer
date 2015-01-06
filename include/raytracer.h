@@ -23,6 +23,11 @@
 #include <atomic>
 #include <mutex>
 
+// TODO:
+//     - Tiled backbuffer
+//     - Lock-free indexing
+//     - Per-mesh materials, sorted, instaed of poly -> naterial map
+
 class Raytracer {
 private:
 
@@ -100,7 +105,7 @@ private:
      * @param result Collision information
      * @param depth  Recursion depth
      */
-    vec3 shade(Ray ray, Collision *result, int depth) {
+    vec3 shade(const Ray & ray, Collision *result, int depth) {
         vec3 color = vec3(0.0f, 0.0f, 0.0f);
 
         if (depth > settings.maxDepth)
@@ -215,6 +220,8 @@ public:
 
         srand((unsigned)time(0));
     }
+
+    // TODO: destroy
 
     /**
      * @brief Start worker threads
@@ -331,6 +338,9 @@ public:
         light->getShadowDir(origin, samples, settings.shadowSamples);
         int nSamples = settings.shadowSamples;
 
+        if (nSamples == 0)
+            nSamples = 1;
+
         for (int i = 0; i < nSamples; i++) {
             vec3 dir = samples[i];
             float maxDist = length(dir);
@@ -411,7 +421,7 @@ public:
      */
     vec3 getEnvironment(const vec3 & norm) {
         if (scene->environment != NULL) {
-            vec4 sample = scene->environment->getPixel(norm);
+            vec4 sample = scene->environment_sampler->sample(scene->environment.get(), norm);
             return vec3(sample.x, sample.y, sample.z);
         }
 

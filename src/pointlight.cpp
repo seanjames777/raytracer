@@ -17,13 +17,13 @@ PointLight::PointLight(vec3 position, vec3 color, float radius, float range, flo
 {
 }
 
-vec3 PointLight::getDirection(vec3 pos) {
+vec3 PointLight::getDirection(const vec3 & pos) {
     vec3 dir = normalize(pos - position);
 
     return dir;
 }
 
-vec3 PointLight::getColor(vec3 pos) {
+vec3 PointLight::getColor(const vec3 & pos) {
     vec3 diff = pos - position;
     float dist2 = length2(diff);
 
@@ -37,8 +37,8 @@ bool PointLight::castsShadows() {
     return shadow;
 }
 
-void PointLight::getShadowDir(vec3 at, vec3 *samples, int nSamples) {
-    if (radius == 0.0f || nSamples == 1) {
+void PointLight::getShadowDir(const vec3 & at, vec3 *samples, int nSamples) {
+    if (radius == 0.0f || nSamples == 0) {
         vec3 dir = this->position - at;
         samples[0] = dir;
         return;

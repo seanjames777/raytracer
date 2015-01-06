@@ -6,9 +6,12 @@
 
 #include <scene.h>
 
-Scene::Scene(Camera *camera, Image *output, Image *environment)
+Scene::Scene(Camera *camera, std::shared_ptr<Image> output,
+    std::shared_ptr<Sampler> environment_sampler,
+    std::shared_ptr<Image> environment)
     : camera(camera),
       output(output),
+      environment_sampler(environment_sampler),
       environment(environment),
       poly_id(0)
 {

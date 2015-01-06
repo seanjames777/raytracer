@@ -52,12 +52,12 @@ public:
     /**
      * @brief Get the direction of the point light at a given point
      */
-    vec3 getDirection(vec3 pos);
+    vec3 getDirection(const vec3 & pos);
 
     /**
      * @brief Get the color of the point light at a given point
      */
-    vec3 getColor(vec3 pos);
+    vec3 getColor(const vec3 & pos);
 
     /**
      * @brief Whether this point light casts shadows
@@ -75,7 +75,7 @@ public:
      * @param samples  Vector of samples to add to
      * @param nSamples Number of samples to compute
      */
-    void getShadowDir(vec3 at, vec3 *samples, int nSamples);
+    void getShadowDir(const vec3 & at, vec3 *samples, int nSamples);
 
 };
 

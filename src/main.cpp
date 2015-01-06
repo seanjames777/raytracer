@@ -13,6 +13,7 @@
 #include <fbxloader.h>
 #include <path.h>
 #include <sstream>
+#include <bmpimage.h>
 
 int main(int argc, char *argv[]) {
     std::cout << "PID: " << getpid() << std::endl;
@@ -21,31 +22,42 @@ int main(int argc, char *argv[]) {
     settings.width = 1920;
     settings.height = 1080;
     settings.pixelSamples = 1;
-    settings.occlusionSamples = 16;
+    settings.occlusionSamples = 0;
     settings.occlusionDistance = 10.0f;
-    settings.shadowSamples = 16;
+    settings.shadowSamples = 0;
 
     float aspect = (float)settings.width / (float)settings.height;
     Camera *camera = new Camera(vec3(-19, 10, -20), vec3(0, 5.0f, 0), aspect,
         M_PI / 3.4f, 19.25f, 0.0f);
 
-    Image *output = new Image(settings.width, settings.height);
+    std::shared_ptr<Image> output = std::make_shared<Image>(settings.width, settings.height);
 
-    Image *environment = Image::loadBMP(
+    std::shared_ptr<Image> environment = BMPImage::loadBMP(
         PathUtil::prependExecutableDirectory("content/textures/cubemap.bmp"));
-    environment->applyGamma(2.2f);
 
-    Scene *scene = new Scene(camera, output, environment);
+    std::shared_ptr<Image> checker = BMPImage::loadBMP(
+        PathUtil::prependExecutableDirectory("content/textures/checker.bmp"));
+
+    environment->applyGamma(2.2f);
+    checker->applyGamma(2.2f);
+
+    std::shared_ptr<Sampler> check_sampler = std::make_shared<Sampler>(
+        Linear, Linear, Wrap, Wrap);
+
+    std::shared_ptr<Sampler> env_sampler = std::make_shared<Sampler>(
+        Nearest, Nearest, Wrap, Wrap);
+
+    Scene *scene = new Scene(camera, output, env_sampler, environment);
 
     Material *diffuse = new Material(vec3(0.1f, 0.1f, 0.1f), vec3(0.9f, 0.9f, 0.9f),
-        vec3(0.3f, 0.3f, 0.3f), 8.0f, 0.0f, 0.0f, 10.0f);
+        vec3(0.3f, 0.3f, 0.3f), 8.0f, 0.0f, 0.0f, 10.0f, check_sampler, checker);
 
     Material *chrome = new Material(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f),
-        vec3(1.0f, 1.0f, 1.0f), 16.0f, 0.0f, 0.0f, 10.0f);
+        vec3(1.0f, 1.0f, 1.0f), 16.0f, 0.0f, 0.0f, 10.0f, check_sampler, nullptr);
 
     std::vector<Triangle> polys;
     FbxLoader::load(
-        PathUtil::prependExecutableDirectory("content/models/dragon.fbx"),
+        PathUtil::prependExecutableDirectory("content/models/sphere.fbx"),
         polys, vec3(0, 0, 0), vec3(-M_PI / 2.0f, 0, 0), vec3(1.2f, 1.2f, 1.2f));
     for (int i = 0; i < polys.size(); i++)
         scene->addPoly(polys[i], diffuse);
@@ -81,11 +93,11 @@ int main(int argc, char *argv[]) {
         /*ss << "output/frame" << i << ".exr";
         output->saveEXR(ss.str());*/
 
-        ss.str("");
-        ss << "output/frame" << i << ".bmp";
-        output->applyTonemapping(2.0f);
-        output->applyGamma(1.0f / 2.2f);
-        output->saveBMP(ss.str());
+        //ss.str("");
+        //ss << "output/frame" << i << ".bmp";
+        //output->applyTonemapping(2.0f);
+        //output->applyGamma(1.0f / 2.2f);
+        //output->saveBMP(ss.str());
     }
 
     printf("Done: %f seconds (total), %f seconds (CPU)\n",

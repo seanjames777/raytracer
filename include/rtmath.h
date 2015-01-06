@@ -32,6 +32,8 @@ struct Ray {
     vec3 origin;        // Origin of the ray
     vec3 direction;     // Direction of the ray
     vec3 inv_direction; // 1 / ray direction
+    vec3 d_origin;
+    vec3 d_direction;
 
     /**
      * Empty constructor

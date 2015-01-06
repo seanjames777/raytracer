@@ -28,6 +28,7 @@ add_executable(raytracer
 	src/fbxloader.cpp
 	src/raytracersettings.cpp
     src/path.cpp
+    src/bmpimage.cpp
 )
 
 target_link_libraries(raytracer

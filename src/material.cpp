@@ -8,18 +8,21 @@
 #include <raytracer.h>
 
 Material::Material(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower,
-    float reflection, float refraction, float ior)
+    float reflection, float refraction, float ior, std::shared_ptr<Sampler> diffuse_sampler,
+    std::shared_ptr<Image> diffuse_texture)
     : ambient(ambient),
       diffuse(diffuse),
       specular(specular),
       specularPower(specularPower),
       reflection(reflection),
       refraction(refraction),
-      ior(ior)
+      ior(ior),
+      diffuse_sampler(diffuse_sampler),
+      diffuse_texture(diffuse_texture)
 {
 }
 
-vec3 Material::shade(Ray ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
+vec3 Material::shade(const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
@@ -49,6 +52,8 @@ vec3 Material::shade(Ray ray, Collision *result, Scene *scene, Raytracer *raytra
 
     vec3 offset_origin = interp.position + triangle->normal * .001f;
 
+    vec3 tex_diffuse = diffuse_sampler->sample(diffuse_texture.get(), interp.uv).xyz();
+
     for (auto it = scene->lights.begin(); it != scene->lights.end(); it++) {
         Light *light = *it;
         float shadow = raytracer->getShadow(offset_origin, light) * .8f + .2f;
@@ -65,11 +70,13 @@ vec3 Material::shade(Ray ray, Collision *result, Scene *scene, Raytracer *raytra
         float specf =  powf(rdotv, specularPower);
         vec3 spec  =  specular * specf;
 
-        color += (lcolor * (diffuse * geomDiffuse * ndotl) + spec) * shadow;
+        color += (lcolor * (diffuse * tex_diffuse * geomDiffuse * ndotl) + spec) * shadow;
     }
 
     float occlusion = raytracer->getAmbientOcclusion(offset_origin, triangle->normal);
     color = color * occlusion;
+
+    color = tex_diffuse;
 
     return color;
 }

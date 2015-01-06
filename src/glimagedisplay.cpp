@@ -40,7 +40,7 @@ vec2 vertices[6] = {
     vec2(1, -1)
 };
 
-GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
+GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> image)
     : width(width),
       height(height),
       image(image)

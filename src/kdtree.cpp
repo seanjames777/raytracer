@@ -7,14 +7,22 @@
 #include <kdtree.h>
 
 KDTree::KDNode::KDNode(KDNode *left, KDNode *right, float split_dist,
-    SetupTriangle *triangles, unsigned int num_triangles, unsigned int flags)
+    SetupTriangle *triangles, unsigned int flags)
     : left(left),
       right(right),
       split_dist(split_dist),
       triangles(triangles),
-      num_triangles(num_triangles),
       flags(flags)
 {
+}
+
+KDTree::KDNode::~KDNode() {
+    if (flags & KD_IS_LEAF)
+        free(triangles);
+    else {
+        delete left;
+        delete right;
+    }
 }
 
 void KDTree::partition(const AABB & box, const std::vector<Triangle *> & triangles,
@@ -31,12 +39,14 @@ KDTree::KDNode *KDTree::buildLeaf(const std::vector<Triangle *> & triangles) {
     SetupTriangle *setup = (SetupTriangle *)malloc(sizeof(SetupTriangle) * num_triangles);
 
     for (unsigned int i = 0; i < num_triangles; i++)
-        setup[i] = SetupTriangle(*triangles[i]);
+        setup[i] = SetupTriangle(*triangles[i]); // TODO constructor in place
 
-    // TODO: delete the setup triangles. Might also want to change constructor of KDNode
-    // to do this stuff, especially to not mix allocations
+    // TODO: Might want to change constructor of KDNode to do this stuff,
+    // especially to not mix allocations
 
-    return new KDNode(NULL, NULL, 0.0f, setup, num_triangles, 4); // TODO constant
+    // TODO: handle overflow of size?
+
+    return new KDNode(NULL, NULL, 0.0f, setup, num_triangles | KD_IS_LEAF);
 }
 
 KDTree::KDNode *KDTree::buildMean(AABB bounds, const std::vector<Triangle *> & triangles, int depth) {
@@ -53,19 +63,18 @@ KDTree::KDNode *KDTree::buildMean(AABB bounds, const std::vector<Triangle *> & t
         AABB leftBB, rightBB;
         bounds.split(split - min, dir, leftBB, rightBB);
 
-        std::vector<Triangle *> leftItems;
-        std::vector<Triangle *> rightItems;
+        std::vector<Triangle *> contained;
+        contained.reserve(triangles.size()); // TODO
 
-        leftItems.reserve(triangles.size()); // TODO
-        rightItems.reserve(triangles.size()); // TODO
+        partition(leftBB, triangles, contained);
+        KDNode *left = buildMean(leftBB, contained, depth + 1);
 
-        partition(leftBB, triangles, leftItems);
-        partition(rightBB, triangles, rightItems);
+        contained.clear();
 
-        KDNode *left = buildMean(leftBB, leftItems, depth + 1);
-        KDNode *right = buildMean(rightBB, rightItems, depth + 1);
+        partition(rightBB, triangles, contained);
+        KDNode *right = buildMean(rightBB, contained, depth + 1);
 
-        return new KDNode(left, right, split, NULL, 0, dir);
+        return new KDNode(left, right, split, NULL, (KDNodeFlags)dir);
     }
 }
 
@@ -81,13 +90,15 @@ AABB KDTree::buildAABB(const std::vector<Triangle *> & triangles) {
     return box;
 }
 
-bool KDTree::intersectLeaf(KDNode *leaf, Ray ray, Collision *result, float entry, float exit,
+bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision *result, float entry, float exit,
     bool anyCollision)
 {
     bool found = false;
     Collision tmpResult;
 
-    for (int i = 0; i < leaf->num_triangles; i++) {
+    unsigned int num_triangles = leaf->flags & KD_SIZE_MASK;
+
+    for (int i = 0; i < num_triangles; i++) {
         SetupTriangle *triangle = &leaf->triangles[i];
 
         if (triangle->intersects(ray, &tmpResult) && tmpResult.distance >= entry &&
@@ -120,7 +131,7 @@ KDTree::KDTree(const std::vector<Triangle> & triangles) {
     root = buildMean(sceneBounds, pointers, 0);
 }
 
-bool KDTree::intersect(Ray ray, Collision *result, float maxDepth, bool anyCollision) {
+bool KDTree::intersect(const Ray & ray, Collision *result, float maxDepth, bool anyCollision) {
     float entry, exit;
 
     if (!sceneBounds.intersects(ray, &entry, &exit))
@@ -146,8 +157,8 @@ bool KDTree::intersect(Ray ray, Collision *result, float maxDepth, bool anyColli
         if (maxDepth > 0.0f && entry > maxDepth)
             return false;
 
-        while (!(currentNode->flags & 4)) {
-            int dir = currentNode->flags & 3;
+        while (!(currentNode->flags & KD_IS_LEAF)) {
+            int dir = currentNode->flags & KD_SPLIT_DIR_MASK;
 
             float split = currentNode->split_dist;
             float origin = ray.origin.v[dir];

@@ -40,12 +40,12 @@ public:
     /**
      * @brief Get the direction of the light
      */
-    vec3 getDirection(vec3 pos);
+    vec3 getDirection(const vec3 & pos);
 
     /**
      * @brief Get the color of the light
      */
-    vec3 getColor(vec3 pos);
+    vec3 getColor(const vec3 & pos);
 
     /**
      * @brief Get whether this light casts shadows
@@ -55,7 +55,7 @@ public:
     /**
      * Get the direction of a shadow-testing ray from a given position
      */
-    vec3 getShadowDir(vec3 at);
+    vec3 getShadowDir(const vec3 & at);
 };
 
 #endif

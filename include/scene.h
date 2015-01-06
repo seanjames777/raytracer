@@ -35,10 +35,12 @@ public:
     Camera *camera;
 
     /** @brief Output image */
-    Image *output;
+    std::shared_ptr<Image> output;
 
     /** @brief Environment image */
-    Image *environment;
+    std::shared_ptr<Image> environment;
+
+    std::shared_ptr<Sampler> environment_sampler;
 
     /**
      * @brief Constructor
@@ -46,7 +48,9 @@ public:
      * @param camera Camera
      * @param output Output image
      */
-    Scene(Camera *camera, Image *output, Image *environment);
+    Scene(Camera *camera, std::shared_ptr<Image> output,
+        std::shared_ptr<Sampler> environment_sampler,
+        std::shared_ptr<Image> environment);
 
     /**
      * @brief Add a light to the scene

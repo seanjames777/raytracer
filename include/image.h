@@ -12,52 +12,13 @@
 #include <rtmath.h>
 #include <string>
 
-//#include <ImfInputFile.h>
-//#include <ImfOutputFile.h>
-//#include <ImfChannelList.h>
-
-#define S_F2I(n) (unsigned char)((n) * 255.0f)
-#define S_I2F(n) ((float)(n) / 255.0f);
-#define BI_RGB   0
-
-#pragma pack(push, 1)
-
-/**
- * @brief Stores the file header of a .bmp file
- */
-typedef struct {
-    unsigned short signature;             // 0x4D42
-    unsigned int   fileSize;              // Total size of the file
-    unsigned short reserved1;             // Unused
-    unsigned short reserved2;             // Unused
-    unsigned int   pixelArrayOffset;      // Offset to the pixel data (56 bytes)
-} S_BITMAPFILEHEADER;
-
-/**
- * @brief Stores the bitmap header of a .bmp file
- */
-typedef struct {
-    unsigned int   headerSize;            // Size of this header (40 bytes)
-    unsigned int   width;                 // Width of the image in pixels
-    unsigned int   height;                // Height of the image in pixels
-    unsigned short planes;                // Number of image planes (1)
-    unsigned short bitsPerPixel;          // # components * 8
-    unsigned int   compression;           // Compression (NONE=0)
-    unsigned int   imageSize;             // Size of the pixel array
-    unsigned int   hres;                  // Horizontal resolution (0 = automatic)
-    unsigned int   vres;                  // Vertical resolution (0 = automatic)
-    unsigned int   numColors;             // Number of colors (0)
-    unsigned int   numImportant;          // Number of important colors (0)
-} S_BITMAPINFOHEADER;
-
-#pragma pack(pop)
+// TODO: inline functions
 
 /**
  * @brief Stores an array of integral pixels with between 1 and 4 components and can load and store
  * bitmaps in the .bmp format
  */
-class Image {
-private:
+struct Image {
 
     /** @brief Array of pixels */
     float *pixels;
@@ -67,16 +28,6 @@ private:
 
     /** @brief Image height */
     int height;
-
-    /**
-     * @brief Populate the file header
-     */
-    S_BITMAPFILEHEADER createBitmapFileHeader();
-
-    /**
-     * @brief Populate the info header
-     */
-    S_BITMAPINFOHEADER createBitmapInfoHeader();
 
 public:
 
@@ -89,36 +40,9 @@ public:
     Image(int width, int height);
 
     /**
-     * @brief Load a bitmap from a file
-     *
-     * @param filename BMP file to load
-     *
-     * @return A pointer to a new bitmap on success, or NULL on error
-     */
-    static Image *loadBMP(std::string filename);
-
-    /**
      * @brief Destroy the image
      */
     ~Image();
-
-    /**
-     * @brief Save the image to a .bmp file
-     *
-     * @param filename BMP file to save into
-     *
-     * @return True on success, or false on error
-     */
-    bool saveBMP(std::string filename);
-
-    /**
-     * @brief Save the image to a .exr file
-     *
-     * @param filename EXR file to save into
-     *
-     * @return True on success, or false on error
-     */
-    //bool saveEXR(std::string filename);
 
     /**
      * @brief Get a pointer to the array of pixels
@@ -126,22 +50,9 @@ public:
     float *getPixels();
 
     /**
-     * @brief Sample a pixel as by UV coordinate
-     */
-    vec4 getPixel(vec2 uv);
-
-    /**
      * @brief Get a pixel by integer coordinate
      */
     vec4 getPixel(int x, int y);
-
-    /**
-     * @brief Sample a pixel by direction vector, assuming the image is an equirectangular
-     * cube map
-     *
-     * @param norm Direction to sample
-     */
-    vec4 getPixel(vec3 norm);
 
     /**
      * @brief Set a pixel
@@ -172,6 +83,36 @@ public:
      * @brief Apply tone mapping to the image
      */
     void applyTonemapping(float exposure);
+
+};
+
+enum FilterMode {
+    Nearest,
+    Linear,
+    MipLinear
+};
+
+enum BorderMode {
+    Clamp,
+    Wrap
+};
+
+struct Sampler {
+    FilterMode minFilter;
+    FilterMode magFilter;
+    BorderMode borderU;
+    BorderMode borderV;
+
+    vec4 sampleBorder(Image *image, int x, int y);
+
+public:
+
+    Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode borderU,
+        BorderMode borderV);
+
+    vec4 sample(Image *image, vec2 uv);
+
+    vec4 sample(Image *image, vec3 norm);
 
 };
 
