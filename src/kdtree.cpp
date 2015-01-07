@@ -90,21 +90,23 @@ AABB KDTree::buildAABB(const std::vector<Triangle *> & triangles) {
     return box;
 }
 
-bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision *result, float entry, float exit,
+bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit,
     bool anyCollision)
 {
     bool found = false;
-    Collision tmpResult;
+    Collision tmpResult; // TODO
 
     unsigned int num_triangles = leaf->flags & KD_SIZE_MASK;
 
     for (int i = 0; i < num_triangles; i++) {
         SetupTriangle *triangle = &leaf->triangles[i];
 
-        if (triangle->intersects(ray, &tmpResult) && tmpResult.distance >= entry &&
-            tmpResult.distance <= exit && (tmpResult.distance < result->distance || !found))
+        bool intersects = triangle->intersects(ray, tmpResult);
+
+        if (intersects && tmpResult.distance >= entry &&
+            tmpResult.distance <= exit && (tmpResult.distance < result.distance || !found))
         {
-            *result = tmpResult;
+            result = tmpResult;
 
             if (anyCollision)
                 return true;
@@ -131,7 +133,7 @@ KDTree::KDTree(const std::vector<Triangle> & triangles) {
     root = buildMean(sceneBounds, pointers, 0);
 }
 
-bool KDTree::intersect(const Ray & ray, Collision *result, float maxDepth, bool anyCollision) {
+bool KDTree::intersect(const Ray & ray, Collision & result, float maxDepth, bool anyCollision) {
     float entry, exit;
 
     if (!sceneBounds.intersects(ray, &entry, &exit))

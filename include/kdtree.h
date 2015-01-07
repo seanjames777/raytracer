@@ -114,7 +114,7 @@ private:
      * @param exit         Maximum collision distance
      * @param anyCollision Whether to accept any collision or to find the closest
      */
-    bool intersectLeaf(KDNode *leaf, const Ray & ray, Collision *result, float entry, float exit,
+    bool intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit,
         bool anyCollision);
 
 public:
@@ -136,7 +136,7 @@ public:
      *
      * @return Whether a collision occured
      */
-    bool intersect(const Ray & ray, Collision *result, float maxDepth, bool anyCollision);
+    bool intersect(const Ray & ray, Collision & result, float maxDepth, bool anyCollision);
 
 };
 

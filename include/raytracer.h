@@ -37,17 +37,10 @@ private:
     /** @brief Scene */
     Scene *scene;
 
-    /** @brief Work queue */
-    std::vector<vector<int, 2>> blocks;
-
-    /** @brief Work queue lock */
-    std::mutex blocksLock;
-
-    /** @brief Number of blocks unfinished */
-    int blocksUnfinished;
-
-    /** @brief Whether workers should keep working */
-    bool keepWorking;
+    std::atomic<int> currBlockID;
+    int nBlocks;
+    int nBlocksW;
+    int nBlocksH;
 
     /** @brief Worker threads */
     std::vector<std::thread> workers;
@@ -123,20 +116,17 @@ private:
      * @brief Entry point for a worker thread
      */
     void worker_thread() {
-        while(keepWorking) {
-            blocksLock.lock();
+        while(true) {
+            int blockID = currBlockID++;
 
-            if (blocks.size() == 0) {
-                blocksLock.unlock();
-                continue;
-            }
+            if (blockID >= nBlocks)
+                break;
 
-            vector<int, 2> args = blocks[0];
-            blocks.erase(blocks.begin(), blocks.begin() + 1);
-            blocksLock.unlock();
+            int y = blockID / nBlocksW;
+            int x = blockID % nBlocksW;
 
-            int x0 = settings.blockSize * args.x;
-            int y0 = settings.blockSize * args.y;
+            int x0 = settings.blockSize * x;
+            int y0 = settings.blockSize * y;
 
             int width = scene->output->getWidth();
             int height = scene->output->getHeight();
@@ -164,7 +154,7 @@ private:
 
                             vec3 sampleColor = getEnvironment(r.direction);
 
-                            if (tree->intersect(r, &result, 0.0f, false))
+                            if (tree->intersect(r, result, 0.0f, false))
                                 sampleColor = shade(r, &result, 1);
 
                             /*bool found = false;
@@ -186,10 +176,6 @@ private:
                     scene->output->setPixel(x, y, vec4(color, 1.0f));
                 }
             }
-
-            blocksLock.lock();
-            blocksUnfinished--;
-            blocksLock.unlock();
         }
     }
 
@@ -223,35 +209,6 @@ public:
 
     // TODO: destroy
 
-    /**
-     * @brief Start worker threads
-     */
-    void startThreads() {
-        keepWorking = true;
-
-        int nThreads = settings.numThreads;
-
-        if (nThreads == 0)
-            nThreads = std::thread::hardware_concurrency();
-
-        for (int i = 0; i < nThreads; i++)
-            workers.push_back(std::thread(std::bind(&Raytracer::worker_thread, this)));
-
-        printf("Started %d worker threads\n", nThreads);
-    }
-
-    /**
-     * @brief Stop worker threads
-     */
-    void stopThreads() {
-        keepWorking = false;
-
-        for (auto& worker : workers)
-            worker.join();
-
-        workers.clear();
-    }
-
     void printProgress(int nBlocksW, int nBlocksH, bool clear) {
         const int max_count = 26;
 
@@ -262,7 +219,12 @@ public:
 
         std::cout << "[";
 
-        float progress = 1.0f - (float)blocksUnfinished / (float)(nBlocksH * nBlocksW);
+        // TODO
+        float progress = (float)currBlockID.load() / (float)(nBlocksH * nBlocksW);
+        if (progress > 1.0f)
+            progress = 1.0f;
+        if (progress < 0.0f)
+            progress = 0.0f;
 
         int count = (int)(progress * (float)max_count);
 
@@ -279,25 +241,29 @@ public:
      * @brief Render the scene into the scene's output image
      */
     void render(GLImageDisplay *display) {
-        int nBlocksW = (scene->output->getWidth() + settings.blockSize - 1) / settings.blockSize;
-        int nBlocksH = (scene->output->getHeight() + settings.blockSize - 1) / settings.blockSize;
+        nBlocksW = (scene->output->getWidth() + settings.blockSize - 1) / settings.blockSize;
+        nBlocksH = (scene->output->getHeight() + settings.blockSize - 1) / settings.blockSize;
+        nBlocks = nBlocksW * nBlocksH;
+        currBlockID.store(0);
 
         clearChecker();
 
-        blocksLock.lock();
-        for (int y = 0; y < nBlocksH; y++)
-            for (int x = 0; x < nBlocksW; x++)
-                blocks.push_back(vector<int, 2>(x, y));
+        int nThreads = settings.numThreads;
 
-        blocksUnfinished = blocks.size();
-        blocksLock.unlock();
+        if (nThreads == 0)
+            nThreads = std::thread::hardware_concurrency();
+
+        for (int i = 0; i < nThreads; i++)
+            workers.push_back(std::thread(std::bind(&Raytracer::worker_thread, this)));
+
+        printf("Started %d worker threads\n", nThreads);
 
         int time = 0;
 
         printProgress(nBlocksW, nBlocksH, false);
 
         if (display != NULL) {
-            while (blocksUnfinished > 0) {
+            while (currBlockID.load() < nBlocks) {
                 display->refresh();
                 usleep(33000);
                 time += 33;
@@ -308,6 +274,11 @@ public:
                 }
             }
         }
+
+        for (auto& worker : workers)
+            worker.join();
+
+        workers.clear();
 
         printProgress(nBlocksW, nBlocksH, true);
         std::cout << std::endl;
@@ -349,7 +320,7 @@ public:
             Ray shadow_ray(origin, dir);
 
             Collision shadow_result;
-            if (!tree->intersect(shadow_ray, &shadow_result, maxDist, true))
+            if (!tree->intersect(shadow_ray, shadow_result, maxDist, true))
                 shadow += 1.0f / nSamples;
         }
 
@@ -376,7 +347,7 @@ public:
             Ray occl_ray(origin, samples[i]);
 
             Collision occl_result;
-            if (tree->intersect(occl_ray, &occl_result, settings.occlusionDistance, true))
+            if (tree->intersect(occl_ray, occl_result, settings.occlusionDistance, true))
                 occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance /
                     settings.occlusionDistance));
         }

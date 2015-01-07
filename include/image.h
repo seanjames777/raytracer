@@ -18,7 +18,8 @@
  * @brief Stores an array of integral pixels with between 1 and 4 components and can load and store
  * bitmaps in the .bmp format
  */
-struct Image {
+class Image {
+private:
 
     /** @brief Array of pixels */
     float *pixels;

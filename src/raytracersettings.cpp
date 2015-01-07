@@ -7,7 +7,7 @@
 #include <raytracersettings.h>
 
 RaytracerSettings::RaytracerSettings()
-    : blockSize(32),
+    : blockSize(64),
       pixelSamples(2),
       shadowSamples(16),
       occlusionSamples(16),

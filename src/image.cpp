@@ -135,7 +135,7 @@ vec4 Sampler::sampleBorder(Image *image, int x, int y) {
 }
 
 vec4 Sampler::sample(Image *image, vec2 uv) {
-    // TODO: pixel centers?
+    uv *= 0.8f;
 
     float x = uv.x * (image->getWidth() - 1);
     float y = uv.y * (image->getHeight() - 1);

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 1;
+    settings.pixelSamples = 4;
     settings.occlusionSamples = 0;
     settings.occlusionDistance = 10.0f;
     settings.shadowSamples = 0;
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     GLImageDisplay *disp = new GLImageDisplay(1024 * aspect, 1024, output);
 
     Raytracer *rt = new Raytracer(settings, scene);
-    rt->startThreads();
+    // TODO: thread pool
 
     Timer timer;
 
@@ -103,8 +103,6 @@ int main(int argc, char *argv[]) {
     printf("Done: %f seconds (total), %f seconds (CPU)\n",
         timer.getElapsedMilliseconds() / 1000.0,
         timer.getCPUTime() / 1000.0);
-
-    rt->stopThreads();
 
     return 0;
 }

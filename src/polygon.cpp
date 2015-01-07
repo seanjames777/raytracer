@@ -110,7 +110,7 @@ SetupTriangle::SetupTriangle(const Triangle & triangle)
     c_d  =  (c.v[u] * v1.v[v] - c.v[v] * v1.v[u]) / denom;
 }
 
-bool SetupTriangle::intersects(Ray ray, Collision *result) {
+bool SetupTriangle::intersects(const Ray & ray, Collision & result) {
     static const int mod_table[5] = { 0, 1, 2, 0, 1 };
 
     // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
@@ -151,10 +151,10 @@ bool SetupTriangle::intersects(Ray ray, Collision *result) {
     if (beta + gamma > 1.0f)
         return false;
 
-    result->distance = t_plane;
-    result->beta = beta;
-    result->gamma = gamma;
-    result->triangle_id = triangle_id;
+    result.distance = t_plane;
+    result.beta = beta;
+    result.gamma = gamma;
+    result.triangle_id = triangle_id;
 
     return true;
 }

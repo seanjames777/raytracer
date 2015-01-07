@@ -94,7 +94,7 @@ struct SetupTriangle {
      *
      * @return Whether there was a collision
      */
-    bool intersects(Ray ray, Collision *result);
+    bool intersects(const Ray & ray, Collision & result);
 };
 
 #endif
