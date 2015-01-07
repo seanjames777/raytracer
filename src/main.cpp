@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     std::cout << "PID: " << getpid() << std::endl;
 
     RaytracerSettings settings;
-    settings.width = 1920;
+    settings.width = 2048;
     settings.height = 1080;
     settings.pixelSamples = 4;
     settings.occlusionSamples = 0;
@@ -42,10 +42,10 @@ int main(int argc, char *argv[]) {
     //checker->applyGamma(2.2f);
 
     std::shared_ptr<Sampler> check_sampler = std::make_shared<Sampler>(
-        Linear, Linear, Wrap, Wrap);
+        Linear, Linear, Wrap);
 
     std::shared_ptr<Sampler> env_sampler = std::make_shared<Sampler>(
-        Nearest, Nearest, Wrap, Wrap);
+        Nearest, Nearest, Wrap);
 
     Scene *scene = new Scene(camera, output, env_sampler, environment);
 

@@ -15,8 +15,11 @@
 
 // TODO: inline functions
 
-#define TILEW 4
-#define TILEH 4
+#define USE_TILING
+#define LOG_TILEW 5
+#define LOG_TILEH 5
+#define TILEW (1 << LOG_TILEW)
+#define TILEH (1 << LOG_TILEH)
 
 /**
  * @brief Stores an array of integral pixels with between 1 and 4 components and can load and store
@@ -25,25 +28,32 @@
 class Image {
 private:
 
-    float *pixels;
-
     int width;
     int height;
+
+#ifdef USE_TILING
     int tilesW;
     int tilesH;
+#endif
+
+    float *pixels;
 
     inline int remap(int x, int y) {
-        int tx = x / TILEW;
-        int ty = y / TILEH;
+#ifdef USE_TILING
+        int tx = x >> LOG_TILEW;
+        int ty = y >> LOG_TILEH;
 
-        int ox = x % TILEW;
-        int oy = y % TILEH;
+        int ox = x & (TILEW - 1);
+        int oy = y & (TILEH - 1);
 
-        int idx = (ty * tilesW + tx) * TILEW * TILEH;
-        idx += oy * TILEW + ox;
-        idx *= 4;
+        int idx = (((ty * tilesW) + tx) << LOG_TILEW) << LOG_TILEH;
+        idx += (oy << LOG_TILEW) + ox;
+        idx <<= 2;
 
         return idx;
+#else
+        return (y * width + x) << 2;
+#endif
     }
 
 public:
@@ -127,15 +137,13 @@ enum BorderMode {
 struct Sampler {
     FilterMode minFilter;
     FilterMode magFilter;
-    BorderMode borderU;
-    BorderMode borderV;
+    BorderMode border;
 
     vec4 sampleBorder(Image *image, int x, int y);
 
 public:
 
-    Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode borderU,
-        BorderMode borderV);
+    Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode border);
 
     vec4 sample(Image *image, const vec2 & uv);
 

@@ -12,11 +12,16 @@ Image::Image(int width, int height)
     : width(width),
       height(height)
 {
+#ifdef USE_TILING
     tilesW = (width + TILEW - 1) / TILEW;
     tilesH = (height + TILEH - 1) / TILEH;
 
     pixels = new float[tilesW * TILEW * tilesH * TILEH * 4];
     memset(pixels, 0, sizeof(float) * tilesW * TILEW * tilesH * TILEH * 4); // TODO maybe set alpha to 1
+#else
+    pixels = new float[width * height * 4];
+    memset(pixels, 0, sizeof(float) * width * height * 4); // TODO maybe set alpha to 1
+#endif
 }
 
 Image::~Image() {
@@ -74,17 +79,15 @@ void Image::applyTonemapping(float exposure) {
         }
 }*/
 
-Sampler::Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode borderU,
-    BorderMode borderV)
+Sampler::Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode border)
     : minFilter(minFilter),
       magFilter(magFilter),
-      borderU(borderU),
-      borderV(borderV)
+      border(border)
 {
     // TODO make these functions cool
 }
 
-vec4 Sampler::sampleBorder(Image *image, int x, int y) {
+inline vec4 Sampler::sampleBorder(Image *image, int x, int y) {
     int width = image->getWidth();
     int height = image->getHeight();
 
@@ -92,20 +95,14 @@ vec4 Sampler::sampleBorder(Image *image, int x, int y) {
     // hopefully not get too confused by the switches.
     // TODO: handle non power of two
 
-    switch(borderU) {
+    switch(border) {
     case Clamp:
         x &= ~(x >> 31);            // Less than 0, fill 0's
         x |= (width - 1 - x) >> 31; // Greater than width - 1, fill 1's
-    case Wrap:
-        x &= (width - 1);           // Wrap around width - 1
-        break;
-    }
-
-    switch(borderV) {
-    case Clamp:
         y &= ~(y >> 31);
         y |= (height - 1 - y) >> 31;
     case Wrap:
+        x &= (width - 1);           // Wrap around width - 1
         y &= (height - 1);
         break;
     }
@@ -114,7 +111,6 @@ vec4 Sampler::sampleBorder(Image *image, int x, int y) {
 }
 
 vec4 Sampler::sample(Image *image, const vec2 & uv) {
-    //
     float x = uv.x * (image->getWidth() - 1);
     float y = uv.y * (image->getHeight() - 1);
 

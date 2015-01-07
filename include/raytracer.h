@@ -190,13 +190,7 @@ private:
                 int b = bx ^ by;
                 float c = b > 0 ? 0.8f : 0.5f;
 
-                //pixels[idx++] = vec4(c, c, c, 1.0f);
-
-                pixels[idx++] = vec4(
-                    (float)(x % 64) / 64.0f,
-                    (float)(y % 64) / 64.0f,
-                    0.0f,
-                    1.0f);
+                pixels[idx++] = vec4(c, c, c, 1.0f);
             }
 
         scene->output->setPixels((float *)pixels);
