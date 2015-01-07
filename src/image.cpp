@@ -12,63 +12,42 @@ Image::Image(int width, int height)
     : width(width),
       height(height)
 {
-    pixels = new float[width * height * 4];
+    tilesW = (width + TILEW - 1) / TILEW;
+    tilesH = (height + TILEH - 1) / TILEH;
 
-    for (int y = 0; y < height; y++)
-        for (int x = 0; x < width; x++) {
-            int i0 = (y * width + x) * 4;
-
-            pixels[i0 + 0] = 0.0f;
-            pixels[i0 + 1] = 0.0f;
-            pixels[i0 + 2] = 0.0f;
-            pixels[i0 + 3] = 1.0f;
-        }
+    pixels = new float[tilesW * TILEW * tilesH * TILEH * 4];
+    memset(pixels, 0, sizeof(float) * tilesW * TILEW * tilesH * TILEH * 4); // TODO maybe set alpha to 1
 }
 
 Image::~Image() {
     delete [] pixels;
 }
 
-vec4 Image::getPixel(int x, int y) {
-    int i = (y * width + x) * 4;
-
-    vec4 color;
-
-    color.x = pixels[i + 0];
-    color.y = pixels[i + 1];
-    color.z = pixels[i + 2];
-    color.w = pixels[i + 3];
-
-    return color;
-}
-
-float *Image::getPixels() {
-    return pixels;
-}
-
-void Image::setPixel(int x, int y, vec4 color) {
-    int i = (y * width + x) * 4;
-
-    pixels[i + 0] = color.x;
-    pixels[i + 1] = color.y;
-    pixels[i + 2] = color.z;
-    pixels[i + 3] = color.w;
-}
-
 void Image::setPixels(float *data) {
-    size_t sz = width * 4 * height * sizeof(float);
-    memcpy(this->pixels, data, sz);
+    int i0_in = 0;
+
+    for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
+            int i0_out = remap(x, y);
+
+            for (int i = 0; i < 4; i++)
+                pixels[i0_out++] = data[i0_in++];
+        }
 }
 
-int Image::getWidth() {
-    return width;
+void Image::getPixels(float *data) {
+    int i0_out = 0;
+
+    for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
+            int i0_in = remap(x, y);
+
+            for (int i = 0; i < 4; i++)
+                data[i0_out++] = pixels[i0_in++];
+        }
 }
 
-int Image::getHeight() {
-    return height;
-}
-
-void Image::applyGamma(float gamma) {
+/*void Image::applyGamma(float gamma) {
     for (int y = 0; y < height; y++)
         for (int x = 0 ; x < width; x++) {
             int i = (y * width + x) * 4;
@@ -93,7 +72,7 @@ void Image::applyTonemapping(float exposure) {
             pixels[i + 2] = pixels[i + 2] * exposure;
             pixels[i + 2] /= 1.0f + pixels[i + 2];
         }
-}
+}*/
 
 Sampler::Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode borderU,
     BorderMode borderV)
@@ -134,8 +113,8 @@ vec4 Sampler::sampleBorder(Image *image, int x, int y) {
     return image->getPixel(x, y);
 }
 
-vec4 Sampler::sample(Image *image, vec2 uv) {
-    // TODO: pixel
+vec4 Sampler::sample(Image *image, const vec2 & uv) {
+    //
     float x = uv.x * (image->getWidth() - 1);
     float y = uv.y * (image->getHeight() - 1);
 
@@ -167,7 +146,7 @@ vec4 Sampler::sample(Image *image, vec2 uv) {
     }
 }
 
-vec4 Sampler::sample(Image *image, vec3 norm) {
+vec4 Sampler::sample(Image *image, const vec3 & norm) {
     vec2 uv = vec2(atan2f(norm.z, norm.x) + M_PI, acosf(-norm.y));
     uv = uv / vec2(2.0f * M_PI, M_PI);
 

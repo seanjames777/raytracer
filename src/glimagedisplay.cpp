@@ -50,6 +50,8 @@ GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> ima
         exit(0);
     }
 
+    pixels = new float[image->getWidth() * image->getHeight() * 4]; // TODO delete
+
     glfwWindowHint(GLFW_SAMPLES, 1);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -142,9 +144,11 @@ GLImageDisplay::~GLImageDisplay() {
  * on screen
  */
 void GLImageDisplay::refresh() {
+    image->getPixels(pixels);
+
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->getWidth(), image->getHeight(),
-        GL_RGBA, GL_FLOAT, image->getPixels());
+        GL_RGBA, GL_FLOAT, pixels);
 
     glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

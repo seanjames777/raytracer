@@ -111,7 +111,7 @@ std::shared_ptr<Image> loadBMP(std::string filename) {
     in.close();
 
     std::shared_ptr<Image> bmp = std::make_shared<Image>(width, height);
-    float *arr = bmp->getPixels();
+    float *arr = new float[width * height * 4];
 
     for (int y = 0; y < height; y++) {
         int i0 = y * pixelsPerRow;
@@ -145,6 +145,12 @@ std::shared_ptr<Image> loadBMP(std::string filename) {
         }
     }
 
+    // TODO: makes a copy
+    bmp->setPixels(arr);
+
+    delete [] arr;
+    delete [] readPixels;
+
     return bmp;
 }
 
@@ -167,7 +173,8 @@ bool saveBMP(std::string filename, std::shared_ptr<Image> image) {
     out.write((char *)&fileHeader, sizeof(S_BITMAPFILEHEADER));
     out.write((char *)&infoHeader, sizeof(S_BITMAPINFOHEADER));
 
-    float *pixels = image->getPixels();
+    float *pixels = new float[image->getWidth() * image->getHeight() * 4];
+    image->getPixels(pixels);
 
     for (int y = 0; y < height; y++) {
         int i0 = (height - y - 1) * width * 4;
@@ -188,6 +195,9 @@ bool saveBMP(std::string filename, std::shared_ptr<Image> image) {
     }
 
     out.close();
+
+    delete [] padArr;
+    delete [] pixels;
 
     return true;
 }

@@ -3,7 +3,8 @@ project(raytracer)
 
 include_directories(include/)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value") #TODO exceptions
+# TODO: -g
+set(CMAKE_CXX_FLAGS "-std=c++11 -fno-exceptions -g -fno-rtti -O3 -Wno-comment -Wno-unused-value") #TODO exceptions
 set(CMAKE_CXX_FLAGS "-I/usr/local/include/ -I/opt/local/include/ -I/opt/local/include/OpenEXR/ -I${CMAKE_CURRENT_SOURCE_DIR}/external/fbx/include/ ${CMAKE_CXX_FLAGS}")
 
 #CC=clang++

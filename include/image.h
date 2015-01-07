@@ -11,8 +11,12 @@
 
 #include <rtmath.h>
 #include <string>
+#include <iostream> // TODO
 
 // TODO: inline functions
+
+#define TILEW 4
+#define TILEH 4
 
 /**
  * @brief Stores an array of integral pixels with between 1 and 4 components and can load and store
@@ -21,14 +25,26 @@
 class Image {
 private:
 
-    /** @brief Array of pixels */
     float *pixels;
 
-    /** @brief Image width */
     int width;
-
-    /** @brief Image height */
     int height;
+    int tilesW;
+    int tilesH;
+
+    inline int remap(int x, int y) {
+        int tx = x / TILEW;
+        int ty = y / TILEH;
+
+        int ox = x % TILEW;
+        int oy = y % TILEH;
+
+        int idx = (ty * tilesW + tx) * TILEW * TILEH;
+        idx += oy * TILEW + ox;
+        idx *= 4;
+
+        return idx;
+    }
 
 public:
 
@@ -48,17 +64,7 @@ public:
     /**
      * @brief Get a pointer to the array of pixels
      */
-    float *getPixels();
-
-    /**
-     * @brief Get a pixel by integer coordinate
-     */
-    vec4 getPixel(int x, int y);
-
-    /**
-     * @brief Set a pixel
-     */
-    void setPixel(int x, int y, vec4 color);
+    void getPixels(float *pixels);
 
     /**
      * @brief Set all pixels
@@ -66,24 +72,44 @@ public:
     void setPixels(float *data);
 
     /**
+     * @brief Get a pixel by integer coordinate
+     */
+    inline vec4 getPixel(int x, int y) {
+        int i = remap(x, y);
+        return *(vec4 *)(&pixels[i]);
+    }
+
+    /**
+     * @brief Set a pixel
+     */
+    inline void setPixel(int x, int y, const vec4 & color) {
+        int i = remap(x, y);
+        *(vec4 *)(&pixels[i]) = color;
+    }
+
+    /**
      * @brief Get the width of the image in pixels
      */
-    int getWidth();
+    inline int getWidth() {
+        return width;
+    }
 
     /**
      * @brief Get the height of the image in pixels
      */
-    int getHeight();
+    inline int getHeight() {
+        return height;
+    }
 
     /**
      * @brief Apply a gamma correction to the image
      */
-    void applyGamma(float gamma);
+    //void applyGamma(float gamma);
 
     /**
      * @brief Apply tone mapping to the image
      */
-    void applyTonemapping(float exposure);
+    //void applyTonemapping(float exposure);
 
 };
 
@@ -111,9 +137,9 @@ public:
     Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode borderU,
         BorderMode borderV);
 
-    vec4 sample(Image *image, vec2 uv);
+    vec4 sample(Image *image, const vec2 & uv);
 
-    vec4 sample(Image *image, vec3 norm);
+    vec4 sample(Image *image, const vec3 & norm);
 
 };
 

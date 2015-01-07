@@ -78,6 +78,9 @@ private:
     /** @brief Displayed image */
     std::shared_ptr<Image> image;
 
+    // TODO
+    float *pixels;
+
 public:
 
     /**

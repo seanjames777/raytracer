@@ -180,14 +180,27 @@ private:
     }
 
     void clearChecker() {
+        vec4 *pixels = new vec4[scene->output->getWidth() * scene->output->getHeight()];
+        int idx = 0;
+
         for (int y = 0; y < scene->output->getHeight(); y++)
             for (int x = 0; x < scene->output->getWidth(); x++) {
                 int bx = (y / 16) % 2;
                 int by = (x / 16) % 2;
                 int b = bx ^ by;
-                float c = b > 0 ? 0.8f : 0.7f;
-                scene->output->setPixel(x, y, vec4(c, c, c, 1.0f));
+                float c = b > 0 ? 0.8f : 0.5f;
+
+                //pixels[idx++] = vec4(c, c, c, 1.0f);
+
+                pixels[idx++] = vec4(
+                    (float)(x % 64) / 64.0f,
+                    (float)(y % 64) / 64.0f,
+                    0.0f,
+                    1.0f);
             }
+
+        scene->output->setPixels((float *)pixels);
+        delete [] pixels;
     }
 
 public:
@@ -262,11 +275,13 @@ public:
 
         printProgress(nBlocksW, nBlocksH, false);
 
+        const int refresh_ms = 100;
+
         if (display != NULL) {
             while (currBlockID.load() < nBlocks) {
                 display->refresh();
-                usleep(33000);
-                time += 33;
+                usleep(refresh_ms * 1000);
+                time += refresh_ms;
 
                 if (time > 250) {
                     printProgress(nBlocksW, nBlocksH, true);

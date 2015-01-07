@@ -38,8 +38,8 @@ int main(int argc, char *argv[]) {
     std::shared_ptr<Image> checker = BMPImage::loadBMP(
         PathUtil::prependExecutableDirectory("content/textures/checker.bmp"));
 
-    environment->applyGamma(2.2f);
-    checker->applyGamma(2.2f);
+    //environment->applyGamma(2.2f);
+    //checker->applyGamma(2.2f);
 
     std::shared_ptr<Sampler> check_sampler = std::make_shared<Sampler>(
         Linear, Linear, Wrap, Wrap);
