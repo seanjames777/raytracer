@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
     settings.shadowSamples = 0;
 
     float aspect = (float)settings.width / (float)settings.height;
-    Camera *camera = new Camera(vec3(-19, 10, -20), vec3(0, 5.0f, 0), aspect,
+    Camera *camera = new Camera(vec3(-19, 10.0f, -20), vec3(0, 5.0f, 0), aspect,
         M_PI / 3.4f, 19.25f, 0.0f);
 
     std::shared_ptr<Image> output = std::make_shared<Image>(settings.width, settings.height);
@@ -56,9 +56,12 @@ int main(int argc, char *argv[]) {
         vec3(1.0f, 1.0f, 1.0f), 16.0f, 0.0f, 0.0f, 10.0f, check_sampler, nullptr);
 
     std::vector<Triangle> polys;
+    /*FbxLoader::load(
+        PathUtil::prependExecutableDirectory("content/models/box.fbx"),
+        polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
     FbxLoader::load(
-        PathUtil::prependExecutableDirectory("content/models/sphere.fbx"),
-        polys, vec3(0, 0, 0), vec3(-M_PI / 2.0f, 0, 0), vec3(1.2f, 1.2f, 1.2f));
+        PathUtil::prependExecutableDirectory("content/models/dragon.fbx"),
+        polys, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f), vec3(1.0f));
     for (int i = 0; i < polys.size(); i++)
         scene->addPoly(polys[i], diffuse);
 
@@ -103,6 +106,8 @@ int main(int argc, char *argv[]) {
     printf("Done: %f seconds (total), %f seconds (CPU)\n",
         timer.getElapsedMilliseconds() / 1000.0,
         timer.getCPUTime() / 1000.0);
+
+    getchar();
 
     return 0;
 }

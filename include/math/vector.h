@@ -20,6 +20,11 @@ struct vector {
         for (unsigned int i = 0; i < N; i++)
             v[i] = 0;
     }
+
+    vector<T, N>(T fill) {
+        for (unsigned int i = 0; i < N; i++)
+            v[i] = fill;
+    }
 };
 
 typedef vector<float, 2> vec2;
@@ -41,6 +46,12 @@ struct vector<T, 2> {
     vector<T, 2>()
         : x(0),
           y(0)
+    {
+    }
+
+    vector<T, 2>(T fill)
+        : x(fill),
+          y(fill)
     {
     }
 
@@ -69,6 +80,13 @@ struct vector<T, 3> {
     {
     }
 
+    vector<T, 3>(T fill)
+        : x(fill),
+          y(fill),
+          z(fill)
+    {
+    }
+
     vector<T, 3>(T x, T y, T z)
         : x(x),
           y(y),
@@ -94,6 +112,14 @@ struct vector<T, 4> {
           y(0),
           z(0),
           w(0)
+    {
+    }
+
+    vector<T, 4>(T fill)
+        : x(fill),
+          y(fill),
+          z(fill),
+          w(fill)
     {
     }
 

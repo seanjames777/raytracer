@@ -172,24 +172,18 @@ public:
     /*
      * Whether this bounding box overlaps another at all
      */
-    bool intersectsBbox(const AABB & other) const {
-        if (other.min.x > max.x || other.max.x < min.x)
-            return false;
-
-        if (other.min.y > max.y || other.max.y < min.y)
-            return false;
-
-        if (other.min.z > max.z || other.max.z < min.z)
-            return false;
-
-        return true;
+    bool overlaps(const AABB & other, int dir) const {
+        // TODO: branch?
+        return !(
+            max.v[dir] < other.min.v[dir] ||
+            min.v[dir] > other.max.v[dir]);
     }
 
     /*
      * Get the center point of this bounding box
      */
     vec3 center() const {
-        return min + (max - min) * .05f;
+        return min + (max - min) * .5f;
     }
 
     /*
@@ -206,16 +200,16 @@ public:
     AABB split(float dist, int axis, AABB & left, AABB & right) const {
         switch(axis) {
         case 0:
-            left = AABB(min, vec3(min.x + dist, max.y, max.z));
-            right = AABB(vec3(min.x + dist, min.y, min.z), max);
+            left = AABB(min, vec3(dist, max.y, max.z));
+            right = AABB(vec3(dist, min.y, min.z), max);
             break;
         case 1:
-            left = AABB(min, vec3(max.x, min.y + dist, max.z));
-            right = AABB(vec3(min.x, min.y + dist, min.z), max);
+            left = AABB(min, vec3(max.x, dist, max.z));
+            right = AABB(vec3(min.x, dist, min.z), max);
             break;
         case 2:
-            left = AABB(min, vec3(max.x, max.y, min.z + dist));
-            right = AABB(vec3(min.x, min.y, min.z + dist), max);
+            left = AABB(min, vec3(max.x, max.y, dist));
+            right = AABB(vec3(min.x, min.y, dist), max);
             break;
         }
 

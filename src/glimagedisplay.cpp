@@ -133,6 +133,14 @@ GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> ima
     glDeleteShader(ps);
 
     GLCHECK();
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    GLCHECK();
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
 }
 
 GLImageDisplay::~GLImageDisplay() {

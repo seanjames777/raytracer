@@ -209,7 +209,9 @@ public:
           scene(scene),
           tree(NULL)
     {
-        tree = new KDTree(scene->triangles);
+        //KDSAHBuilder builder;
+        KDMeanBuilder builder;
+        tree = builder.build(scene->triangles);
 
         srand((unsigned)time(0));
     }

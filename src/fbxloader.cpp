@@ -153,9 +153,9 @@ void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, mat4x4
 void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, vec3 translation_v,
     vec3 rotation_v, vec3 scale_v)
 {
-    mat4x4 transform = scale(scale_v.x, scale_v.y, scale_v.z) *
+    mat4x4 transform = translation(translation_v.x, translation_v.y, translation_v.z) *
         yawPitchRoll(rotation_v.x, rotation_v.y, rotation_v.z) *
-        translation(translation_v.x, translation_v.y, translation_v.z);
+        scale(scale_v.x, scale_v.y, scale_v.z);
 
     return load(filename, polys, transform);
 }
