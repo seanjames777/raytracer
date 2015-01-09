@@ -22,7 +22,7 @@ Material::Material(vec3 ambient, vec3 diffuse, vec3 specular, float specularPowe
 {
 }
 
-vec3 Material::shade(const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
+vec3 Material::shade(KDStack & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
@@ -56,7 +56,7 @@ vec3 Material::shade(const Ray & ray, Collision *result, Scene *scene, Raytracer
 
     for (auto it = scene->lights.begin(); it != scene->lights.end(); it++) {
         Light *light = *it;
-        float shadow = raytracer->getShadow(offset_origin, light) * .8f + .2f;
+        float shadow = raytracer->getShadow(kdStack, offset_origin, light) * .8f + .2f;
 
         vec3 lcolor =  light->getColor(interp.position);
         vec3  ldir  = -light->getDirection(interp.position);
@@ -73,7 +73,7 @@ vec3 Material::shade(const Ray & ray, Collision *result, Scene *scene, Raytracer
         color += (lcolor * (diffuse * tex_diffuse * geomDiffuse * ndotl) + spec) * shadow;
     }
 
-    float occlusion = raytracer->getAmbientOcclusion(offset_origin, triangle->normal);
+    float occlusion = raytracer->getAmbientOcclusion(kdStack, offset_origin, triangle->normal);
     color = color * occlusion;
 
     color = tex_diffuse;

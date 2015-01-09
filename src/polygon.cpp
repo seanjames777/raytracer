@@ -74,6 +74,8 @@ VertexBuffer::~VertexBuffer() {
 SetupTriangle::SetupTriangle(const Triangle & triangle)
     : triangle_id(triangle.triangle_id)
 {
+    // TODO: this should be aligned (and possibly padded) to a cache line to
+    // make sure it only requires one memory request.
     static const int mod_table[5] = { 0, 1, 2, 0, 1 };
 
     const vec3 & v1 = triangle.v1.position;

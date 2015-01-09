@@ -99,7 +99,7 @@ private:
      * @param result Collision information
      * @param depth  Recursion depth
      */
-    vec3 shade(const Ray & ray, Collision *result, int depth) {
+    vec3 shade(KDStack & kdStack, const Ray & ray, Collision *result, int depth) {
         vec3 color = vec3(0.0f, 0.0f, 0.0f);
 
         if (depth > settings.maxDepth)
@@ -108,7 +108,7 @@ private:
         Material *material = scene->materialMap[result->triangle_id];
 
         // TODO: might be better to pass ray by pointer or something
-        color = material->shade(ray, result, scene, this, depth);
+        color = material->shade(kdStack, ray, result, scene, this, depth);
 
         return color;
     }
@@ -117,6 +117,9 @@ private:
      * @brief Entry point for a worker thread
      */
     void worker_thread() {
+        // Allocate a reusable KD traversal stack for each thread
+        KDStack kdStack;
+
         while(true) {
             int blockID = currBlockID++;
 
@@ -155,8 +158,8 @@ private:
 
                             vec3 sampleColor = getEnvironment(r.direction);
 
-                            if (tree->intersect(r, result, 0.0f, false))
-                                sampleColor = shade(r, &result, 1);
+                            if (tree->intersect(kdStack, r, result, 0.0f, false))
+                                sampleColor = shade(kdStack, r, &result, 1);
 
                             /*bool found = false;
                             for (int i = 0; i < scene->polys.size(); i++)
@@ -311,7 +314,7 @@ public:
      *
      * @return A floating point number ranging from 0 (fully shadowed) to 1 (fully lit)
      */
-    float getShadow(const vec3 & origin, Light *light) {
+    float getShadow(KDStack & kdStack, const vec3 & origin, Light *light) {
         if (!light->castsShadows())
             return 1.0f;
 
@@ -332,7 +335,7 @@ public:
             Ray shadow_ray(origin, dir);
 
             Collision shadow_result;
-            if (!tree->intersect(shadow_ray, shadow_result, maxDist, true))
+            if (!tree->intersect(kdStack, shadow_ray, shadow_result, maxDist, true))
                 shadow += 1.0f / nSamples;
         }
 
@@ -346,7 +349,7 @@ public:
      *
      * @return A floating point number ranging from 0 (fully occluded) to 1 (fully visible)
      */
-    float getAmbientOcclusion(const vec3 & origin, const vec3 & normal) {
+    float getAmbientOcclusion(KDStack & kdStack, const vec3 & origin, const vec3 & normal) {
         float occlusion = 1.0f;
 
         int sqrtNSamples = sqrt(settings.occlusionSamples);
@@ -359,7 +362,7 @@ public:
             Ray occl_ray(origin, samples[i]);
 
             Collision occl_result;
-            if (tree->intersect(occl_ray, occl_result, settings.occlusionDistance, true))
+            if (tree->intersect(kdStack, occl_ray, occl_result, settings.occlusionDistance, true))
                 occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance /
                     settings.occlusionDistance));
         }
