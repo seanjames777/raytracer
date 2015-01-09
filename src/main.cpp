@@ -107,7 +107,5 @@ int main(int argc, char *argv[]) {
         timer.getElapsedMilliseconds() / 1000.0,
         timer.getCPUTime() / 1000.0);
 
-    getchar();
-
     return 0;
 }

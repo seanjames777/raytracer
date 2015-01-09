@@ -12,6 +12,11 @@ set(CMAKE_CXX_FLAGS "-I/usr/local/include/ -I/opt/local/include/ -I/opt/local/in
 #LDFLAGS=-O3 -g -std=c++11 -stdlib=libc++ -L/opt/local/lib/ -Lexternal/fbx/lib/Mac/ -lfbxsdk -lglfw -lilmimf -framework Foundation -framework OpenGL -framework Cocoa
 
 add_executable(raytracer
+    src/kdtree/kdbuilder.cpp
+    src/kdtree/kdmedianbuilder.cpp
+    src/kdtree/kdnode.cpp
+    src/kdtree/kdsahbuilder.cpp
+    src/kdtree/kdtree.cpp
 	src/camera.cpp
 	src/light.cpp
 	src/pointlight.cpp
@@ -19,7 +24,6 @@ add_executable(raytracer
 	src/polygon.cpp
 	src/rtmath.cpp
 	src/material.cpp
-	src/kdtree.cpp
 	src/scene.cpp
 	src/image.cpp
 	src/main.cpp

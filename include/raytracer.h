@@ -12,7 +12,8 @@
 #include <rtmath.h>
 #include <scene.h>
 #include <image.h>
-#include <kdtree.h>
+#include <kdtree/kdtree.h>
+#include <kdtree/kdsahbuilder.h>
 #include <glimagedisplay.h>
 #include <timer.h>
 #include <raytracersettings.h>
@@ -209,8 +210,8 @@ public:
           scene(scene),
           tree(NULL)
     {
-        //KDSAHBuilder builder;
-        KDMeanBuilder builder;
+        KDSAHBuilder builder;
+        //KDMeanBuilder builder;
         tree = builder.build(scene->triangles);
 
         srand((unsigned)time(0));
