@@ -18,7 +18,7 @@
 /**
  * @brief Scene structure, which tracks the polygons, lights, etc. in a scene
  */
-struct Scene {
+class Scene {
 public:
 
     unsigned int poly_id;

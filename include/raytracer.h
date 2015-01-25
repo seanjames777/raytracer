@@ -18,7 +18,6 @@
 #include <glimagedisplay.h>
 #include <timer.h>
 #include <raytracersettings.h>
-#include <unistd.h>
 #include <iostream>
 
 #include <thread>
@@ -74,7 +73,7 @@ private:
         mat4x4 projection = perspectiveRH(scene->camera->getFOV(), scene->camera->getAspectRatio(), 0.01f, 100.0f);
         mat4x4 vp = projection * view;
 
-        for (int i = 0; i < photons.size(); i++) {
+        for (size_t i = 0; i < photons.size(); i++) {
             Photon p = photons[i];
 
             vec4 pos = vp * vec4(p.position, 1);
@@ -154,7 +153,7 @@ private:
 
                             Ray r = scene->camera->getViewRay(u, v);
 
-                            Collision result, temp;
+                            Collision result;
                             result.distance = INFINITY32F;
 
                             vec3 sampleColor = getEnvironment(r.direction);
@@ -224,6 +223,8 @@ public:
     // TODO: destroy
 
     void printProgress(int nBlocksW, int nBlocksH, bool clear) {
+		// Windows console can't handle unicode apparently
+#ifndef _WINDOWS
         const int max_count = 26;
 
         if (clear) {
@@ -249,6 +250,7 @@ public:
             std::cout << " ";
 
         std::cout << " ]" << std::flush;
+#endif
     }
 
     /**
@@ -281,7 +283,7 @@ public:
         if (display != NULL) {
             while (currBlockID.load() < nBlocks) {
                 display->refresh();
-                usleep(refresh_ms * 1000);
+				std::this_thread::sleep_for(std::chrono::milliseconds(refresh_ms));
                 time += refresh_ms;
 
                 if (time > 250) {
@@ -353,7 +355,7 @@ public:
     float getAmbientOcclusion(KDStack & kdStack, const vec3 & origin, const vec3 & normal) {
         float occlusion = 1.0f;
 
-        int sqrtNSamples = sqrt(settings.occlusionSamples);
+        int sqrtNSamples = (int)sqrt(settings.occlusionSamples);
         int nSamples = sqrtNSamples * sqrtNSamples;
 
         vec3 samples[MAX_AO_SAMPLES]; // TODO

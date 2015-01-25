@@ -5,6 +5,7 @@
  */
 
 #include <kdtree/kdsahbuilder.h>
+#include <algorithm>
 
 KDSAHBuilder::KDSAHBuilder() {
 }
@@ -53,7 +54,7 @@ bool KDSAHBuilder::splitNode(
     // We want to find the plane which minimizes the "surface area heuristic"
     int             min_dir        = -1;          // Split direction
     float           min_dist       = 0.0f;        // Split location
-    float           min_cost       = 1.0f / 0.0f; // Split cost. TODO
+	float           min_cost       = INFINITY32F; // Split cost
     enum PlanarMode min_planarMode = PLANAR_LEFT; // How to handle planar triangles
 
     // Heuristic constants
@@ -109,9 +110,9 @@ bool KDSAHBuilder::splitNode(
 
         // Number of triangles entirely to the left and right of the sweep plane
         int count_left = 0;
-        int count_right = triangles.size();
+        int count_right = (int)triangles.size(); // TODO: handle overflow
 
-        int num_events = events.size();
+        int num_events = (int)events.size(); // TODO: handle overflow
         int event_idx = 0;
 
         // Sweep along axis processing events

@@ -15,6 +15,7 @@
 #include <polygon.h>
 #include <image.h>
 #include <kdtree/kdstack.h> // TODO: kinda annoying
+#include <memory>
 
 class Raytracer;
 class Scene;

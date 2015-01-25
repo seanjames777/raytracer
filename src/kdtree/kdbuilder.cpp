@@ -6,7 +6,10 @@
 
 #include <kdtree/kdbuilder.h>
 #include <iostream>
+
+#ifndef _WINDOWS
 #include <sys/time.h>
+#endif
 
 KDBuilder::KDBuilder() {
 }
@@ -101,9 +104,11 @@ AABB KDBuilder::buildAABB(const std::vector<Triangle *> & triangles) {
 }
 
 KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
+#ifndef _WINDOWS
     struct timeval tv;
     gettimeofday(&tv, NULL);
     unsigned long long start = tv.tv_sec * 1000000 + tv.tv_usec;
+#endif
 
     // Use pointers while building the tree, because we need to be able to sort, etc.
     // Triangles are converted to "setup" triangles, so we don't actually need the
@@ -119,10 +124,12 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 
     KDNode *root = buildNode(bounds, pointers, 0);
 
+#ifndef _WINDOWS
     // TODO
     gettimeofday(&tv, NULL);
     unsigned long long end = tv.tv_sec * 1000000 + tv.tv_usec;
     std::cout << "KD Build Time: " << (end - start) / 1000.0f << "ms" << std::endl;
+#endif
 
     return new KDTree(root, bounds);
 }

@@ -15,7 +15,7 @@ void randSphere(vec3 *samples, int sqrtSamples) {
             float u1 = (randf(0.0f, 1.0f) * (max1 - min1) + min1);
             float u2 = (randf(0.0f, 1.0f) * (max2 - min2) + min2);
 
-            float theta = u2 * 2.0f * M_PI;
+            float theta = u2 * 2.0f * (float)M_PI;
             float z = u1 * 2.0f - 1.0f;
             float r = sqrtf(1.0f - z * z);
 
@@ -59,7 +59,7 @@ void randHemisphereCos(vec3 norm, vec3 *samples, int sqrtSamples) {
             float u1 = (randf(0.0f, 1.0f) * (max1 - min1) + min1);
             float u2 = (randf(0.0f, 1.0f) * (max2 - min2) + min2);
 
-            float theta = u2 * 2.0f * M_PI;
+            float theta = u2 * 2.0f * (float)M_PI;
             float r = sqrtf(u1);
 
             // TODO: find something better

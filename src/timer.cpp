@@ -8,14 +8,24 @@
 #include <cassert>
 
 Timer::Timer() {
-    gettimeofday(&startTime, NULL);
+	reset();
 }
 
 void Timer::reset() {
-    gettimeofday(&startTime, NULL);
+#ifndef _WINDOWS
+	gettimeofday(&startTime, NULL);
+#else
+	LARGE_INTEGER time, frequency;
+	QueryPerformanceCounter(&time);
+	QueryPerformanceFrequency(&frequency);
+
+	this->startTime = (double)time.QuadPart;
+	this->frequency = (double)frequency.QuadPart;
+#endif
 }
 
 double Timer::getElapsedMilliseconds() {
+#ifndef _WINDOWS
     timeval now;
     gettimeofday(&now, NULL);
     double diff = 0.0;
@@ -24,10 +34,19 @@ double Timer::getElapsedMilliseconds() {
     diff += (now.tv_usec - startTime.tv_usec) / 1000.0;
 
     return diff;
+#else
+	LARGE_INTEGER time;
+	QueryPerformanceCounter(&time);
+
+	double ticks = (double)time.QuadPart - startTime;
+	return 1000.0 * ticks / frequency;
+#endif
 }
 
 double Timer::getCPUTime() {
+#ifndef _WINDOWS
     rusage usage;
+	// TODO: assert may not be included in release
     assert(getrusage(RUSAGE_SELF, &usage) == 0);
 
     double time = 0.0f;
@@ -36,4 +55,8 @@ double Timer::getCPUTime() {
     time += usage.ru_utime.tv_usec / 1000.0;
 
     return time;
+#else
+	// TODO
+	return 0.0;
+#endif
 }

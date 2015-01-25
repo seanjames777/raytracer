@@ -4,20 +4,38 @@
  * @author Sean James <seanjames777@gmail.com>
  */
 
-#include <graphics/path.h>
-#include <mach-o/dyld.h>
+#include <path.h>
 #include <sstream>
 #include <cassert>
+#include <algorithm>
+
+#if defined(_APPLE_)
+#include <mach-o/dyld.h>
+#elif defined (_WINDOWS)
+#include <Windows.h>
+#define PATH_MAX MAX_PATH
+#endif
 
 namespace PathUtil {
 
 std::string prependExecutableDirectory(std::string localPath) {
     char buff[PATH_MAX + 1];
-    uint32_t size = PATH_MAX;
+
+#if defined(_APPLE_)
+	uint32_t size = PATH_MAX;
     int stat = _NSGetExecutablePath(buff, &size);
     assert(!stat && "_NSGetExecutablePath failed");
-    buff[size] = 0;
-    std::string exe_path(buff);
+#elif defined(_WINDOWS)
+	HMODULE module = GetModuleHandle(NULL);
+	DWORD size = GetModuleFileNameA(module, buff, PATH_MAX);
+#endif
+
+	buff[size] = 0;
+	std::string exe_path(buff);
+
+#ifdef _WINDOWS
+	std::replace(exe_path.begin(), exe_path.end(), '\\', '/');
+#endif
 
     std::string exe_dir = exe_path.substr(0, exe_path.rfind("/"));
 

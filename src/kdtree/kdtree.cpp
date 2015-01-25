@@ -20,7 +20,7 @@ bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, fl
 
     unsigned int num_triangles = leaf->flags & KD_SIZE_MASK;
 
-    for (int i = 0; i < num_triangles; i++) {
+    for (unsigned int i = 0; i < num_triangles; i++) {
         SetupTriangle *triangle = &leaf->triangles[i];
 
         bool intersects = triangle->intersects(ray, tmpResult);
