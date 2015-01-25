@@ -222,6 +222,8 @@ public:
     // TODO: destroy
 
     void printProgress(int nBlocksW, int nBlocksH, bool clear) {
+		// Windows console can't handle unicode apparently
+#ifndef _WINDOWS
         const int max_count = 26;
 
         if (clear) {
@@ -247,6 +249,7 @@ public:
             std::cout << " ";
 
         std::cout << " ]" << std::flush;
+#endif
     }
 
     /**
