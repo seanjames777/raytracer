@@ -14,6 +14,7 @@
 #include <path.h>
 #include <sstream>
 #include <bmpimage.h>
+#include <string.h>
 
 RaytracerSettings settings;
 bool wdisplay = true;
