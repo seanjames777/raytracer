@@ -11,7 +11,22 @@
 
 #include <kdtree/kdbuilder.h>
 
+enum SAHEventType {
+    SAH_END = 0,    // Triangle end
+    SAH_PLANAR = 1, // Trianlge lying in plane
+    SAH_BEGIN = 2   // Triangle start
+};
+
+struct SAHEvent {
+    enum SAHEventType flag; // Event type
+    float dist;             // Split location
+};
+
 class KDSAHBuilder : public KDBuilder {
+private:
+
+    std::vector<SAHEvent> events;
+
 protected:
 
     virtual bool splitNode(const AABB & bounds, const std::vector<Triangle *> & triangles,

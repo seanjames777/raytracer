@@ -22,12 +22,12 @@ int main(int argc, char *argv[]) {
     settings.width = 2048;
     settings.height = 1080;
     settings.pixelSamples = 4;
-    settings.occlusionSamples = 0;
-    settings.occlusionDistance = 10.0f;
-    settings.shadowSamples = 0;
+    settings.occlusionSamples = 4;
+    settings.occlusionDistance = 5.0f;
+    settings.shadowSamples = 4;
 
     float aspect = (float)settings.width / (float)settings.height;
-    Camera *camera = new Camera(vec3(-19, 10.0f, -20), vec3(0, 5.0f, 0), aspect,
+    Camera *camera = new Camera(vec3(-80, 25.0f, -80), vec3(0, 5.0f, 0), aspect,
         M_PI / 3.4f, 19.25f, 0.0f);
 
     std::shared_ptr<Image> output = std::make_shared<Image>(settings.width, settings.height);
@@ -56,14 +56,24 @@ int main(int argc, char *argv[]) {
         vec3(1.0f, 1.0f, 1.0f), 16.0f, 0.0f, 0.0f, 10.0f, check_sampler, nullptr);
 
     std::vector<Triangle> polys;
-    /*FbxLoader::load(
-        PathUtil::prependExecutableDirectory("content/models/box.fbx"),
-        polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
-    FbxLoader::load(
-        PathUtil::prependExecutableDirectory("content/models/dragon.fbx"),
-        polys, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f), vec3(1.0f));
-    for (int i = 0; i < polys.size(); i++)
-        scene->addPoly(polys[i], diffuse);
+
+    for (int z = -2; z <= 2; z++) {
+        for (int x = -2; x <= 2; x++) {
+            for (int y = -2; y <= 2; y++) {
+                polys.clear();
+
+                /*FbxLoader::load(
+                    PathUtil::prependExecutableDirectory("content/models/box.fbx"),
+                    polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
+                FbxLoader::load(
+                    PathUtil::prependExecutableDirectory("content/models/dragon.fbx"),
+                    polys, vec3(x * 20.0f, y * 20.0f, z * 20.0f), vec3(0.0f), vec3(1.0f));
+
+                for (int i = 0; i < polys.size(); i++)
+                    scene->addPoly(polys[i], diffuse);
+            }
+        }
+    }
 
     polys.clear();
     FbxLoader::load(
@@ -77,6 +87,8 @@ int main(int argc, char *argv[]) {
 
     Light *light2 = new PointLight(vec3(20, 20, 20), vec3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light2);
+
+    printf("%lu polygons\n", scene->triangles.size());
 
     GLImageDisplay *disp = new GLImageDisplay(1024 * aspect, 1024, output);
 
@@ -106,6 +118,8 @@ int main(int argc, char *argv[]) {
     printf("Done: %f seconds (total), %f seconds (CPU)\n",
         timer.getElapsedMilliseconds() / 1000.0,
         timer.getCPUTime() / 1000.0);
+
+    getchar();
 
     return 0;
 }

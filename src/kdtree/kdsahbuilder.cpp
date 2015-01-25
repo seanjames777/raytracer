@@ -12,17 +12,6 @@ KDSAHBuilder::KDSAHBuilder() {
 KDSAHBuilder::~KDSAHBuilder() {
 }
 
-enum SAHEventType {
-    SAH_END = 0,    // Triangle end
-    SAH_PLANAR = 1, // Trianlge lying in plane
-    SAH_BEGIN = 2   // Triangle start
-};
-
-struct SAHEvent {
-    enum SAHEventType flag; // Event type
-    float dist;             // Split location
-};
-
 bool compareEvent(const SAHEvent & e1, const SAHEvent & e2) {
     // Sort by plane location then event type
     if (e1.dist < e2.dist)
@@ -59,7 +48,6 @@ bool KDSAHBuilder::splitNode(
     // the end of a triangle. Triangles may start and stop at the same point, in which case a
     // "Plane" event is generated and handled specially. More than one triangle may start or stop
     // at the same point, so multiple events must be processed at each sweep plane location.
-    std::vector<SAHEvent> events;
     events.reserve(triangles.size() * 2);
 
     // We want to find the plane which minimizes the "surface area heuristic"

@@ -76,7 +76,5 @@ vec3 Material::shade(KDStack & kdStack, const Ray & ray, Collision *result, Scen
     float occlusion = raytracer->getAmbientOcclusion(kdStack, offset_origin, triangle->normal);
     color = color * occlusion;
 
-    color = tex_diffuse;
-
     return color;
 }
