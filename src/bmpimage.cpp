@@ -7,6 +7,7 @@
 #include <bmpimage.h>
 #include <fstream>
 #include <iostream>
+#include <string.h>
 
 #define BI_RGB   0
 

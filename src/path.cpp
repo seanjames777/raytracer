@@ -10,10 +10,13 @@
 #include <algorithm>
 
 #if defined(__APPLE__)
-#include <mach-o/dyld.h>
+    #include <mach-o/dyld.h>
+#elif defined(__linux__)
+    #include <linux/limits.h>
+    #include <unistd.h>
 #elif defined (_WINDOWS)
-#include <Windows.h>
-#define PATH_MAX MAX_PATH
+    #include <Windows.h>
+    #define PATH_MAX MAX_PATH
 #endif
 
 namespace PathUtil {
@@ -24,10 +27,14 @@ std::string prependExecutableDirectory(std::string localPath) {
 #if defined(__APPLE__)
 	uint32_t size = PATH_MAX;
     int stat = _NSGetExecutablePath(buff, &size);
-    assert(!stat && "_NSGetExecutablePath failed");
+    assert(!stat);
+#elif defined (__linux__)
+    ssize_t size = readlink("/proc/self/exe", buff, PATH_MAX);
+    assert(size >= 0);
 #elif defined(_WINDOWS)
 	HMODULE module = GetModuleHandle(NULL);
 	DWORD size = GetModuleFileNameA(module, buff, PATH_MAX);
+    assert(size >= 0);
 #endif
 
 	buff[size] = 0;

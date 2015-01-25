@@ -10,6 +10,7 @@
 #define _FBXLOADER_H
 
 #include <polygon.h>
+#include <string>
 
 class FbxLoader {
 public:

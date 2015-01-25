@@ -13,7 +13,7 @@ Timer::Timer() {
 
 void Timer::reset() {
 #ifndef _WINDOWS
-	gettimeofday(&startTime, NULL);
+	gettimeofday(&startTime, nullptr);
 #else
 	LARGE_INTEGER time, frequency;
 	QueryPerformanceCounter(&time);
@@ -27,7 +27,7 @@ void Timer::reset() {
 double Timer::getElapsedMilliseconds() {
 #ifndef _WINDOWS
     timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     double diff = 0.0;
 
     diff += (now.tv_sec - startTime.tv_sec) * 1000.0;

@@ -7,6 +7,7 @@
 // TODO: triangle.cpp?
 
 #include <polygon.h>
+#include <string.h>
 
 Vertex::Vertex() {
 }

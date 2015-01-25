@@ -7,7 +7,8 @@ include_directories(include/)
 set(CMAKE_INSTALL_RPATH "\$ORIGIN/")
 set(CMAKE_INSTALL_NAME_DIR "@executable_path/")
 
-message(${CMAKE_CXX_COMPILER_ID})
+message("Compiler: ${CMAKE_CXX_COMPILER_ID}")
+message("System: ${CMAKE_SYSTEM_NAME}")
 
 if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
     add_definitions(-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value)

@@ -7,6 +7,7 @@
 #include <image.h>
 #include <fstream>
 #include <iostream>
+#include <string.h>
 
 Image::Image(int width, int height)
     : width(width),
