@@ -40,6 +40,7 @@ bool KDSAHBuilder::splitNode(
     //
     // TODO:
     //     - Scale cost for empty nodes
+    //     - Don't need to use a vector--an array would suffice and possibly be faster
 
     if (triangles.size() == 0)
         return false;
@@ -49,7 +50,13 @@ bool KDSAHBuilder::splitNode(
     // the end of a triangle. Triangles may start and stop at the same point, in which case a
     // "Plane" event is generated and handled specially. More than one triangle may start or stop
     // at the same point, so multiple events must be processed at each sweep plane location.
-    events.reserve(triangles.size() * 2);
+
+    // We can use malloc here to avoid constructor overhead. Allocate an upper bound that
+    // assumes each triangle generates both a begin and end event. TODO null check.
+    // TODO reuse a single list or something.
+    SAHEvent *events = (SAHEvent *)malloc(sizeof(SAHEvent) * triangles.size() * 2);
+    assert(events != nullptr);
+    int num_events = 0;
 
     // We want to find the plane which minimizes the "surface area heuristic"
     int             min_dir        = -1;          // Split direction
@@ -66,13 +73,11 @@ bool KDSAHBuilder::splitNode(
 
     // Try each major axis in turn
     for (int axis = 0; axis < 3; ++axis) {
-        events.clear();
+        num_events = 0;
 
         // Min and max of parent node along this axis
         float min = bounds.min.v[axis];
         float max = bounds.max.v[axis];
-
-        SAHEvent event;
 
         // Insert start/stop/planar locations of each triangle, clamped to the bounds of the parent
         // box. We assume we won't see triangles fully outside the parent node.
@@ -85,34 +90,36 @@ bool KDSAHBuilder::splitNode(
             tri_min = tri_min < min ? min : tri_min;
             tri_max = tri_max > max ? max : tri_max;
 
+            SAHEvent *event = &events[num_events];
+
             // If the triangle min is the same as the triangle max the triangle is planar
             if (tri_min == tri_max) {
-                event.flag = SAH_PLANAR;
-                event.dist = tri_min;
-                events.push_back(event);
+                event->flag = SAH_PLANAR;
+                event->dist = tri_min;
+                num_events++;
             }
             // Otherwise, generate begin and end events
             else {
-                event.flag = SAH_END;
-                event.dist = tri_max;
-                events.push_back(event);
+                event->flag = SAH_END;
+                event->dist = tri_max;
+                num_events++;
 
-                event.flag = SAH_BEGIN;
-                event.dist = tri_min;
-                events.push_back(event);
+                event = &events[num_events];
+                event->flag = SAH_BEGIN;
+                event->dist = tri_min;
+                num_events++;
             }
         }
 
         // Sort events by type and then by position so that we can just sweep from the minimum
         // point to the maximum point instead of repeatedly partitioning. Sweeping along the vector
         // in order will be cache friendly as well.
-        std::sort(events.begin(), events.end(), compareEvent);
+        std::sort(events, events + num_events, compareEvent);
 
         // Number of triangles entirely to the left and right of the sweep plane
         int count_left = 0;
         int count_right = (int)triangles.size(); // TODO: handle overflow
 
-        int num_events = (int)events.size(); // TODO: handle overflow
         int event_idx = 0;
 
         // Sweep along axis processing events
@@ -191,6 +198,8 @@ bool KDSAHBuilder::splitNode(
             count_left += count_planar;
         }
     }
+
+    free(events);
 
     // If we didn't find a split plane, don't split. TODO.
     if (min_dir == -1)
