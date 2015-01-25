@@ -213,8 +213,8 @@ public:
           scene(scene),
           tree(NULL)
     {
-        KDSAHBuilder builder;
-        //KDMedianBuilder builder;
+        //KDSAHBuilder builder;
+        KDMedianBuilder builder;
         tree = builder.build(scene->triangles);
 
         srand((unsigned)time(0));
@@ -305,7 +305,8 @@ public:
         //photon_map(photons, 50);
         //photon_vis(photons);
 
-        display->refresh();
+        if (display)
+            display->refresh();
     }
 
     /**

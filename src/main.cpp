@@ -15,14 +15,32 @@
 #include <sstream>
 #include <bmpimage.h>
 
-int main(int argc, char *argv[]) {
-    RaytracerSettings settings;
+RaytracerSettings settings;
+bool wdisplay = true;
+
+void parseArgs(int argc, char *argv[]) {
     settings.width = 2048;
     settings.height = 1080;
     settings.pixelSamples = 4;
     settings.occlusionSamples = 4;
     settings.occlusionDistance = 5.0f;
     settings.shadowSamples = 4;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-nodisplay") == 0)
+            wdisplay = false;
+        else if (strcmp(argv[i], "-w") == 0)
+            settings.width = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-h") == 0)
+            settings.height = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-samples") == 0)
+            settings.pixelSamples = atoi(argv[++i]);
+        // TODO
+    }
+}
+
+int main(int argc, char *argv[]) {
+    parseArgs(argc, argv);
 
     float aspect = (float)settings.width / (float)settings.height;
 
@@ -87,7 +105,10 @@ int main(int argc, char *argv[]) {
     Light *light2 = new PointLight(vec3(20, 20, 20), vec3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light2);
 
-    GLImageDisplay *disp = new GLImageDisplay((int)(1024 * aspect), 1024, output);
+    GLImageDisplay *disp = nullptr;
+
+    if (wdisplay)
+        disp = new GLImageDisplay((int)(1024 * aspect), 1024, output);
 
     Raytracer *rt = new Raytracer(settings, scene);
     // TODO: thread pool
