@@ -9,7 +9,7 @@
 #include <cassert>
 #include <algorithm>
 
-#if defined(_APPLE_)
+#if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #elif defined (_WINDOWS)
 #include <Windows.h>
@@ -21,7 +21,7 @@ namespace PathUtil {
 std::string prependExecutableDirectory(std::string localPath) {
     char buff[PATH_MAX + 1];
 
-#if defined(_APPLE_)
+#if defined(__APPLE__)
 	uint32_t size = PATH_MAX;
     int stat = _NSGetExecutablePath(buff, &size);
     assert(!stat && "_NSGetExecutablePath failed");
