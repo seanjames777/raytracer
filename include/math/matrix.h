@@ -24,7 +24,7 @@ struct matrix {
     matrix() {
         for (unsigned int j = 0; j < M; j++)
             for (unsigned int i = 0; i < N; i++)
-                m[j][i] = j == i ? 1 : 0;
+                m[j][i] = j == i ? (T)1 : (T)0;
     }
 };
 

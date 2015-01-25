@@ -118,6 +118,7 @@ vec4 Sampler::sample(Image *image, const vec2 & uv) {
     int y0 = (int)y;
 
     switch(minFilter) {
+	default:
     case Nearest:
         return sampleBorder(image, x0, y0);
     case Linear:
@@ -143,8 +144,8 @@ vec4 Sampler::sample(Image *image, const vec2 & uv) {
 }
 
 vec4 Sampler::sample(Image *image, const vec3 & norm) {
-    vec2 uv = vec2(atan2f(norm.z, norm.x) + M_PI, acosf(-norm.y));
-    uv = uv / vec2(2.0f * M_PI, M_PI);
+    vec2 uv = vec2(atan2f(norm.z, norm.x) + (float)M_PI, acosf(-norm.y));
+    uv = uv / vec2(2.0f * (float)M_PI, (float)M_PI);
 
     return sample(image, uv);
 }

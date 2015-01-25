@@ -1,0 +1,13 @@
+prefix=/home/sjames/CityGame/external/prebuilt_linux
+exec_prefix=/home/sjames/CityGame/external/prebuilt_linux
+libdir=/home/sjames/CityGame/external/prebuilt_linux/lib
+sharedlibdir=/home/sjames/CityGame/external/prebuilt_linux/lib
+includedir=/home/sjames/CityGame/external/prebuilt_linux/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.8
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}

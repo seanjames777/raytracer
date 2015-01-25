@@ -6,6 +6,7 @@
 
 #include <glimagedisplay.h>
 #include <iostream>
+#include <cassert>
 
 const char *vs_source =
     "#version 330 core\n"
@@ -47,7 +48,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> ima
 {
     if (!glfwInit()) {
         std::cout << "Error initializing glfw" << std::endl;
-        exit(0);
+        exit(-1);
     }
 
     pixels = new float[image->getWidth() * image->getHeight() * 4]; // TODO delete
@@ -66,6 +67,18 @@ GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> ima
 
     glfwMakeContextCurrent(window);
 
+	// TODO: Init GLEW
+	glewExperimental = true;
+	int stat = glewInit();
+	
+	if (stat != GLEW_OK) {
+		std::cout << "Error initialing glew" << std::endl;
+		exit(-1);
+	}
+
+	// GLEW sometimes produces a spurious error
+	glGetError();
+	
     glGenVertexArrays(1, &va);
     glBindVertexArray(va);
 

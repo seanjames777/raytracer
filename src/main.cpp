@@ -16,8 +16,6 @@
 #include <bmpimage.h>
 
 int main(int argc, char *argv[]) {
-    std::cout << "PID: " << getpid() << std::endl;
-
     RaytracerSettings settings;
     settings.width = 2048;
     settings.height = 1080;
@@ -28,7 +26,7 @@ int main(int argc, char *argv[]) {
 
     float aspect = (float)settings.width / (float)settings.height;
     Camera *camera = new Camera(vec3(-19, 10.0f, -20), vec3(0, 5.0f, 0), aspect,
-        M_PI / 3.4f, 19.25f, 0.0f);
+        (float)M_PI / 3.4f, 19.25f, 0.0f);
 
     std::shared_ptr<Image> output = std::make_shared<Image>(settings.width, settings.height);
 
@@ -62,14 +60,14 @@ int main(int argc, char *argv[]) {
     FbxLoader::load(
         PathUtil::prependExecutableDirectory("content/models/dragon.fbx"),
         polys, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f), vec3(1.0f));
-    for (int i = 0; i < polys.size(); i++)
+    for (size_t i = 0; i < polys.size(); i++)
         scene->addPoly(polys[i], diffuse);
 
     polys.clear();
     FbxLoader::load(
         PathUtil::prependExecutableDirectory("content/models/plane.fbx"),
         polys, vec3(0, 0, 0), vec3(0, 0, 0), vec3(3, 1, 3));
-    for (int i = 0; i < polys.size(); i++)
+    for (size_t i = 0; i < polys.size(); i++)
         scene->addPoly(polys[i], diffuse);
 
     Light *light1 = new PointLight(vec3(-20, 20, -20), vec3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
@@ -78,7 +76,7 @@ int main(int argc, char *argv[]) {
     Light *light2 = new PointLight(vec3(20, 20, 20), vec3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light2);
 
-    GLImageDisplay *disp = new GLImageDisplay(1024 * aspect, 1024, output);
+    GLImageDisplay *disp = new GLImageDisplay((int)(1024 * aspect), 1024, output);
 
     Raytracer *rt = new Raytracer(settings, scene);
     // TODO: thread pool
@@ -87,7 +85,7 @@ int main(int argc, char *argv[]) {
 
     int nFrames = 1;
     for (int i = 0; i < nFrames; i++) {
-        float theta = ((float)i / (float)nFrames + .25f) * 2.0f * M_PI;
+        float theta = ((float)i / (float)nFrames + .25f) * 2.0f * (float)M_PI;
         //camera->setPosition(vec3(cosf(theta) * 15.0f, 10.0f, sinf(theta) * 15.0f));
         rt->render(disp);
 

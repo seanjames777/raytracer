@@ -1,0 +1,11 @@
+prefix=/Users/Sean/CityGame/external/prebuilt_osx
+exec_prefix=/Users/Sean/CityGame/external/prebuilt_osx
+libdir=/Users/Sean/CityGame/external/prebuilt_osx/lib
+includedir=/Users/Sean/CityGame/external/prebuilt_osx/include/libpng16
+
+Name: libpng
+Description: Loads and saves PNG files
+Version: 1.6.12
+Libs: -L${libdir} -lpng16
+Libs.private: -lz -lm
+Cflags: -I${includedir}

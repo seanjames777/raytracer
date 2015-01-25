@@ -143,7 +143,7 @@ void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, mat4x4
 
     fbxManager->Destroy();
 
-    for (int i = 0; i < vertices.size(); i += 3)
+    for (size_t i = 0; i < vertices.size(); i += 3)
         polys.push_back(Triangle(
             vertices[i + 0],
             vertices[i + 1],

@@ -44,7 +44,7 @@ void PointLight::getShadowDir(const vec3 & at, vec3 *samples, int nSamples) {
         return;
     }
 
-    int sqrtNSamples = sqrt(nSamples);
+    int sqrtNSamples = (int)sqrt(nSamples);
     nSamples = sqrtNSamples * sqrtNSamples;
 
     vec3 sphere[MAX_SHADOW_SAMPLES];

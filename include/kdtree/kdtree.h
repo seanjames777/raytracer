@@ -15,6 +15,7 @@
 // TODO:
 //     - Generic template type instead of requiring triangles only
 //     - Photon map tree: nearest neighbor search and balanced tree
+//     - Handle size overflow in leaves
 
 /**
  * @brief KD-Tree

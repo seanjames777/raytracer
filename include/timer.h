@@ -9,8 +9,13 @@
 #ifndef _TIMER_H
 #define _TIMER_H
 
+#ifndef _WINDOWS
 #include <sys/time.h>
 #include <sys/resource.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
 
 /**
  * @brief Timer utility class
@@ -18,8 +23,13 @@
 class Timer {
 private:
 
-    /** @brief Time the timer was started */
+	/** @brief Time the timer was started */
+#ifndef _WINDOWS    
     timeval startTime;
+#else
+	double startTime;
+	double frequency;
+#endif
 
 public:
 
