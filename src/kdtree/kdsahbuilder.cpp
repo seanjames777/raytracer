@@ -41,6 +41,7 @@ bool KDSAHBuilder::splitNode(
     // TODO:
     //     - Scale cost for empty nodes
     //     - Don't need to use a vector--an array would suffice and possibly be faster
+    //     - Convert this to vector instructions, spread branches across multiple threads
 
     if (triangles.size() == 0)
         return false;
@@ -127,20 +128,16 @@ bool KDSAHBuilder::splitNode(
             auto & event = events[event_idx];
             float dist = event.dist;
 
-            // Trianglgs touching the sweep plane: starting, lying in (parallel), and ending
+            // Triangles touching the sweep plane: starting, lying in (parallel), and ending
             int count_starting = 0;
             int count_ending = 0;
             int count_planar = 0;
 
             // Handle all events at this plane position
-            while (event_idx < num_events) {
-                auto & event = events[event_idx];
-
-                if (event.dist != dist)
-                    break;
-
-                // TODO: can be broken into 3 loops to avoid the switch, although
-                // they are at least sorted.
+            while (event_idx < num_events && event.dist == dist) {
+                // SAH_* have known values, so the compiler is able to turn this into
+                // bit masks, etc. to optimize away the switch here. The events are also
+                // sorted, so the branch predictor would perform OK either way.
                 switch(event.flag) {
                 case SAH_END:
                     ++count_ending;
@@ -153,7 +150,7 @@ bool KDSAHBuilder::splitNode(
                     break;
                 }
 
-                ++event_idx;
+                event = events[++event_idx];
             }
 
             // Move triangles that lie in or start on this plane out of the "right" set

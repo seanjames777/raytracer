@@ -12,9 +12,9 @@
 #include <kdtree/kdbuilder.h>
 
 enum SAHEventType {
-    SAH_END = 0,    // Triangle end
-    SAH_PLANAR = 1, // Trianlge lying in plane
-    SAH_BEGIN = 2   // Triangle start
+    SAH_END    = 1, // Triangle end
+    SAH_PLANAR = 2, // Trianlge lying in plane
+    SAH_BEGIN  = 4  // Triangle start
 };
 
 struct SAHEvent {
