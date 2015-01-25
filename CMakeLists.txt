@@ -9,7 +9,7 @@ set(CMAKE_INSTALL_NAME_DIR "@executable_path/")
 
 message(${CMAKE_CXX_COMPILER_ID})
 
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
     add_definitions(-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value)
 	# TODO: -g
 #	set(CMAKE_CXX_FLAGS "-std=c++11 -fno-exceptions -g -fno-rtti -O3 -Wno-comment -Wno-unused-value") #TODO exceptions
@@ -75,7 +75,13 @@ add_library(glfw SHARED IMPORTED)
 add_library(glew SHARED IMPORTED)
 add_library(fbxsdk SHARED IMPORTED)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # TODO do this whole thing better
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    include_directories(external/prebuilt_linux/include)
+    set_target_properties(glfw PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/prebuilt_linux/lib/libglfw.so)
+    set_target_properties(glew PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/prebuilt_linux/lib64/libGLEW.so)
+    set_target_properties(fbxsdk PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/prebuilt_linux/lib/libfbxsdk.so)
+    set_target_properties(fbxsdk PROPERTIES IMPORTED_NO_SONAME TRUE)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # TODO do this whole thing better
 	include_directories(external/prebuilt_osx/include)
     set_target_properties(glfw PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/prebuilt_osx/lib/libglfw.dylib)
     set_target_properties(glew PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/prebuilt_osx/lib/libGLEW.dylib)
