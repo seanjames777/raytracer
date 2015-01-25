@@ -125,7 +125,8 @@ void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, mat4x4
 
     FbxImporter *importer = FbxImporter::Create(fbxManager, "");
 
-    assert(importer->Initialize(filename.c_str(), -1, fbxManager->GetIOSettings()));
+	bool stat = importer->Initialize(filename.c_str(), -1, fbxManager->GetIOSettings());
+    assert(stat);
 
     FbxScene *scene = FbxScene::Create(fbxManager, "scene");
     importer->Import(scene);

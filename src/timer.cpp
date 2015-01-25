@@ -46,6 +46,7 @@ double Timer::getElapsedMilliseconds() {
 double Timer::getCPUTime() {
 #ifndef _WINDOWS
     rusage usage;
+	// TODO: assert may not be included in release
     assert(getrusage(RUSAGE_SELF, &usage) == 0);
 
     double time = 0.0f;
