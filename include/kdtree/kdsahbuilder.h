@@ -25,7 +25,9 @@ struct SAHEvent {
 class KDSAHBuilder : public KDBuilder {
 private:
 
-    std::vector<SAHEvent> events;
+    // Because we process one node at a time, we can reuse one event list allocation
+    SAHEvent *events;
+    int       event_capacity;
 
 protected:
 

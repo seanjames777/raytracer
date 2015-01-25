@@ -7,10 +7,15 @@
 #include <kdtree/kdsahbuilder.h>
 #include <algorithm>
 
-KDSAHBuilder::KDSAHBuilder() {
+KDSAHBuilder::KDSAHBuilder()
+    : events(nullptr),
+      event_capacity(0)
+{
 }
 
 KDSAHBuilder::~KDSAHBuilder() {
+    if (events)
+        free(events);
 }
 
 bool compareEvent(const SAHEvent & e1, const SAHEvent & e2) {
@@ -52,11 +57,24 @@ bool KDSAHBuilder::splitNode(
     // "Plane" event is generated and handled specially. More than one triangle may start or stop
     // at the same point, so multiple events must be processed at each sweep plane location.
 
-    // We can use malloc here to avoid constructor overhead. Allocate an upper bound that
-    // assumes each triangle generates both a begin and end event. TODO null check.
-    // TODO reuse a single list or something.
-    SAHEvent *events = (SAHEvent *)malloc(sizeof(SAHEvent) * triangles.size() * 2);
-    assert(events != nullptr);
+    // Make sure the builder's event list is big enough. We can use malloc here to avoid constructor
+    // overhead. Allocate an upper bound that assumes each triangle generates both a begin and end
+    // event. TODO null check. TODO reuse a single list or something.
+    if (event_capacity < triangles.size() * 2) {
+        // TODO: It seems like it's nice to allocate powers of two, but it might not be necessary.
+        while (event_capacity < triangles.size() * 2)
+            if (event_capacity == 0)
+                event_capacity = 128; // TODO arbitrary constant, branch
+            else
+                event_capacity *= 2;
+
+        if (events)
+            free(events);
+
+        events = (SAHEvent *)malloc(sizeof(SAHEvent) * event_capacity);
+        assert(events != nullptr);
+    }
+
     int num_events = 0;
 
     // We want to find the plane which minimizes the "surface area heuristic"
@@ -195,8 +213,6 @@ bool KDSAHBuilder::splitNode(
             count_left += count_planar;
         }
     }
-
-    free(events);
 
     // If we didn't find a split plane, don't split. TODO.
     if (min_dir == -1)
