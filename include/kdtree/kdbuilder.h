@@ -18,8 +18,27 @@ enum PlanarMode {
     PLANAR_BOTH = 2
 };
 
+class KDBuilderQueueNode {
+    AABB bounds;
+    std::vector<Triangle *> triangles; // TODO: memcpy/malloc instead
+    int depth;
+
+    // TODO: false sharing
+};
+
 class KDBuilder {
 protected:
+
+    // TODO: abstract this
+    KDBuilderQueueNode **node_queue;
+    int queue_head;
+    int queue_tail; // One past end of queue, unless it is empty, wrapped around capacity.
+    int queue_size; // TODO: this can be computed from the previous two values.
+    int queue_capacity;
+
+    void enqueue_node(KDBuilderQueueNode *node);
+
+    KDBuilderQueueNode *dequeue_node();
 
     /**
      * @brief Find the subset of triangles contained in a bounding box

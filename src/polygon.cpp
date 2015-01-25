@@ -9,6 +9,8 @@
 #include <polygon.h>
 #include <string.h>
 
+// TODO: a lot of this can be vectorized
+
 Vertex::Vertex() {
 }
 
