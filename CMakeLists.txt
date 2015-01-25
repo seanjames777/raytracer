@@ -76,13 +76,10 @@ add_library(glew SHARED IMPORTED)
 add_library(fbxsdk SHARED IMPORTED)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # TODO do this whole thing better
-	target_link_libraries(raytracer
-		-L${CMAKE_CURRENT_SOURCE_DIR}/external/fbx/lib/Mac/
-		-L/opt/local/lib/
-		-lfbxsdk
-		-lglfw
-		-framework\ OpenGL
-	)
+	include_directories(external/prebuilt_osx/include)
+    set_target_properties(glfw PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/prebuilt_osx/lib/libglfw.dylib)
+    set_target_properties(glew PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/prebuilt_osx/lib/libGLEW.dylib)
+    set_target_properties(fbxsdk PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/prebuilt_osx/lib/libfbxsdk.dylib)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	include_directories(external/prebuilt_windows/include/)
 	set_target_properties(glfw PROPERTIES IMPORTED_IMPLIB_DEBUG ${CMAKE_SOURCE_DIR}/external/prebuilt_windows/lib/x64_debug/glfw3dll.lib)
