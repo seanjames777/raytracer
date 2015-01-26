@@ -6,6 +6,7 @@
 
 #include <kdtree/kdsahbuilder.h>
 #include <algorithm>
+#include <iostream> // TODO
 
 KDSAHBuilder::KDSAHBuilder()
     : events(nullptr),
@@ -62,11 +63,15 @@ bool KDSAHBuilder::splitNode(
     // event. TODO null check. TODO reuse a single list or something.
     if (event_capacity < triangles.size() * 2) {
         // TODO: It seems like it's nice to allocate powers of two, but it might not be necessary.
-        while (event_capacity < triangles.size() * 2)
+        // TODO: We're not going to ever resize after the first node. There should be a
+        // prepareBuilde(number_of_triangles) or something to avoid this check.
+
+        while (event_capacity < triangles.size() * 2) {
             if (event_capacity == 0)
                 event_capacity = 128; // TODO arbitrary constant, branch
             else
                 event_capacity *= 2;
+        }
 
         if (events)
             free(events);

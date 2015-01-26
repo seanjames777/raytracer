@@ -5,94 +5,13 @@
  */
 
 #include <kdtree/kdbuilder.h>
-#include <iostream>
+#include <timer.h>
+#include <iostream> // TODO
 
-#ifndef _WINDOWS
-#include <sys/time.h>
-#endif
-
-KDBuilder::KDBuilder()
-    : node_queue(nullptr),
-      queue_capacity(0),
-      queue_head(0),
-      queue_tail(0),
-      queue_size(0)
-{
+KDBuilder::KDBuilder() {
 }
 
 KDBuilder::~KDBuilder() {
-    if (node_queue)
-        free(node_queue);
-}
-
-void KDBuilder::enqueue_node(KDBuilderQueueNode *node) {
-    // Resize the queue if needed
-    if (queue_size + 1 > queue_capacity) {
-        int old_capacity = queue_capacity;
-
-        while (queue_size + 1 > queue_capacity) {
-            // If queue hasn't been allocated, allocate (power of two)
-            if (queue_capacity == 0)
-                queue_capacity = 128; // TODO
-            // Otherwise, double the size (power of two)
-            else
-                queue_capacity *= 2;
-        }
-
-        KDBuilderQueueNode ** new_queue = (KDBuilderQueueNode **)malloc(sizeof(KDBuilderQueueNode *) * queue_capacity);
-
-        // Copy the old queue
-        if (node_queue) {
-            // TODO: Might want to realloc where possible instead of always copying, in case the
-            // allocator can just extend in place.
-
-            // Queue does not wrap around, a single copy is sufficient. Compact to beginning of new
-            // queue for simplicity. We will never encounter queue_head == queue_tail because otherwise
-            // we wouldnt be expanding the queue.
-            if (queue_tail > queue_head) {
-                memcpy(new_queue, node_queue + queue_head, queue_size * sizeof(KDBuilderQueueNode *));
-                queue_head = 0;
-                queue_tail = queue_size;
-            }
-            // Otherwise, queue wraps around, so we need two copies. Copy to beginning of new queue
-            // so that everything is guaranteed to fit without wrapping, since we've doubled the size.
-            else {
-                // Size of chunks at the end and beginning of array, due to wrap around
-                int end_size = old_capacity - queue_head;
-                int begin_size = queue_tail;
-
-                memcpy(new_queue, node_queue + queue_head, end_size * sizeof(KDBuilderQueueNode *));
-                memcpy(new_queue + end_size, node_queue, begin_size * sizeof(KDBuilderQueueNode *));
-
-                queue_head = 0;
-                queue_tail = begin_size + end_size;
-            }
-
-            // Delete the old queue
-            free(node_queue);
-        }
-        // Set the newly allocated queue
-        else
-            node_queue = new_queue;
-    }
-
-    node_queue[queue_tail] = node;
-
-    queue_tail = (queue_tail + 1) & (queue_capacity - 1); // Queue capacity is always a power of two
-    queue_size++;
-}
-
-KDBuilderQueueNode *KDBuilder::dequeue_node() {
-    // If the two pointers are equal, the queue is empty.
-    if (queue_head == queue_tail)
-        return nullptr;
-
-    KDBuilderQueueNode *node = node_queue[queue_head];
-
-    queue_head = (queue_head + 1) & (queue_capacity - 1); // Queue capacity is always a power of two
-    queue_size--;
-
-    return node;
 }
 
 void KDBuilder::partition(float dist, int dir, const std::vector<Triangle *> & triangles,
@@ -180,17 +99,12 @@ AABB KDBuilder::buildAABB(const std::vector<Triangle *> & triangles) {
 }
 
 KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
-#ifndef _WINDOWS
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    unsigned long long start = tv.tv_sec * 1000000 + tv.tv_usec;
-#endif
+    Timer timer;
 
     // Use pointers while building the tree, because we need to be able to sort, etc.
     // Triangles are converted to "setup" triangles, so we don't actually need the
     // triangle data anyway.
     std::vector<Triangle *> pointers;
-
     pointers.reserve(triangles.size());
 
     for (auto & it : triangles)
@@ -200,12 +114,7 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 
     KDNode *root = buildNode(bounds, pointers, 0);
 
-#ifndef _WINDOWS
-    // TODO
-    gettimeofday(&tv, NULL);
-    unsigned long long end = tv.tv_sec * 1000000 + tv.tv_usec;
-    std::cout << "KD Build Time: " << (end - start) / 1000.0f << "ms" << std::endl;
-#endif
+    std::cout << "KD Build Time: " << timer.getElapsedMilliseconds() << "ms" << std::endl;
 
     return new KDTree(root, bounds);
 }

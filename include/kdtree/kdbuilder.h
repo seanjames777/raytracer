@@ -10,6 +10,7 @@
 #define _KDBUILDER_H
 
 #include <kdtree/kdtree.h>
+#include <util/queue.h>
 
 // How to handle triangles that lie in the plane
 enum PlanarMode {
@@ -29,16 +30,11 @@ class KDBuilderQueueNode {
 class KDBuilder {
 protected:
 
-    // TODO: abstract this
-    KDBuilderQueueNode **node_queue;
-    int queue_head;
-    int queue_tail; // One past end of queue, unless it is empty, wrapped around capacity.
-    int queue_size; // TODO: this can be computed from the previous two values.
-    int queue_capacity;
-
-    void enqueue_node(KDBuilderQueueNode *node);
-
-    KDBuilderQueueNode *dequeue_node();
+    // TODO: Pool or something of queue nodes might be better than new/delete constantly.
+    // Note: We need a dynamic queue here because we don't know how deep we're going
+    // to go while building the tree, and we need more storage space closer to the
+    // leaves.
+    Queue<KDBuilderQueueNode *> node_queue;
 
     /**
      * @brief Find the subset of triangles contained in a bounding box

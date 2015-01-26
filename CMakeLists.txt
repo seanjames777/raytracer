@@ -27,6 +27,8 @@ add_executable(raytracer
     src/kdtree/kdnode.cpp
     src/kdtree/kdsahbuilder.cpp
     src/kdtree/kdtree.cpp
+    # TODO: math
+    src/util/queue.cpp
 	src/camera.cpp
 	src/light.cpp
 	src/pointlight.cpp
@@ -54,6 +56,7 @@ add_executable(raytracer
 	include/kdtree/kdtree.h
 	include/math/matrix.h
 	include/math/vector.h
+    include/util/queue.h
 	include/bmpimage.h
 	include/camera.h
 	include/directionallight.h
