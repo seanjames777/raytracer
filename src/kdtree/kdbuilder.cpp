@@ -18,6 +18,9 @@ void KDBuilder::partition(float dist, int dir, const std::vector<Triangle *> & t
         std::vector<Triangle *> & left, std::vector<Triangle *> & right,
         enum PlanarMode & planarMode)
 {
+    // TODO: By keeping references to triangles in the SAH event list, we could
+    // avoid this whole loop.
+
     for (auto it = triangles.begin(); it != triangles.end(); it++) {
         Triangle *tri = *it;
 
@@ -25,7 +28,7 @@ void KDBuilder::partition(float dist, int dir, const std::vector<Triangle *> & t
         float max = tri->bbox.max.v[dir];
 
         if (min == dist && max == dist) {
-            // TODO bitwise optimization
+            // TODO bitwise optimization?
             if (planarMode == PLANAR_LEFT)
                 left.push_back(tri);
             else if (planarMode == PLANAR_RIGHT)

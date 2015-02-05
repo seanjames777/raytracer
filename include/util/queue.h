@@ -39,6 +39,9 @@ private:
     //   - Initially, capacity is used to indicate the desired capacity, but elems is null.
     //   - Insertion is allowed to fail, signalling out-of-memory.
 
+    // TODO:
+    //   - We actually need to call constructors and destructors
+
 public:
 
     /**
@@ -162,6 +165,12 @@ public:
      */
     unsigned int getSize() {
         return size;
+    }
+
+    /**
+     * @brief Empty the queue
+     */
+    void clear() {
     }
 
 };

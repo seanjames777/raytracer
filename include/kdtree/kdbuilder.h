@@ -14,9 +14,9 @@
 
 // How to handle triangles that lie in the plane
 enum PlanarMode {
-    PLANAR_LEFT = 0,
-    PLANAR_RIGHT = 1,
-    PLANAR_BOTH = 2
+    PLANAR_LEFT =  1,
+    PLANAR_RIGHT = 2,
+    PLANAR_BOTH =  3
 };
 
 class KDBuilderQueueNode {
