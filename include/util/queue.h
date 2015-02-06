@@ -6,10 +6,8 @@
  * @author Sean James <seanjames777@mgmail.com>
  */
 
-// TODO: Namespacing for various directories
-
-#ifndef __QUEUE_H
-#define __QUEUE_H
+#ifndef __UTIL_QUEUE_H
+#define __UTIL_QUEUE_H
 
 #include <stdlib.h>
 #include <string.h>
@@ -18,29 +16,35 @@
 // Default initial queue capacity
 #define DEFAULT_INIT_QUEUE_CAPACITY 16
 
+namespace util {
+
 /**
  * @brief Generic circular queue/FIFO. Dynamically resizes as needed.
  *
  * @tparam T Element type
  */
 template<typename T>
-class Queue {
+class queue {
 private:
 
-    T            *elems;    // Element buffer
-    unsigned int  head;     // First element
-    unsigned int  tail;     // One past end of queue, unless it is empty, wrapped around capacity
-    unsigned int  size;     // Current number of elements. TODO: can be computed from head/tail
-    unsigned int  capacity; // Maximum number of elements
+    T            *_elems;    // Element buffer
+    unsigned int  _head;     // First element
+    unsigned int  _tail;     // One past end of queue, unless it is empty, wrapped around capacity
+    unsigned int  _size;     // Current number of elements. TODO: can be computed from _head/_tail
+    unsigned int  _capacity; // Maximum number of elements
 
     // Notes:
     //   - We use malloc/free for the elements here, because we overwrite the allocated
     //     space with actual values.
-    //   - Initially, capacity is used to indicate the desired capacity, but elems is null.
+    //   - Initially, capacity is used to indicate the desired capacity, but _elems is null.
     //   - Insertion is allowed to fail, signalling out-of-memory.
 
     // TODO:
     //   - We actually need to call constructors and destructors
+    //   - Need to respect alignment
+    //   - reserve() and bounds check free enqueue
+    //   - inline functions
+    //   - avoid copy on insert
 
 public:
 
@@ -49,23 +53,23 @@ public:
      *
      * @param capacity Desired initial capacity of the queue. Must be greater than 0.
      */
-    Queue(unsigned int capacity = DEFAULT_INIT_QUEUE_CAPACITY)
-        : elems(nullptr),
-          head(0),
-          tail(0),
-          size(0),
-          capacity(capacity)
+    queue(unsigned int capacity = DEFAULT_INIT_QUEUE_CAPACITY)
+        : _elems(nullptr),
+          _head(0),
+          _tail(0),
+          _size(0),
+          _capacity(capacity)
     {
         // Capacity must not be zero
-        assert(capacity > 0);
+        assert(_capacity > 0);
     }
 
     /**
      * @brief Destructor
      */
-    ~Queue() {
-        if (elems)
-            free(elems);
+    ~queue() {
+        if (_elems)
+            free(_elems);
     }
 
     /**
@@ -79,17 +83,17 @@ public:
      */
     bool enqueue(T elem) {
         // Resize or initially allocate the queue if needed
-        if (size + 1 > capacity || !elems) {
-            unsigned int old_capacity = capacity;
+        if (_size + 1 > _capacity || !_elems) {
+            unsigned int old_capacity = _capacity;
 
-            while (size + 1 > capacity)
-                capacity *= 2;
+            while (_size + 1 > _capacity)
+                _capacity *= 2;
 
-            T *new_elements = (T *)malloc(sizeof(T) * capacity);
+            T *new_elements = (T *)malloc(sizeof(T) * _capacity);
 
             // If allocation fails, return an error
             if (!new_elements) {
-                capacity = old_capacity;
+                _capacity = old_capacity;
                 return false;
             }
 
@@ -97,41 +101,41 @@ public:
             // allocator can just extend in place.
 
             // Copy old elements into new element buffer if needed
-            if (elems) {
+            if (_elems) {
                 // Queue does not wrap around, a single copy is sufficient. Compact to beginning of
-                // new queue for simplicity. We will never encounter head == tail because otherwise
+                // new queue for simplicity. We will never encounter _head == _tail because otherwise
                 // we wouldnt be expanding the queue.
-                if (tail > head) {
-                    memcpy(new_elements, elems + head, size * sizeof(T));
-                    head = 0;
-                    tail = size;
+                if (_tail > _head) {
+                    memcpy(new_elements, _elems + _head, _size * sizeof(T));
+                    _head = 0;
+                    _tail = _size;
                 }
                 // Otherwise, queue wraps around, so we need two copies. Copy to beginning of new
                 // queue so that everything is guaranteed to fit without wrapping, since we've
                 // doubled the size.
                 else {
                     // Size of chunks at the end and beginning of array, due to wrap around
-                    unsigned int end_size = old_capacity - head;
-                    unsigned int begin_size = tail;
+                    unsigned int end_size = old_capacity - _head;
+                    unsigned int begin_size = _tail;
 
-                    memcpy(new_elements, elems + head, end_size * sizeof(T));
-                    memcpy(new_elements + end_size, elems, begin_size * sizeof(T));
+                    memcpy(new_elements, _elems + _head, end_size * sizeof(T));
+                    memcpy(new_elements + end_size, _elems, begin_size * sizeof(T));
 
-                    head = 0;
-                    tail = begin_size + end_size;
+                    _head = 0;
+                    _tail = begin_size + end_size;
                 }
 
                 // Delete the old queue
-                free(elems);
+                free(_elems);
             }
 
-            elems = new_elements;
+            _elems = new_elements;
         }
 
-        elems[tail] = elem;
+        _elems[_tail] = elem;
 
-        tail = (tail + 1) & (capacity - 1); // Queue capacity is always a power of two
-        size++;
+        _tail = (_tail + 1) & (_capacity - 1); // Queue capacity is always a power of two
+        _size++;
 
         return true;
     }
@@ -145,10 +149,10 @@ public:
      * @return First element in queue, assuming it is not empty
      */
     T dequeue() {
-        T elem = elems[head];
+        T elem = _elems[_head];
 
-        head = (head + 1) & (capacity - 1); // Queue capacity is always a power of two
-        size--;
+        _head = (_head + 1) & (_capacity - 1); // Queue capacity is always a power of two
+        _size--;
 
         return elem;
     }
@@ -157,14 +161,14 @@ public:
      * @brief Check whether the queue is empty
      */
     bool isEmpty() {
-        return size == 0;
+        return _size == 0;
     }
 
     /**
      * @brief Get number of elements in queue
      */
-    unsigned int getSize() {
-        return size;
+    unsigned int size() {
+        return _size;
     }
 
     /**
@@ -174,5 +178,7 @@ public:
     }
 
 };
+
+}
 
 #endif

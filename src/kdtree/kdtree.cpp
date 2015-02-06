@@ -40,7 +40,7 @@ bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, fl
     return found;
 }
 
-bool KDTree::intersect(KDStack & stack, const Ray & ray, Collision & result, float maxDepth,
+bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result, float maxDepth,
     bool anyCollision)
 {
     float entry, exit;
@@ -48,17 +48,20 @@ bool KDTree::intersect(KDStack & stack, const Ray & ray, Collision & result, flo
     if (!bounds.intersects(ray, &entry, &exit))
         return false;
 
-    KDStackFrame *curr_stack = stack.push();
-    curr_stack->node = root;
-    curr_stack->enter = entry;
-    curr_stack->exit = exit;
+    KDStackFrame curr_stack;
+    curr_stack.node = root;
+    curr_stack.enter = entry;
+    curr_stack.exit = exit;
+    stack.push(curr_stack);
 
     KDNode *currentNode;
 
-    while ((curr_stack = stack.pop()) != nullptr) {
-        currentNode = curr_stack->node;
-        entry = curr_stack->enter;
-        exit = curr_stack->exit;
+    while (!stack.empty()) {
+        curr_stack = stack.pop(); // TODO: copy
+
+        currentNode = curr_stack.node;
+        entry = curr_stack.enter;
+        exit = curr_stack.exit;
 
         // Nothing will be closer, give up
         if (maxDepth > 0.0f && entry > maxDepth)
@@ -86,10 +89,11 @@ bool KDTree::intersect(KDStack & stack, const Ray & ray, Collision & result, flo
             else if (t < entry)
                 currentNode = farNode;
             else {
-                curr_stack = stack.push();
-                curr_stack->node = farNode;
-                curr_stack->enter = t;
-                curr_stack->exit = exit;
+                curr_stack.node = farNode;
+                curr_stack.enter = t;
+                curr_stack.exit = exit;
+
+                stack.push(curr_stack); // TODO: copy
 
                 currentNode = nearNode;
                 exit = t;

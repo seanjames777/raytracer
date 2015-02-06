@@ -11,9 +11,9 @@ message("Compiler: ${CMAKE_CXX_COMPILER_ID}")
 message("System: ${CMAKE_SYSTEM_NAME}")
 
 if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
-    add_definitions(-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value)
+    #add_definitions(-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value)
 	# TODO: -g
-#	set(CMAKE_CXX_FLAGS "-std=c++11 -fno-exceptions -g -fno-rtti -O3 -Wno-comment -Wno-unused-value") #TODO exceptions
+	set(CMAKE_CXX_FLAGS "-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value") #TODO exceptions
 #	set(CMAKE_CXX_FLAGS "-I/usr/local/include/ -I/opt/local/include/ -I/opt/local/include/OpenEXR/ -I${CMAKE_CURRENT_SOURCE_DIR}/external/fbx/include/ ${CMAKE_CXX_FLAGS}")
 endif()
 
@@ -52,11 +52,11 @@ add_executable(raytracer
 	include/kdtree/kdmedianbuilder.h
 	include/kdtree/kdnode.h
 	include/kdtree/kdsahbuilder.h
-	include/kdtree/kdstack.h
 	include/kdtree/kdtree.h
 	include/math/matrix.h
 	include/math/vector.h
     include/util/queue.h
+    include/util/stack.h
 	include/bmpimage.h
 	include/camera.h
 	include/directionallight.h

@@ -14,8 +14,8 @@
 #include <light.h>
 #include <polygon.h>
 #include <image.h>
-#include <kdtree/kdstack.h> // TODO: kinda annoying
 #include <memory>
+#include <kdtree/kdtree.h>
 
 class Raytracer;
 class Scene;
@@ -72,7 +72,7 @@ public:
      * @brief Shade the surface for a given collision and light source. Will be called for each
      * light source and mixed externally with shadows, reflections, etc.
      */
-    vec3 shade(KDStack & stack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth);
+    vec3 shade(util::stack<KDStackFrame> & stack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth);
 
 };
 

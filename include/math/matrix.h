@@ -14,6 +14,8 @@
 
 #include <math/vector.h>
 
+// TODO: SIMD
+
 // M rows x N columns. TODO.
 template<typename T, unsigned int M, unsigned int N>
 struct matrix {
@@ -42,9 +44,9 @@ matrix<T, M, N> zero() {
     return mat;
 }
 
-template<typename T, unsigned int N>
-vector<T, N> operator*(const vector<T, N> & v, const matrix<T, N, N> & m) {
-    vector<T, N> result;
+template<typename T, unsigned int N, bool SIMD>
+vector<T, N, SIMD> operator*(const vector<T, N, SIMD> & v, const matrix<T, N, N> & m) {
+    vector<T, N, SIMD> result;
 
     for (unsigned int i = 0; i < N; i++)
         for (unsigned int j = 0; j < N; j++)
@@ -53,9 +55,9 @@ vector<T, N> operator*(const vector<T, N> & v, const matrix<T, N, N> & m) {
     return result;
 }
 
-template<typename T, unsigned int N>
-vector<T, N> operator*(const matrix<T, N, N> & m, const vector<T, N> & v) {
-    vector<T, N> result;
+template<typename T, unsigned int N, bool SIMD>
+vector<T, N, SIMD> operator*(const matrix<T, N, N> & m, const vector<T, N, SIMD> & v) {
+    vector<T, N, SIMD> result;
 
     for (unsigned int i = 0; i < N; i++)
         for (unsigned int j = 0; j < N; j++)

@@ -22,7 +22,7 @@ Material::Material(vec3 ambient, vec3 diffuse, vec3 specular, float specularPowe
 {
 }
 
-vec3 Material::shade(KDStack & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
+vec3 Material::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 

@@ -99,7 +99,7 @@ private:
      * @param result Collision information
      * @param depth  Recursion depth
      */
-    vec3 shade(KDStack & kdStack, const Ray & ray, Collision *result, int depth) {
+    vec3 shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, int depth) {
         vec3 color = vec3(0.0f, 0.0f, 0.0f);
 
         if (depth > settings.maxDepth)
@@ -118,7 +118,7 @@ private:
      */
     void worker_thread() {
         // Allocate a reusable KD traversal stack for each thread
-        KDStack kdStack;
+        util::stack<KDStackFrame> kdStack;
 
         while(true) {
             int blockID = currBlockID++;
@@ -160,18 +160,6 @@ private:
 
                             if (tree->intersect(kdStack, r, result, 0.0f, false))
                                 sampleColor = shade(kdStack, r, &result, 1);
-
-                            /*bool found = false;
-                            for (int i = 0; i < scene->polys.size(); i++)
-                                if (scene->polyAccels[i].intersects(r, &temp) &&
-                                    (temp.distance < result.distance || !found))
-                                {
-                                    result = temp;
-                                    found = true;
-                                }
-
-                            if (found)
-                                sampleColor = shade(r, &result, 1);*/
 
                             color += sampleColor * sampleContrib;
                         }
@@ -318,7 +306,7 @@ public:
      *
      * @return A floating point number ranging from 0 (fully shadowed) to 1 (fully lit)
      */
-    float getShadow(KDStack & kdStack, const vec3 & origin, Light *light) {
+    float getShadow(util::stack<KDStackFrame> & kdStack, const vec3 & origin, Light *light) {
         if (!light->castsShadows())
             return 1.0f;
 
@@ -353,7 +341,7 @@ public:
      *
      * @return A floating point number ranging from 0 (fully occluded) to 1 (fully visible)
      */
-    float getAmbientOcclusion(KDStack & kdStack, const vec3 & origin, const vec3 & normal) {
+    float getAmbientOcclusion(util::stack<KDStackFrame> & kdStack, const vec3 & origin, const vec3 & normal) {
         float occlusion = 1.0f;
 
         int sqrtNSamples = (int)sqrt(settings.occlusionSamples);

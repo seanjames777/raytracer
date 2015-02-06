@@ -6,16 +6,31 @@
  * @author Sean James
  */
 
-#ifndef _KDTREE_H
-#define _KDTREE_H
+#ifndef __KDTREE_H
+#define __KDTREE_H
 
 #include <kdtree/kdnode.h>
-#include <kdtree/kdstack.h>
+#include <util/stack.h>
 
 // TODO:
 //     - Generic template type instead of requiring triangles only
 //     - Photon map tree: nearest neighbor search and balanced tree
 //     - Handle size overflow in leaves
+
+/**
+ * @brief KD-tree traversal stack item
+ */
+// TODO: Move this
+struct KDStackFrame {
+    /** @brief KD-Node to traverse */
+    KDNode *node;
+
+    /** @brief Entry distance from ray origin */
+    float enter;
+
+    /** @brief Exit distance from ray origin */
+    float exit;
+};
 
 /**
  * @brief KD-Tree
@@ -58,7 +73,7 @@ public:
      *
      * @return Whether a collision occured
      */
-    bool intersect(KDStack & stack, const Ray & ray, Collision & result, float maxDepth,
+    bool intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result, float maxDepth,
         bool anyCollision);
 
 };

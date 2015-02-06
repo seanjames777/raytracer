@@ -34,7 +34,7 @@ protected:
     // Note: We need a dynamic queue here because we don't know how deep we're going
     // to go while building the tree, and we need more storage space closer to the
     // leaves.
-    Queue<KDBuilderQueueNode *> node_queue;
+    util::queue<KDBuilderQueueNode *> node_queue;
 
     /**
      * @brief Find the subset of triangles contained in a bounding box
