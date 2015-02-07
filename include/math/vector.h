@@ -13,15 +13,11 @@
 #include <math.h>
 #include <xmmintrin.h>
 #include <smmintrin.h>
+#include <array>
 
 // TODO: Some of the functions IN vector classes might be optimized with SSE
 // instructions.
 // TODO: SSE for other types and sizes
-
-union simd_vec4 {
-    float  f32[4];
-    __m128 m128;
-};
 
 template<typename T, unsigned int N, bool SIMD>
 struct vector_data {
@@ -32,18 +28,18 @@ template<unsigned int N>
 struct vector_data<float, N, true> {
     union {
         float v[N];
-        __m128 simd[(N + 3) / 4];
+		std::array<__m128, (N + 3) / 4> simd; // TODO: does this degrade perf? shouldn't
     };
 };
 
 template<typename T, unsigned int N, bool SIMD = false>
 struct vector : public vector_data<T, N, SIMD> {
-    vector<T, N>() {
+    vector<T, N, SIMD>() {
         for (unsigned int i = 0; i < N; i++)
             vector_data<T, N, SIMD>::v[i] = 0;
     }
 
-    vector<T, N>(T fill) {
+    vector<T, N, SIMD>(T fill) {
         for (unsigned int i = 0; i < N; i++)
             vector_data<T, N, SIMD>::v[i] = fill;
     }
@@ -100,26 +96,26 @@ struct vector<float, 2, true> {
             float x;
             float y;
         };
-        __m128 simd[1];
+		std::array<__m128, 1> simd;
     };
 
-    vector<float, 2, true>()
-        : simd { _mm_setzero_ps() }
+	vector<float, 2, true>()
+		: simd({ _mm_setzero_ps() })
     {
     }
 
     vector<float, 2, true>(__m128 simd)
-        : simd { simd }
+        : simd({ simd })
     {
     }
 
     vector<float, 2, true>(float fill)
-        : simd { _mm_set1_ps(fill) }
+        : simd({ _mm_set1_ps(fill) })
     {
     }
 
     vector<float, 2, true>(float x, float y)
-        : simd { _mm_setr_ps(x, y, 0.0f, 0.0f) }
+        : simd({ _mm_setr_ps(x, y, 0.0f, 0.0f) })
     {
     }
 };
@@ -166,26 +162,26 @@ struct vector<float, 3, true> {
             float y;
             float z;
         };
-        __m128 simd[1];
+		std::array<__m128, 1> simd;
     };
 
     vector<float, 3, true>()
-        : simd { _mm_setzero_ps() }
+        : simd({ _mm_setzero_ps() })
     {
     }
 
     vector<float, 3, true>(__m128 simd)
-        : simd { simd }
+        : simd({ simd })
     {
     }
 
     vector<float, 3, true>(float fill)
-        : simd { _mm_set1_ps(fill) }
+        : simd({ _mm_set1_ps(fill) })
     {
     }
 
     vector<float, 3, true>(float x, float y, float z)
-        : simd { _mm_setr_ps(x, y, z, 0.0f) }
+        : simd({ _mm_setr_ps(x, y, z, 0.0f) })
     {
     }
 };
@@ -249,31 +245,31 @@ struct vector<float, 4, true> {
             float z;
             float w;
         };
-        __m128 simd[1];
+        std::array<__m128, 1> simd;
     };
 
     vector<float, 4, true>()
-        : simd { _mm_setzero_ps() }
+        : simd({ _mm_setzero_ps() })
     {
     }
 
     vector<float, 4, true>(__m128 simd)
-        : simd { simd }
+        : simd({ simd })
     {
     }
 
     vector<float, 4, true>(float fill)
-        : simd { _mm_set1_ps(fill) }
+        : simd({ _mm_set1_ps(fill) })
     {
     }
 
     vector<float, 4, true>(float x, float y, float z, float w)
-        : simd { _mm_setr_ps(x, y, z, w) }
+        : simd({ _mm_setr_ps(x, y, z, w) })
     {
     }
 
     vector<float, 4, true>(vector<float, 3, true> v3, float w)
-        : simd { _mm_setr_ps(v3.x, v3.y, v3.z, w) } // TODO might be a better way
+        : simd({ _mm_setr_ps(v3.x, v3.y, v3.z, w) }) // TODO might be a better way
     {
     }
 
@@ -524,24 +520,25 @@ inline T dot(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
     return result;
 }
 
-template<unsigned int N>
-inline float dot(const vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
-    float result = 0.0f;
+// TODO: general SIMD dot product. Hard because MSVC is stupid.
+// TODO: vector2/3 mask
 
-    // Note: The optimizer should unroll these loops and compute the mask statically
+template<>
+inline float dot(const vector<float, 2, true> & lhs, const vector<float, 2, true> & rhs) {
+	vector<float, 4, true> simd(_mm_dp_ps(lhs.simd[0], rhs.simd[0], 0x31));
+	return simd.x;
+}
 
-    for (unsigned int i = 0; i < (N + 3) / 4; i++) {
-        int mask = 1;
+template<>
+inline float dot(const vector<float, 3, true> & lhs, const vector<float, 3, true> & rhs) {
+	vector<float, 4, true> simd(_mm_dp_ps(lhs.simd[0], rhs.simd[0], 0x71));
+	return simd.x;
+}
 
-        unsigned int maskIdx = 4;
-        for (unsigned int j = i; j < N; j++)
-            mask |= (1 << maskIdx++);
-
-        vec4 dp(_mm_dp_ps(lhs.simd[i], rhs.simd[i], mask));
-        result += dp.x;
-    }
-
-    return result;
+template<>
+inline float dot(const vector<float, 4, true> & lhs, const vector<float, 4, true> & rhs) {
+	vector<float, 4, true> simd(_mm_dp_ps(lhs.simd[0], rhs.simd[0], 0xF1));
+	return simd.x;
 }
 
 template<typename T, unsigned int N, bool SIMD>

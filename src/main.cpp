@@ -46,9 +46,9 @@ int main(int argc, char *argv[]) {
     float aspect = (float)settings.width / (float)settings.height;
 
     //Camera *camera = new Camera(vec3(-80, 25.0f, -80), vec3(0, 5.0f, 0), aspect,
-    //    M_PI / 3.4f, 19.25f, 0.0f);
-    Camera *camera = new Camera(vec3(-40, 25.0f, -40), vec3(0, 5.0f, 0), aspect,
-        M_PI / 3.4f, 19.25f, 0.0f);
+    //    (float)M_PI / 3.4f, 19.25f, 0.0f);
+    Camera *camera = new Camera(vec3(-40.0f, 25.0f, -40.0f), vec3(0.0f, 5.0f, 0.0f), aspect,
+        (float)M_PI / 3.4f, 19.25f, 0.0f);
 
     std::shared_ptr<Image> output = std::make_shared<Image>(settings.width, settings.height);
 
