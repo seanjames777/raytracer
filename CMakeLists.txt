@@ -13,7 +13,7 @@ message("System: ${CMAKE_SYSTEM_NAME}")
 if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
     #add_definitions(-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value)
 	# TODO: -g
-	set(CMAKE_CXX_FLAGS "-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value") #TODO exceptions
+	set(CMAKE_CXX_FLAGS "-msse4.1 -std=c++11 -fno-exceptions -fno-rtti -O3 -g -Wno-comment -Wno-unused-value") #TODO exceptions
 #	set(CMAKE_CXX_FLAGS "-I/usr/local/include/ -I/opt/local/include/ -I/opt/local/include/OpenEXR/ -I${CMAKE_CURRENT_SOURCE_DIR}/external/fbx/include/ ${CMAKE_CXX_FLAGS}")
 endif()
 

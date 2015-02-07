@@ -11,6 +11,8 @@
 
 #include <rtmath.h>
 
+//#define USE_SIMD_INTERSECTION
+
 struct Vertex {
     vec3 position;
     vec3 normal;
@@ -23,6 +25,7 @@ struct Vertex {
 };
 
 struct Triangle {
+    // TODO 0-3
     Vertex       v1;
     Vertex       v2;
     Vertex       v3;
@@ -65,6 +68,7 @@ struct Collision {
 };
 
 struct SetupTriangle {
+#ifndef USE_SIMD_INTERSECTION
     float n_u; // normal.u / normal.k
     float n_v; // normal.v / normal.h
     float n_d; // constant of plane equation
@@ -83,6 +87,20 @@ struct SetupTriangle {
     unsigned int triangle_id;
 
     char pad[4];
+#else
+    vec3 a;
+    vec3 v0;
+    vec3 v1;
+    vec3 n;
+    float d00;
+    float d01;
+    float d11;
+    float invDenom;
+
+    unsigned int triangle_id;
+#endif
+
+    SetupTriangle();
 
     SetupTriangle(const Triangle & triangle);
 

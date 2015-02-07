@@ -9,6 +9,8 @@
 #include <polygon.h>
 #include <string.h>
 
+#include <iostream> // TODO
+
 // TODO: a lot of this can be vectorized
 
 Vertex::Vertex() {
@@ -74,9 +76,13 @@ VertexBuffer::~VertexBuffer() {
     free(indices);
 }
 
+SetupTriangle::SetupTriangle() {
+}
+
 SetupTriangle::SetupTriangle(const Triangle & triangle)
     : triangle_id(triangle.triangle_id)
 {
+#ifndef USE_SIMD_INTERSECTION
     // TODO: this should be aligned (and possibly padded) to a cache line to
     // make sure it only requires one memory request.
     static const int mod_table[5] = { 0, 1, 2, 0, 1 };
@@ -113,16 +119,30 @@ SetupTriangle::SetupTriangle(const Triangle & triangle)
     c_nu =  c.v[v] / denom;
     c_nv = -c.v[u] / denom;
     c_d  =  (c.v[u] * v1.v[v] - c.v[v] * v1.v[u]) / denom;
+#else
+    a = triangle.v1.position;
+    v0 = triangle.v2.position - triangle.v1.position;
+    v1 = triangle.v3.position - triangle.v1.position;
+    n = cross(v0, v1);
+
+    d00 = dot(v0, v0);
+    d01 = dot(v0, v1);
+    d11 = dot(v1, v1);
+
+    invDenom = 1.0f / (d00 * d11 - d01 * d01);
+#endif
 }
 
 bool SetupTriangle::intersects(const Ray & ray, Collision & result) {
     static const int mod_table[5] = { 0, 1, 2, 0, 1 };
-
+#ifndef USE_SIMD_INTERSECTION
     // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
 
     // TODO: lots of branching here.
     // TODO: might be better to *not* precompute stuff for memory bandwidth
     // TODO: inline this?
+    // TODO: can early out with max dist
+    // TODO: does using result make a difference: register vs. memory?
 
     int u = mod_table[k + 1];
     int v = mod_table[k + 2];
@@ -152,6 +172,29 @@ bool SetupTriangle::intersects(const Ray & ray, Collision & result) {
     float gamma = (hu * c_nu + hv * c_nv + c_d);
     if (gamma < 0.0f)
         return false;
+#else
+    vec3 oa = ray.origin - a;
+
+    float t_plane = -dot(oa, n) / dot(ray.direction, n);
+
+    if (t_plane <= 0.0f)
+        return false;
+
+    vec3 v2 = oa + ray.direction * t_plane;
+
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+
+    float beta = (d11 * d20 - d01 * d21) * invDenom;
+
+    if (beta < 0.0f)
+        return false;
+
+    float gamma = (d00 * d21 - d01 * d20) * invDenom;
+
+    if (gamma < 0.0f)
+        return false;
+#endif
 
     if (beta + gamma > 1.0f)
         return false;

@@ -17,8 +17,13 @@ KDNode::KDNode(KDNode *left, KDNode *right, float split_dist,
 }
 
 KDNode::~KDNode() {
-    if (flags & KD_IS_LEAF)
-        free(triangles);
+    if (flags & KD_IS_LEAF) {
+        //free(triangles);
+        // TODO
+        delete [] triangles;
+
+        // TODO: Memory management strategy for the whole tree/builders.
+    }
     else {
         delete left;
         delete right;

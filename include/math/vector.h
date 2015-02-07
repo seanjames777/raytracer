@@ -12,26 +12,31 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <xmmintrin.h>
-#include <type_traits>
+#include <smmintrin.h>
 
 // TODO: Some of the functions IN vector classes might be optimized with SSE
 // instructions.
 // TODO: SSE for other types and sizes
+
+union simd_vec4 {
+    float  f32[4];
+    __m128 m128;
+};
 
 template<typename T, unsigned int N, bool SIMD>
 struct vector_data {
     T v[N];
 };
 
-template<typename T, unsigned int N>
-struct vector_data<T, N, true> {
+template<unsigned int N>
+struct vector_data<float, N, true> {
     union {
-        T v[N];
+        float v[N];
         __m128 simd[(N + 3) / 4];
     };
 };
 
-template<typename T, unsigned int N, bool SIMD>
+template<typename T, unsigned int N, bool SIMD = false>
 struct vector : public vector_data<T, N, SIMD> {
     vector<T, N>() {
         for (unsigned int i = 0; i < N; i++)
@@ -44,9 +49,17 @@ struct vector : public vector_data<T, N, SIMD> {
     }
 };
 
+#define MATH_DEFAULT_SIMD
+
+#ifndef MATH_DEFAULT_SIMD
 typedef vector<float, 2, false> vec2;
 typedef vector<float, 3, false> vec3;
 typedef vector<float, 4, false> vec4;
+#else
+typedef vector<float, 2, true> vec2;
+typedef vector<float, 3, true> vec3;
+typedef vector<float, 4, true> vec4;
+#endif
 
 // TODO initialization list
 
@@ -91,20 +104,22 @@ struct vector<float, 2, true> {
     };
 
     vector<float, 2, true>()
-        : x(0),
-          y(0)
+        : simd { _mm_setzero_ps() }
+    {
+    }
+
+    vector<float, 2, true>(__m128 simd)
+        : simd { simd }
     {
     }
 
     vector<float, 2, true>(float fill)
-        : x(fill),
-          y(fill)
+        : simd { _mm_set1_ps(fill) }
     {
     }
 
     vector<float, 2, true>(float x, float y)
-        : x(x),
-          y(y)
+        : simd { _mm_setr_ps(x, y, 0.0f, 0.0f) }
     {
     }
 };
@@ -155,23 +170,22 @@ struct vector<float, 3, true> {
     };
 
     vector<float, 3, true>()
-        : x(0),
-          y(0),
-          z(0)
+        : simd { _mm_setzero_ps() }
+    {
+    }
+
+    vector<float, 3, true>(__m128 simd)
+        : simd { simd }
     {
     }
 
     vector<float, 3, true>(float fill)
-        : x(fill),
-          y(fill),
-          z(fill)
+        : simd { _mm_set1_ps(fill) }
     {
     }
 
     vector<float, 3, true>(float x, float y, float z)
-        : x(x),
-          y(y),
-          z(z)
+        : simd { _mm_setr_ps(x, y, z, 0.0f) }
     {
     }
 };
@@ -239,44 +253,37 @@ struct vector<float, 4, true> {
     };
 
     vector<float, 4, true>()
-        : x(0),
-          y(0),
-          z(0),
-          w(0)
+        : simd { _mm_setzero_ps() }
+    {
+    }
+
+    vector<float, 4, true>(__m128 simd)
+        : simd { simd }
     {
     }
 
     vector<float, 4, true>(float fill)
-        : x(fill),
-          y(fill),
-          z(fill),
-          w(fill)
+        : simd { _mm_set1_ps(fill) }
     {
     }
 
     vector<float, 4, true>(float x, float y, float z, float w)
-        : x(x),
-          y(y),
-          z(z),
-          w(w)
+        : simd { _mm_setr_ps(x, y, z, w) }
     {
     }
 
     vector<float, 4, true>(vector<float, 3, true> v3, float w)
-        : x(v3.x),
-          y(v3.y),
-          z(v3.z),
-          w(w)
+        : simd { _mm_setr_ps(v3.x, v3.y, v3.z, w) } // TODO might be a better way
     {
     }
 
     vector<float, 3, true> xyz() {
-        return vector<float, 3, true>(x, y, z);
+        return vector<float, 3, true>(simd[0]);
     }
 };
 
-template<typename T, unsigned int N>
-inline vector<T, N, false> & operator+=(vector<T, N, false> & lhs, const vector<T, N, false> & rhs) {
+template<typename T, unsigned int N, bool SIMD>
+inline vector<T, N, SIMD> & operator+=(vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] += rhs.v[i];
     return lhs;
@@ -284,8 +291,8 @@ inline vector<T, N, false> & operator+=(vector<T, N, false> & lhs, const vector<
 
 template<unsigned int N>
 inline vector<float, N, true> & operator+=(vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
-    for (unsigned int i = 0; i < N / 4; i += 4)
-        lhs.v[i] += rhs.v[i];
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        lhs.simd[i] = _mm_add_ps(lhs.simd[i], rhs.simd[i]);
     return lhs;
 }
 
@@ -303,6 +310,13 @@ inline vector<T, N, SIMD> & operator-=(vector<T, N, SIMD> & lhs, const vector<T,
     return lhs;
 }
 
+template<unsigned int N>
+inline vector<float, N, true> & operator-=(vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        lhs.simd[i] = _mm_sub_ps(lhs.simd[i], rhs.simd[i]);
+    return lhs;
+}
+
 template<typename T, unsigned int N, bool SIMD>
 inline vector<T, N, SIMD> operator-(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
     vector<T, N, SIMD> val = lhs;
@@ -314,6 +328,13 @@ template<typename T, unsigned int N, bool SIMD>
 inline vector<T, N, SIMD> & operator*=(vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] *= rhs.v[i];
+    return lhs;
+}
+
+template<unsigned int N>
+inline vector<float, N, true> & operator*=(vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        lhs.simd[i] = _mm_mul_ps(lhs.simd[i], rhs.simd[i]);
     return lhs;
 }
 
@@ -331,6 +352,13 @@ inline vector<T, N, SIMD> & operator/=(vector<T, N, SIMD> & lhs, const vector<T,
     return lhs;
 }
 
+template<unsigned int N>
+inline vector<float, N, true> & operator/=(vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        lhs.simd[i] = _mm_div_ps(lhs.simd[i], rhs.simd[i]);
+    return lhs;
+}
+
 template<typename T, unsigned int N, bool SIMD>
 inline vector<T, N, SIMD> operator/(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
     vector<T, N, SIMD> val = lhs;
@@ -342,6 +370,19 @@ template<typename T, unsigned int N, bool SIMD>
 inline vector<T, N, SIMD> & operator+=(vector<T, N, SIMD> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] += rhs;
+    return lhs;
+}
+
+// TODO: Maybe there's a way to load constants outside the functions in case
+// they're reused?
+
+template<unsigned int N>
+inline vector<float, N, true> & operator+=(vector<float, N, true> & lhs, float rhs) {
+    __m128 rhs_simd = _mm_set1_ps(rhs);
+
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        lhs.simd[i] = _mm_add_ps(lhs.simd[i], rhs_simd);
+
     return lhs;
 }
 
@@ -366,6 +407,16 @@ inline vector<T, N, SIMD> & operator-=(vector<T, N, SIMD> & lhs, T rhs) {
     return lhs;
 }
 
+template<unsigned int N>
+inline vector<float, N, true> & operator-=(vector<float, N, true> & lhs, float rhs) {
+    __m128 rhs_simd = _mm_set1_ps(rhs);
+
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        lhs.simd[i] = _mm_sub_ps(lhs.simd[i], rhs_simd);
+
+    return lhs;
+}
+
 template<typename T, unsigned int N, bool SIMD>
 inline vector<T, N, SIMD> operator-(const vector<T, N, SIMD> & lhs, T rhs) {
     vector<T, N, SIMD> val = lhs;
@@ -387,6 +438,16 @@ inline vector<T, N, SIMD> & operator*=(vector<T, N, SIMD> & lhs, T rhs) {
     return lhs;
 }
 
+template<unsigned int N>
+inline vector<float, N, true> & operator*=(vector<float, N, true> & lhs, float rhs) {
+    __m128 rhs_simd = _mm_set1_ps(rhs);
+
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        lhs.simd[i] = _mm_mul_ps(lhs.simd[i], rhs_simd);
+
+    return lhs;
+}
+
 template<typename T, unsigned int N, bool SIMD>
 inline vector<T, N, SIMD> operator*(const vector<T, N, SIMD> & lhs, T rhs) {
     vector<T, N, SIMD> val = lhs;
@@ -405,6 +466,16 @@ template<typename T, unsigned int N, bool SIMD>
 inline vector<T, N, SIMD> & operator/=(vector<T, N, SIMD> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] /= rhs;
+    return lhs;
+}
+
+template<unsigned int N>
+inline vector<float, N, true> & operator/=(vector<float, N, true> & lhs, float rhs) {
+    __m128 rhs_simd = _mm_set1_ps(rhs);
+
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        lhs.simd[i] = _mm_div_ps(lhs.simd[i], rhs_simd);
+
     return lhs;
 }
 
@@ -432,12 +503,43 @@ inline vector<T, N, SIMD> operator-(const vector<T, N, SIMD> & rhs) {
     return val;
 }
 
+template<unsigned int N>
+inline vector<float, N, true> operator-(vector<float, N, true> & rhs) {
+    vector<float, N, true> val;
+    __m128 zero = _mm_setzero_ps();
+
+    for (unsigned int i = 0; i < (N + 3) / 4; i++)
+        val.simd[i] = _mm_sub_ps(zero, rhs.simd[i]);
+
+    return val;
+}
+
 template<typename T, unsigned int N, bool SIMD>
 inline T dot(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
     T result = 0;
 
     for (unsigned int i = 0; i < N; i++)
         result += lhs.v[i] * rhs.v[i];
+
+    return result;
+}
+
+template<unsigned int N>
+inline float dot(const vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
+    float result = 0.0f;
+
+    // Note: The optimizer should unroll these loops and compute the mask statically
+
+    for (unsigned int i = 0; i < (N + 3) / 4; i++) {
+        int mask = 1;
+
+        unsigned int maskIdx = 4;
+        for (unsigned int j = i; j < N; j++)
+            mask |= (1 << maskIdx++);
+
+        vec4 dp(_mm_dp_ps(lhs.simd[i], rhs.simd[i], mask));
+        result += dp.x;
+    }
 
     return result;
 }

@@ -51,7 +51,10 @@ void KDBuilder::partition(float dist, int dir, const std::vector<Triangle *> & t
 KDNode *KDBuilder::buildLeaf(const std::vector<Triangle *> & triangles) {
     // Set up triangles, and pack them together for locality
     unsigned int num_triangles = (unsigned int)triangles.size();
-    SetupTriangle *setup = (SetupTriangle *)malloc(sizeof(SetupTriangle) * num_triangles);
+
+    //SetupTriangle *setup = (SetupTriangle *)malloc(sizeof(SetupTriangle) * num_triangles);
+    // TODO multiple constructor calls, etc.
+    SetupTriangle *setup = new SetupTriangle[num_triangles];
 
     for (unsigned int i = 0; i < num_triangles; i++)
         setup[i] = SetupTriangle(*triangles[i]); // TODO constructor in place

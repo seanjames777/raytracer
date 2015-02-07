@@ -31,14 +31,15 @@ const char *ps_source =
     "    out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
     "}\n";
 
-vec2 vertices[6] = {
-    vec2(-1, -1),
-    vec2(-1, 1),
-    vec2(1, 1),
+// TODO: shorthand for this type
+vector<float, 2, false> vertices[6] = {
+    vector<float, 2, false>(-1, -1),
+    vector<float, 2, false>(-1, 1),
+    vector<float, 2, false>(1, 1),
 
-    vec2(-1, -1),
-    vec2(1, 1),
-    vec2(1, -1)
+    vector<float, 2, false>(-1, -1),
+    vector<float, 2, false>(1, 1),
+    vector<float, 2, false>(1, -1)
 };
 
 GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> image)
@@ -70,7 +71,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> ima
 	// TODO: Init GLEW
 	glewExperimental = true;
 	int stat = glewInit();
-	
+
 	if (stat != GLEW_OK) {
 		std::cout << "Error initialing glew" << std::endl;
 		exit(-1);
@@ -78,7 +79,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> ima
 
 	// GLEW sometimes produces a spurious error
 	glGetError();
-	
+
     glGenVertexArrays(1, &va);
     glBindVertexArray(va);
 

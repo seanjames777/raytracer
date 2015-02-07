@@ -156,7 +156,7 @@ private:
                             Collision result;
                             result.distance = INFINITY32F;
 
-                            vec3 sampleColor = getEnvironment(r.direction);
+                            vec3 sampleColor = vec3(0, 0, 0);//getEnvironment(r.direction);
 
                             if (tree->intersect(kdStack, r, result, 0.0f, false))
                                 sampleColor = shade(kdStack, r, &result, 1);
