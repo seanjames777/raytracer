@@ -26,7 +26,7 @@ bool KDMedianBuilder::splitNode(
 
 #if 1
     // Split along longest axis
-    vec3 axis_len = bounds.max - bounds.min;
+	vec3 axis_len = bounds._max - bounds._min;
 
     if (axis_len.x > axis_len.y)
         dir = axis_len.x > axis_len.z ? KD_SPLIT_DIR_X : KD_SPLIT_DIR_Z;
@@ -37,8 +37,10 @@ bool KDMedianBuilder::splitNode(
     dir = depth % 3;
 #endif
 
-    float min = bounds.min.v[dir];
-    float max = bounds.max.v[dir];
+	// TODO: This _min _max stuff is annoying. Windows is stupid.
+
+	float min = bounds._min.v[dir];
+	float max = bounds._max.v[dir];
 
     split = (max - min) / 2.0f + min;
 

@@ -31,8 +31,8 @@ void KDBuilder::partition(void *threadCtx, float dist, int dir, const std::vecto
     for (auto it = triangles.begin(); it != triangles.end(); it++) {
         Triangle *tri = *it;
 
-        float min = tri->bbox.min.v[dir];
-        float max = tri->bbox.max.v[dir];
+		float min = tri->bbox._min.v[dir];
+		float max = tri->bbox._max.v[dir];
 
         if (min == dist && max == dist) {
             // TODO bitwise optimization?

@@ -16,7 +16,7 @@
 #include <string.h>
 #include <net/protocol.h>
 
-class RTServer : public Server {
+class RTServer : public RTProtocolServer {
 private:
 
     std::shared_ptr<Image> output;
@@ -97,7 +97,7 @@ public:
         /*FbxLoader::load(
         PathUtil::prependExecutableDirectory("content/models/box.fbx"),
         polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
-        FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/bunny_low.fbx"), polys);
+        FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/dragon.fbx"), polys);
 
         for (int z = -0; z <= 0; z++) {
             for (int x = -0; x <= 0; x++) {

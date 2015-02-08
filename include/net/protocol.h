@@ -9,17 +9,10 @@
 #ifndef __PROTOCOL_H
 #define __PROTOCOL_H
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <stdlib.h>
-#include <memory>
+#include <net/server.h>
+#include <net/client.h>
 #include <image.h>
+#include <memory>
 
 enum REQUEST_TYPE {
     BEGIN_RENDER = 0,
@@ -38,46 +31,16 @@ struct RequestHeader {
     enum REQUEST_TYPE request_type;
 };
 
-#define BUFF_SIZE 4096
-
-bool write_buff(int fd, char *buff, int len) {
-    while (len > 0) {
-        int write_count = write(fd, buff, len < BUFF_SIZE ? len : BUFF_SIZE);
-
-        if (write_count < 0)
-            return false;
-
-        buff += write_count;
-        len -= write_count;
-    }
-
-    return true;
-}
-
-bool read_buff(int fd, char *buff, int len) {
-    while (len > 0) {
-        int read_count = read(fd, buff, len < BUFF_SIZE ? len : BUFF_SIZE);
-
-        if (read_count < 0)
-            return false;
-
-        buff += read_count;
-        len -= read_count;
-    }
-
-    return true;
-}
-
 /**
  * @file The host coordinates the work of any connected servers, and provides a
  * user interface/preview to the user.
  */
-class Connection {
+class RTProtocolConnection : public Client {
 private:
 
-    int sockfd = -1;
-
     bool sendRequestHeader(RequestHeader *header) {
+		socket_t sockfd = getSocket();
+
         if (!write_buff(sockfd, (char *)header, sizeof(RequestHeader))) {
             printf("Error writing request header\n");
             return false;
@@ -88,52 +51,9 @@ private:
 
 public:
 
-    bool connectToWorker(std::string addr, int port) {
-        struct hostent *server;
-        server = gethostbyname(addr.c_str());
-
-        if (server == NULL) {
-            printf("Error parsing address string: %s\n", addr.c_str());
-            return false;
-        }
-
-        struct sockaddr_in serv_addr;
-        memset(&serv_addr, 0, sizeof(serv_addr));
-
-        serv_addr.sin_family = AF_INET;
-        memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-        serv_addr.sin_port = htons(port);
-
-        bool connected = false;
-        int attempts = 0;
-
-        while (!connected && attempts++ < 15) {
-            if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-                printf("Error creating socket\n");
-                return false;
-            }
-
-            if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-                close (sockfd);
-                usleep(1000 * 1000);
-                continue;
-            }
-
-            connected = true;
-            break;
-        }
-
-        if (!connected) {
-            printf("Error connecting to worker: %s:%d\n", addr.c_str(), port);
-            return false;
-        }
-
-        printf("Connected to worker: %s:%d\n", addr.c_str(), port);
-
-        return true;
-    }
-
     bool getStatus(SERVER_STATUS *status) {
+		socket_t sockfd = getSocket();
+
         RequestHeader req;
         req.request_type = GET_STATUS;
 
@@ -163,6 +83,8 @@ public:
     }
 
     bool getImage(std::shared_ptr<Image> image) {
+		socket_t sockfd = getSocket();
+
         RequestHeader req;
         req.request_type = GET_IMAGE;
 
@@ -199,7 +121,8 @@ public:
         }
 
         printf("Host shutdown\n");
-        close(sockfd);
+        
+		disconnect_from_server();
 
         return true;
     }
@@ -209,7 +132,7 @@ public:
 /**
  * @file The worker does the actual work of raytracing and acts as a server.
  */
-class Server {
+class RTProtocolServer : public Server {
 protected:
 
     virtual SERVER_STATUS handleGetStatus() {
@@ -244,111 +167,58 @@ protected:
 
 public:
 
-    Server() {
+    RTProtocolServer() {
     }
 
-    ~Server() {
+    ~RTProtocolServer() {
     }
 
-    bool serve(int port) {
-        // TODO: Clean various things up when returning an error
+	virtual void handle_client(socket_t clifd) override {
+		std::shared_ptr<Image> image;
+		SERVER_STATUS stat;
 
-        int sockfd;
+		// TODO: send an acknowledgement?
+		// TODO: shutdown vs disconnect
 
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            printf("Error creating socket\n");
-            return false;
-        }
+		while (true) {
+			RequestHeader header;
 
-        int opt = 1;
+			if (!read_buff(clifd, (char *)&header, sizeof(header))) {
+				printf("Error reading request header\n");
+				return;
+			}
 
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int)) < 0) {
-            printf("Error setting SO_REUSEADDR\n");
-            return false;
-        }
+			switch (header.request_type) {
+			case BEGIN_RENDER:
+				handleBeginRender();
 
-        struct sockaddr_in serv_addr;
-        memset(&serv_addr, 0, sizeof(serv_addr));
+				break;
+			case GET_IMAGE:
+				image = getImage();
 
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_addr.s_addr = INADDR_ANY;
-        serv_addr.sin_port = htons(port);
+				if (!writeImage(clifd, image))
+					return;
 
-        if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-            printf("Error binding socket\n");
-            return false;
-        }
+				break;
+			case GET_STATUS:
+				stat = handleGetStatus();
 
-        listen(sockfd, 32);
+				if (!write_buff(clifd, (char *)&stat, sizeof(stat))) {
+					printf("Error writing response\n");
+					return;
+				}
 
-        printf("Worker: listening on port %d\n", port);
-
-        socklen_t clilen;
-        struct sockaddr_in cli_addr;
-        int clientfd;
-
-        clilen = sizeof(cli_addr);
-
-        // TODO: for now, only accept one connection
-
-        if ((clientfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) < 0) {
-            printf("Error accepting connection\n");
-            return false;
-        }
-
-        printf("Connected to %s:%d\n",
-            inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
-
-        bool shutdown = false;
-        std::shared_ptr<Image> image;
-
-        while (!shutdown) {
-            RequestHeader header;
-            if (!read_buff(clientfd, (char *)&header, sizeof(header))) {
-                printf("Error reading request header\n");
-                return false;
-            }
-
-            SERVER_STATUS stat;
-
-            switch(header.request_type) {
-            case BEGIN_RENDER:
-                handleBeginRender();
-
-                break;
-            case GET_IMAGE:
-                image = getImage();
-
-                if (!writeImage(clientfd, image))
-                    return false;
-
-                break;
-            case GET_STATUS:
-                stat = handleGetStatus();
-
-                if (!write_buff(clientfd, (char *)&stat, sizeof(stat))) {
-                    printf("Error writing response\n");
-                    return false;
-                }
-
-                break;
-            case SHUTDOWN:
-                handleShutdown();
-
-                // TODO: send an acknowledgement?
-                shutdown = true;
-                break;
-            }
-        }
-
-        close(clientfd);
-
-        close(sockfd);
-
-        printf("Server shutdown\n");
-
-        return true;
-    }
+				break;
+			case SHUTDOWN:
+				handleShutdown();
+				setShouldShutDown();
+				break;
+			default:
+				printf("Illegal request type\n");
+				continue;
+			}
+		}
+	}
 
 };
 

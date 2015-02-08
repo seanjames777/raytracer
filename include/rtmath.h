@@ -78,8 +78,8 @@ private:
 
 public:
 
-    vec3 min;  // The minimum point of the AABB
-    vec3 max;  // The maximum point of the AABB
+    vec3 _min;  // The minimum point of the AABB
+    vec3 _max;  // The maximum point of the AABB
 
     /*
      * Empty constructor does not generate a valid bounding box,
@@ -92,7 +92,7 @@ public:
      * Constructor accepts minimum and maximum points
      */
     AABB(const vec3 & Min, const vec3 & Max)
-        : min(Min), max(Max)
+        : _min(Min), _max(Max)
     {
         join(Min);
         join(Max);
@@ -103,13 +103,13 @@ public:
      * max points as necessary
      */
     void join(const vec3 & pt) {
-        min.x = MIN2(min.x, pt.x);
-        min.y = MIN2(min.y, pt.y);
-        min.z = MIN2(min.z, pt.z);
+		_min.x = MIN2(_min.x, pt.x);
+		_min.y = MIN2(_min.y, pt.y);
+		_min.z = MIN2(_min.z, pt.z);
 
-        max.x = MAX2(max.x, pt.x);
-        max.y = MAX2(max.y, pt.y);
-        max.z = MAX2(max.z, pt.z);
+		_max.x = MAX2(_max.x, pt.x);
+		_max.y = MAX2(_max.y, pt.y);
+        _max.z = MAX2(_max.z, pt.z);
     }
 
     /*
@@ -117,8 +117,8 @@ public:
      * the min and max points as necessary
      */
     void join(const AABB & box) {
-        join(box.min);
-        join(box.max);
+		join(box._min);
+		join(box._max);
     }
 
     /*
@@ -131,12 +131,12 @@ public:
 
         float tmin, tmax;
 
-        float txmin = (min.x - r.origin.x) * r.inv_direction.x;
-        float txmax = (max.x - r.origin.x) * r.inv_direction.x;
+		float txmin = (_min.x - r.origin.x) * r.inv_direction.x;
+		float txmax = (_max.x - r.origin.x) * r.inv_direction.x;
         if (txmin > txmax) swap(&txmin, &txmax);
 
-        float tymin = (min.y - r.origin.y) * r.inv_direction.y;
-        float tymax = (max.y - r.origin.y) * r.inv_direction.y;
+		float tymin = (_min.y - r.origin.y) * r.inv_direction.y;
+		float tymax = (_max.y - r.origin.y) * r.inv_direction.y;
         if (tymin > tymax) swap(&tymin, &tymax);
 
         if (txmin > tymax || tymin > txmax) return false;
@@ -144,8 +144,8 @@ public:
         tmin = MAX2(txmin, tymin);
         tmax = MIN2(txmax, tymax);
 
-        float tzmin = (min.z - r.origin.z) * r.inv_direction.z;
-        float tzmax = (max.z - r.origin.z) * r.inv_direction.z;
+		float tzmin = (_min.z - r.origin.z) * r.inv_direction.z;
+		float tzmax = (_max.z - r.origin.z) * r.inv_direction.z;
         if (tzmin > tzmax) swap(&tzmin, &tzmax);
 
         if (tmin > tzmax || tzmin > tmax)
@@ -164,9 +164,9 @@ public:
      * Whether this AABB contains a given point
      */
     bool contains(const vec3 & vec) const {
-        return (vec.x >= min.x && vec.x <= max.x &&
-                vec.y >= min.y && vec.y <= max.y &&
-                vec.z >= min.z && vec.z <= max.z);
+		return (vec.x >= _min.x && vec.x <= _max.x &&
+			    vec.y >= _min.y && vec.y <= _max.y &&
+			    vec.z >= _min.z && vec.z <= _max.z);
     }
 
     /*
@@ -175,22 +175,22 @@ public:
     bool overlaps(const AABB & other, int dir) const {
         // TODO: branch?
         return !(
-            max.v[dir] < other.min.v[dir] ||
-            min.v[dir] > other.max.v[dir]);
+			_max.v[dir] < other._min.v[dir] ||
+			_min.v[dir] > other._max.v[dir]);
     }
 
     /*
      * Get the center point of this bounding box
      */
     vec3 center() const {
-        return min + (max - min) * .5f;
+		return _min + (_max - _min) * .5f;
     }
 
     /*
      * Calculate the surface area of this bounding box
      */
     float surfaceArea() const {
-        vec3 ext = max - min;
+		vec3 ext = _max - _min;
         return 2 * (ext.x * ext.y + ext.x * ext.z + ext.y * ext.z);
     }
 
@@ -200,16 +200,16 @@ public:
     AABB split(float dist, int axis, AABB & left, AABB & right) const {
         switch(axis) {
         case 0:
-            left = AABB(min, vec3(dist, max.y, max.z));
-            right = AABB(vec3(dist, min.y, min.z), max);
+			left = AABB(_min, vec3(dist, _max.y, _max.z));
+			right = AABB(vec3(dist, _min.y, _min.z), _max);
             break;
         case 1:
-            left = AABB(min, vec3(max.x, dist, max.z));
-            right = AABB(vec3(min.x, dist, min.z), max);
+			left = AABB(_min, vec3(_max.x, dist, _max.z));
+			right = AABB(vec3(_min.x, dist, _min.z), _max);
             break;
         case 2:
-            left = AABB(min, vec3(max.x, max.y, dist));
-            right = AABB(vec3(min.x, min.y, dist), max);
+			left = AABB(_min, vec3(_max.x, _max.y, dist));
+			right = AABB(vec3(_min.x, _min.y, dist), _max);
             break;
         }
 

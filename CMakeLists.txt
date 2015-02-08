@@ -44,6 +44,8 @@ add_library(rt
 	src/raytracersettings.cpp
     src/path.cpp
     src/bmpimage.cpp
+	src/net/client.cpp
+	src/net/server.cpp
     src/net/protocol.cpp
 
 	# Include files for visual studio navigation/search
@@ -71,6 +73,9 @@ add_library(rt
 	include/rtmath.h
 	include/scene.h
 	include/timer.h
+	include/net/protocol.h
+	include/net/client.h
+	include/net/server.h
 )
 
 add_executable(worker
@@ -107,6 +112,8 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	set_target_properties(glew PROPERTIES IMPORTED_IMPLIB_RELEASE ${CMAKE_SOURCE_DIR}/external/prebuilt_windows/lib/x64_release/glew32.lib)
     set_target_properties(fbxsdk PROPERTIES IMPORTED_IMPLIB_DEBUG ${CMAKE_SOURCE_DIR}/external/prebuilt_windows/lib/x64_debug/libfbxsdk.lib)
 	set_target_properties(fbxsdk PROPERTIES IMPORTED_IMPLIB_RELEASE ${CMAKE_SOURCE_DIR}/external/prebuilt_windows/lib/x64_release/libfbxsdk.lib)
+
+	target_link_libraries(rt wsock32 ws2_32)
 endif()
 
 FIND_PACKAGE(OpenGL REQUIRED)

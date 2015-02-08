@@ -118,15 +118,15 @@ bool KDSAHBuilder::splitNode(
         num_events = 0;
 
         // Min and max of parent node along this axis
-        float min = bounds.min.v[axis];
-        float max = bounds.max.v[axis];
+		float min = bounds._min.v[axis];
+		float max = bounds._max.v[axis];
 
         // Insert start/stop/planar locations of each triangle, clamped to the bounds of the parent
         // box. We assume we won't see triangles fully outside the parent node.
         for (auto tri : triangles) {
             // Triangle bounding box
-            float tri_min = tri->bbox.min.v[axis];
-            float tri_max = tri->bbox.max.v[axis];
+			float tri_min = tri->bbox._min.v[axis];
+			float tri_max = tri->bbox._max.v[axis];
 
             // Clip triangle bounding box to voxel bounding box
             tri_min = tri_min < min ? min : tri_min;
