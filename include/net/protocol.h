@@ -89,16 +89,6 @@ private:
 public:
 
     bool connectToWorker(std::string addr, int port) {
-        if (sockfd >= 0) {
-            printf("Already connected to worker\n");
-            return false;
-        }
-
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            printf("Error creating socket\n");
-            return false;
-        }
-
         struct hostent *server;
         server = gethostbyname(addr.c_str());
 
@@ -114,7 +104,26 @@ public:
         memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
         serv_addr.sin_port = htons(port);
 
-        if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        bool connected = false;
+        int attempts = 0;
+
+        while (!connected && attempts++ < 15) {
+            if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+                printf("Error creating socket\n");
+                return false;
+            }
+
+            if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+                close (sockfd);
+                usleep(1000 * 1000);
+                continue;
+            }
+
+            connected = true;
+            break;
+        }
+
+        if (!connected) {
             printf("Error connecting to worker: %s:%d\n", addr.c_str(), port);
             return false;
         }
