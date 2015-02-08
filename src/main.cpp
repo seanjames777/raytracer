@@ -40,6 +40,33 @@ void parseArgs(int argc, char *argv[]) {
     }
 }
 
+Vertex transform_vertex(const Vertex & vertex, const mat4x4 & transform,
+	const mat4x4 & transformInverseTranspose)
+{
+	vec4 position = transform * vec4(vertex.position, 1.0f);
+	vec4 normal = transformInverseTranspose * vec4(vertex.normal, 0.0f);
+
+	return Vertex(position.xyz(), normal.xyz(), vertex.uv, vertex.color);
+}
+
+void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & dst,
+	vec3 translation_v, vec3 rotation_v, vec3 scale_v)
+{
+	mat4x4 transform = translation(translation_v.x, translation_v.y, translation_v.z) *
+		yawPitchRoll(rotation_v.x, rotation_v.y, rotation_v.z) *
+		scale(scale_v.x, scale_v.y, scale_v.z);
+
+	mat4x4 transformInverseTranspose = transpose(inverse(transform));
+
+	for (auto & tri : src) {
+		dst.push_back(Triangle(
+			transform_vertex(tri.v1, transform, transformInverseTranspose),
+			transform_vertex(tri.v2, transform, transformInverseTranspose),
+			transform_vertex(tri.v3, transform, transformInverseTranspose)
+		));
+	}
+}
+
 int main(int argc, char *argv[]) {
     parseArgs(argc, argv);
 
@@ -75,32 +102,35 @@ int main(int argc, char *argv[]) {
     Material *chrome = new Material(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f),
         vec3(1.0f, 1.0f, 1.0f), 16.0f, 0.0f, 0.0f, 10.0f, check_sampler, nullptr);
 
-    std::vector<Triangle> polys;
+    std::vector<Triangle> polys, transformed;
+
+	/*FbxLoader::load(
+	PathUtil::prependExecutableDirectory("content/models/box.fbx"),
+	polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
+	FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/dragon.fbx"), polys);
 
     for (int z = -1; z <= 1; z++) {
         for (int x = -1; x <= 1; x++) {
-            for (int y = -0; y <= 0; y++) {
-                polys.clear();
+            for (int y = -1; y <= 1; y++) {
+				transformed.clear();
 
-                /*FbxLoader::load(
-                    PathUtil::prependExecutableDirectory("content/models/box.fbx"),
-                    polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
-                FbxLoader::load(
-                    PathUtil::prependExecutableDirectory("content/models/dragon.fbx"),
-                    polys, vec3(x * 20.0f, y * 20.0f, z * 20.0f), vec3(0.0f), vec3(1.0f));
+				transform_mesh(polys, transformed,
+					vec3(x * 20.0f, y * 20.0f, z * 20.0f), vec3(0.0f), vec3(1.0f));
 
-                for (int i = 0; i < polys.size(); i++)
-                    scene->addPoly(polys[i], diffuse);
+				for (auto & tri : transformed)
+					scene->addPoly(tri, diffuse);
             }
         }
     }
 
     polys.clear();
-    FbxLoader::load(
-        PathUtil::prependExecutableDirectory("content/models/plane.fbx"),
-        polys, vec3(0, 0, 0), vec3(0, 0, 0), vec3(3, 1, 3));
-    for (size_t i = 0; i < polys.size(); i++)
-        scene->addPoly(polys[i], diffuse);
+	transformed.clear();
+
+	FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/plane.fbx"), polys);
+	transform_mesh(polys, transformed, vec3(0, 0, 0), vec3(0, 0, 0), vec3(3, 1, 3));
+
+	for (auto & tri : transformed)
+		scene->addPoly(tri, diffuse);
 
     Light *light1 = new PointLight(vec3(-20, 20, -20), vec3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light1);

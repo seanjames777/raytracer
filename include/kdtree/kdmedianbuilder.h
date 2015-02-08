@@ -16,7 +16,7 @@
 class KDMedianBuilder : public KDBuilder {
 protected:
 
-    virtual bool splitNode(const AABB & bounds, const std::vector<Triangle *> & triangles,
+    virtual bool splitNode(void *threadCtx, const AABB & bounds, const std::vector<Triangle *> & triangles,
         int depth, int & dir, float & split, enum PlanarMode & planarMode) override;
 
 public:

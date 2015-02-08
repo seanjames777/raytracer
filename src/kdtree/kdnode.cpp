@@ -6,13 +6,7 @@
 
 #include <kdtree/kdnode.h>
 
-KDNode::KDNode(KDNode *left, KDNode *right, float split_dist,
-    SetupTriangle *triangles, unsigned int flags)
-    : left(left),
-      right(right),
-      split_dist(split_dist),
-      triangles(triangles),
-      flags(flags)
+KDNode::KDNode()
 {
 }
 

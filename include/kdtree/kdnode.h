@@ -35,8 +35,7 @@ struct KDNode {
     float          split_dist;
     unsigned int   flags;
 
-    KDNode(KDNode *left, KDNode *right, float split_dist,
-        SetupTriangle *triangles, unsigned int flags);
+    KDNode();
 
     ~KDNode();
 

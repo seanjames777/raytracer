@@ -11,6 +11,9 @@
 
 #include <kdtree/kdtree.h>
 #include <util/queue.h>
+#include <mutex>
+#include <atomic>
+#include <thread>
 
 // How to handle triangles that lie in the plane
 enum PlanarMode {
@@ -19,22 +22,43 @@ enum PlanarMode {
     PLANAR_BOTH =  3
 };
 
-class KDBuilderQueueNode {
+struct KDBuilderQueueNode {
+	KDNode *node;
     AABB bounds;
     std::vector<Triangle *> triangles; // TODO: memcpy/malloc instead
     int depth;
+	std::atomic_int refCount;
+	KDBuilderQueueNode *parent;
 
     // TODO: false sharing
 };
 
 class KDBuilder {
-protected:
+private:
 
     // TODO: Pool or something of queue nodes might be better than new/delete constantly.
+	// TODO: Check overhead of queue locking. Maybe use work stealing or something.
     // Note: We need a dynamic queue here because we don't know how deep we're going
     // to go while building the tree, and we need more storage space closer to the
     // leaves.
     util::queue<KDBuilderQueueNode *> node_queue;
+	std::mutex queue_lock;
+	std::atomic_int outstanding_nodes;
+
+	// TODO
+	void enqueue_node(KDBuilderQueueNode *q_node);
+
+	// TODO
+	KDBuilderQueueNode *dequeue_node();
+
+	// TODO
+	void worker_thread();
+
+	// TODO
+	virtual void *prepareWorkerThread(int idx);
+
+	// TODO
+	virtual void destroyWorkerThread(void *threadCtx);
 
     /**
      * @brief Find the subset of triangles contained in a bounding box
@@ -43,26 +67,35 @@ protected:
      * @param triangles     Items to check
      * @param contained Vector to fill with triangles overlapping box
      */
-    void partition(float dist, int dir, const std::vector<Triangle *> & triangles,
+    void partition(void *threadCtx, float dist, int dir, const std::vector<Triangle *> & triangles,
         std::vector<Triangle *> & left, std::vector<Triangle *> & right,
         enum PlanarMode & planarMode);
 
     /**
      * @brief Build a leaf node
      *
-     * @param triangles Items to place in leaf node
+     * @param q_node Queue node to process
      */
-    KDNode *buildLeaf(const std::vector<Triangle *> & triangles);
+    void buildLeafNode(KDBuilderQueueNode *q_node);
+
+	/**
+	 * @brief Build an inner node
+	 *
+	 * @param q_node     Queue node to process
+	 * @param dir        Split axis
+	 * @param split      Split distance
+	 * @param planarMode How to handle planar triangles
+	 * @param depth      Tree depth
+	 */
+	void buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int dir, float split,
+		enum PlanarMode planarMode, int depth);
 
     /**
-     * @brief Build a KD tree containing the given triangles
+     * @brief Build a KD node
      *
-     * @param bounds Bounding box containing all triangles
-     * @param triangles  Items to place in tree
-     * @param dir    Direction to split root
-     * @param depth  Recursion depth
+     * @param q_node Queue node to process
      */
-    KDNode *buildNode(const AABB & bounds, const std::vector<Triangle *> & triangles, int depth);
+    void buildNode(void *threadCtx, KDBuilderQueueNode *q_node);
 
     /**
      * @brief Compute a bounding box for a set of triangles
@@ -71,7 +104,10 @@ protected:
      */
     AABB buildAABB(const std::vector<Triangle *> & triangles);
 
-    virtual bool splitNode(const AABB & bounds, const std::vector<Triangle *> & triangles,
+protected:
+
+	// TODO
+    virtual bool splitNode(void *threadCtx, const AABB & bounds, const std::vector<Triangle *> & triangles,
         int depth, int & dir, float & split, enum PlanarMode & planarMode) = 0;
 
 public:

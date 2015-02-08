@@ -9,9 +9,7 @@
 #include <cassert>
 #include <iostream>
 
-void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, mat4x4 transform,
-    mat4x4 transformInverseTranspose)
-{
+void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute) {
     if (attribute->GetAttributeType() != FbxNodeAttribute::eMesh)
         return;
 
@@ -91,15 +89,12 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, m
                 }
             }
 
-            vec4 position((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2], 1.0f);
-            position = transform * position; // TODO w / ?
-
-            vec4 normal((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2], 0.0f);
-            normal = transformInverseTranspose * normal;
+			vec3 position((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
+			vec3 normal((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
 
             Vertex vertex;
-            vertex.position = position.xyz();
-            vertex.normal = normalize(normal.xyz());
+            vertex.position = position;
+            vertex.normal = normalize(normal); // TODO necessary?
             vertex.uv = vec2((float)vertexUV[0], (float)vertexUV[1]);
             vertex.color = vec4((float)vertexColor[0], (float)vertexColor[1], (float)vertexColor[2], (float)vertexColor[3]);
 
@@ -108,17 +103,15 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute, m
     }
 }
 
-void addNode(std::vector<Vertex> & vertices, FbxNode *node, mat4x4 transform,
-    mat4x4 transformInverseTranspose) {
+void addNode(std::vector<Vertex> & vertices, FbxNode *node) {
     for (int i = 0; i < node->GetNodeAttributeCount(); i++)
-        addAttribute(vertices, node->GetNodeAttributeByIndex(i), transform,
-            transformInverseTranspose);
+        addAttribute(vertices, node->GetNodeAttributeByIndex(i));
 
     for (int i = 0; i < node->GetChildCount(); i++)
-        addNode(vertices, node->GetChild(i), transform, transformInverseTranspose);
+        addNode(vertices, node->GetChild(i));
 }
 
-void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, mat4x4 transform) {
+void FbxLoader::load(std::string filename, std::vector<Triangle> & polys) {
     FbxManager *fbxManager = FbxManager::Create();
     FbxIOSettings *ioSettings = FbxIOSettings::Create(fbxManager, filename.c_str());
     fbxManager->SetIOSettings(ioSettings);
@@ -136,11 +129,9 @@ void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, mat4x4
 
     std::vector<Vertex> vertices;
 
-    mat4x4 transformInverseTranspose = transpose(inverse(transform));
-
     if (rootNode != NULL)
         for (int i = 0; i < rootNode->GetChildCount(); i++)
-            addNode(vertices, rootNode->GetChild(i), transform, transformInverseTranspose);
+            addNode(vertices, rootNode->GetChild(i));
 
     fbxManager->Destroy();
 
@@ -149,14 +140,4 @@ void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, mat4x4
             vertices[i + 0],
             vertices[i + 1],
             vertices[i + 2]));
-}
-
-void FbxLoader::load(std::string filename, std::vector<Triangle> & polys, vec3 translation_v,
-    vec3 rotation_v, vec3 scale_v)
-{
-    mat4x4 transform = translation(translation_v.x, translation_v.y, translation_v.z) *
-        yawPitchRoll(rotation_v.x, rotation_v.y, rotation_v.z) *
-        scale(scale_v.x, scale_v.y, scale_v.z);
-
-    return load(filename, polys, transform);
 }

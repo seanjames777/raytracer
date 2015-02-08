@@ -160,7 +160,7 @@ public:
     /**
      * @brief Check whether the queue is empty
      */
-    bool isEmpty() {
+    bool empty() {
         return _size == 0;
     }
 

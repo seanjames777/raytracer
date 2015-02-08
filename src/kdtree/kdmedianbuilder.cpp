@@ -13,6 +13,7 @@ KDMedianBuilder::~KDMedianBuilder() {
 }
 
 bool KDMedianBuilder::splitNode(
+	void *threadCtx,
     const AABB & bounds,
     const std::vector<Triangle *> & triangles,
     int depth,

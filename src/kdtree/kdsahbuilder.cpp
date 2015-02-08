@@ -8,15 +8,28 @@
 #include <algorithm>
 #include <iostream> // TODO
 
-KDSAHBuilder::KDSAHBuilder()
-    : events(nullptr),
-      event_capacity(0)
-{
+KDSAHBuilder::KDSAHBuilder() {
 }
 
 KDSAHBuilder::~KDSAHBuilder() {
-    if (events)
-        free(events);
+}
+
+void *KDSAHBuilder::prepareWorkerThread(int threadIdx) {
+	KDSAHBuilderThreadCtx *ctx = new KDSAHBuilderThreadCtx();
+
+	ctx->events = nullptr;
+	ctx->event_capacity = 0;
+
+	return ctx;
+}
+
+void KDSAHBuilder::destroyWorkerThread(void *threadCtx) {
+	KDSAHBuilderThreadCtx *ctx = (KDSAHBuilderThreadCtx *)threadCtx;
+
+	if (ctx->events)
+		free(ctx->events);
+
+	delete ctx;
 }
 
 bool compareEvent(const SAHEvent & e1, const SAHEvent & e2) {
@@ -30,6 +43,7 @@ bool compareEvent(const SAHEvent & e1, const SAHEvent & e2) {
 }
 
 bool KDSAHBuilder::splitNode(
+	void *threadCtx,
     const AABB & bounds,
     const std::vector<Triangle *> & triangles,
     int depth,
@@ -37,6 +51,8 @@ bool KDSAHBuilder::splitNode(
     float & split,
     enum PlanarMode & planarMode)
 {
+	KDSAHBuilderThreadCtx *ctx = (KDSAHBuilderThreadCtx *)threadCtx;
+
     // Assumptions:
     //     - There is at least one triangle in the node
     //     - Each triangle at least partially overlaps the node, possible just touching (<= vs. <)
@@ -61,24 +77,26 @@ bool KDSAHBuilder::splitNode(
     // Make sure the builder's event list is big enough. We can use malloc here to avoid constructor
     // overhead. Allocate an upper bound that assumes each triangle generates both a begin and end
     // event. TODO null check. TODO reuse a single list or something.
-    if (event_capacity < triangles.size() * 2) {
+    if (ctx->event_capacity < triangles.size() * 2) {
         // TODO: It seems like it's nice to allocate powers of two, but it might not be necessary.
         // TODO: We're not going to ever resize after the first node. There should be a
         // prepareBuilde(number_of_triangles) or something to avoid this check.
 
-        while (event_capacity < triangles.size() * 2) {
-            if (event_capacity == 0)
-                event_capacity = 128; // TODO arbitrary constant, branch
+        while (ctx->event_capacity < triangles.size() * 2) {
+			if (ctx->event_capacity == 0)
+				ctx->event_capacity = 128; // TODO arbitrary constant, branch
             else
-                event_capacity *= 2;
+				ctx->event_capacity *= 2;
         }
 
-        if (events)
-            free(events);
+        if (ctx->events)
+            free(ctx->events);
 
-        events = (SAHEvent *)malloc(sizeof(SAHEvent) * event_capacity);
-        assert(events != nullptr);
+		ctx->events = (SAHEvent *)malloc(sizeof(SAHEvent) * ctx->event_capacity);
+		assert(ctx->events != nullptr); // TODO
     }
+
+	SAHEvent *events = ctx->events;
 
     int num_events = 0;
 

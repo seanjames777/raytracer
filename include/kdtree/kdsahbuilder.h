@@ -12,9 +12,9 @@
 #include <kdtree/kdbuilder.h>
 
 enum SAHEventType {
-    SAH_END    = 1, // Triangle end
-    SAH_PLANAR = 2, // Trianlge lying in plane
-    SAH_BEGIN  = 4  // Triangle start
+    SAH_END    = 0, // Triangle end
+    SAH_PLANAR = 1, // Trianlge lying in plane
+    SAH_BEGIN  = 2  // Triangle start
 };
 
 struct SAHEvent {
@@ -22,16 +22,20 @@ struct SAHEvent {
     float dist;             // Split location
 };
 
+struct KDSAHBuilderThreadCtx {
+	// Because we process one node at a time, we can reuse one event list allocation
+	SAHEvent *events;
+	int       event_capacity;
+};
+
 class KDSAHBuilder : public KDBuilder {
-private:
-
-    // Because we process one node at a time, we can reuse one event list allocation
-    SAHEvent *events;
-    int       event_capacity;
-
 protected:
 
-    virtual bool splitNode(const AABB & bounds, const std::vector<Triangle *> & triangles,
+	virtual void *prepareWorkerThread(int idx) override;
+
+	virtual void destroyWorkerThread(void *threadCtx) override;
+
+    virtual bool splitNode(void *threadCtx, const AABB & bounds, const std::vector<Triangle *> & triangles,
         int depth, int & dir, float & split, enum PlanarMode & planarMode) override;
 
 public:
