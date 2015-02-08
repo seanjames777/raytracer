@@ -29,6 +29,8 @@ int main(int argc, char *argv[]) {
         conn.getStatus(&stat);
     }
 
+    conn.getImage(image);
+
     printf("Press enter to quit...\n");
     getchar();
 
