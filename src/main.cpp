@@ -148,6 +148,8 @@ int main(int argc, char *argv[]) {
 
     Timer timer;
 
+    printf("Rendering\n");
+
     int nFrames = 1;
     for (int i = 0; i < nFrames; i++) {
         float theta = ((float)i / (float)nFrames + .25f) * 2.0f * (float)M_PI;

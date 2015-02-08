@@ -223,7 +223,9 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 	// TODO: start worker threads
 	// TODO: join worker threads
 
-    std::cout << "KD Build Time: " << timer.getElapsedMilliseconds() << "ms" << std::endl;
+    printf("Done: %f seconds (total), %f seconds (CPU)\n",
+        timer.getElapsedMilliseconds() / 1000.0,
+        timer.getCPUTime() / 1000.0);
 
     KDTree *tree = new KDTree(q_node->node, q_node->bounds);
 
