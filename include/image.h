@@ -15,7 +15,7 @@
 
 // TODO: inline functions
 
-#define USE_TILING
+//#define USE_TILING
 #define LOG_TILEW 5
 #define LOG_TILEH 5
 #define TILEW (1 << LOG_TILEW)

@@ -7,7 +7,13 @@
 #include <material.h>
 #include <raytracer.h>
 
-Material::Material(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower,
+Material::Material() {
+}
+
+Material::~Material() {
+}
+
+PhongMaterial::PhongMaterial(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower,
     float reflection, float refraction, float ior, std::shared_ptr<Sampler> diffuse_sampler,
     std::shared_ptr<Image> diffuse_texture)
     : ambient(ambient),
@@ -22,7 +28,7 @@ Material::Material(vec3 ambient, vec3 diffuse, vec3 specular, float specularPowe
 {
 }
 
-vec3 Material::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
+vec3 PhongMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
@@ -77,4 +83,16 @@ vec3 Material::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Colli
     color = color * occlusion;
 
     return color;
+}
+
+PBRMaterial::PBRMaterial() {
+}
+
+vec3 PBRMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
+    Triangle *triangle = &scene->triangles[result->triangle_id];
+    Vertex interp = triangle->interpolate(result->beta, result->gamma);
+
+    vec3 env = raytracer->getEnvironmentReflection(ray.direction, interp.normal);
+
+    return env;
 }

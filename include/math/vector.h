@@ -151,6 +151,13 @@ struct vector<T, 3, false> {
           z(z)
     {
     }
+
+    vector<T, 3, false>(const vector<T, 2, false> & xy, T z)
+        : x(xy.x),
+          y(xy.y),
+          z(z)
+    {
+    }
 };
 
 template<>
@@ -182,6 +189,13 @@ struct vector<float, 3, true> {
 
     vector<float, 3, true>(float x, float y, float z)
         : simd({ _mm_setr_ps(x, y, z, 0.0f) })
+    {
+    }
+
+    vector<float, 3, true>(const vector<float, 2, true> & xy, float z)
+        : x(xy.x),
+          y(xy.y),
+          z(z)
     {
     }
 };

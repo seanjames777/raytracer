@@ -21,10 +21,28 @@ class Raytracer;
 class Scene;
 
 /**
- * @brief Material base class. Initially simple, only contains the parameters for shading with a
- * phong appearance.
+ * @brief Base class for all materials
  */
 class Material {
+public:
+
+    Material();
+
+    ~Material();
+
+    virtual vec3 shade(
+        util::stack<KDStackFrame> & stack,
+        const Ray & ray,
+        Collision *result,
+        Scene *scene,
+        Raytracer *raytracer,
+        int depth) = 0;
+};
+
+/**
+ * @brief Phong material
+ */
+class PhongMaterial : public Material {
 private:
 
     /** @brief Ambient light color */
@@ -64,7 +82,7 @@ public:
      * @param refraction    Refraction amount
      * @param ior           Index of refraction
      */
-    Material(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower, float reflection,
+    PhongMaterial(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower, float reflection,
         float refraction, float ior, std::shared_ptr<Sampler> diffuse_sampler,
         std::shared_ptr<Image> diffuse_texture);
 
@@ -72,7 +90,37 @@ public:
      * @brief Shade the surface for a given collision and light source. Will be called for each
      * light source and mixed externally with shadows, reflections, etc.
      */
-    vec3 shade(util::stack<KDStackFrame> & stack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth);
+    virtual vec3 shade(
+        util::stack<KDStackFrame> & stack,
+        const Ray & ray,
+        Collision *result,
+        Scene *scene,
+        Raytracer *raytracer,
+        int depth) override;
+
+};
+
+/**
+ * @brief Physically based material
+ */
+class PBRMaterial : public Material {
+private:
+
+public:
+
+    PBRMaterial();
+
+    /**
+     * @brief Shade the surface for a given collision and light source. Will be called for each
+     * light source and mixed externally with shadows, reflections, etc.
+     */
+    virtual vec3 shade(
+        util::stack<KDStackFrame> & stack,
+        const Ray & ray,
+        Collision *result,
+        Scene *scene,
+        Raytracer *raytracer,
+        int depth) override;
 
 };
 

@@ -21,7 +21,7 @@ endif()
 #CFLAGS=-O3 -g -Iinclude/ -I/opt/local/include/ -I/opt/local/include/OpenEXR -Iexternal/fbx/include/ -std=c++11 -stdlib=libc++ -Wno-unused-value -Wno-comment
 #LDFLAGS=-O3 -g -std=c++11 -stdlib=libc++ -L/opt/local/lib/ -Lexternal/fbx/lib/Mac/ -lfbxsdk -lglfw -lilmimf -framework Foundation -framework OpenGL -framework Cocoa
 
-add_executable(raytracer
+add_library(rt
     src/kdtree/kdbuilder.cpp
     src/kdtree/kdmedianbuilder.cpp
     src/kdtree/kdnode.cpp
@@ -38,14 +38,13 @@ add_executable(raytracer
 	src/material.cpp
 	src/scene.cpp
 	src/image.cpp
-	src/main.cpp
 	src/raytracer.cpp
-	src/glimagedisplay.cpp
 	src/timer.cpp
 	src/fbxloader.cpp
 	src/raytracersettings.cpp
     src/path.cpp
     src/bmpimage.cpp
+    src/net/protocol.cpp
 
 	# Include files for visual studio navigation/search
 	include/kdtree/kdbuilder.h
@@ -61,7 +60,6 @@ add_executable(raytracer
 	include/camera.h
 	include/directionallight.h
 	include/fbxloader.h
-	include/glimagedisplay.h
 	include/image.h
 	include/light.h
 	include/material.h
@@ -73,6 +71,17 @@ add_executable(raytracer
 	include/rtmath.h
 	include/scene.h
 	include/timer.h
+)
+
+add_executable(worker
+    src/worker/main.cpp
+)
+
+add_executable(host
+    src/host/main.cpp
+    src/host/glimagedisplay.cpp
+
+    include/host/glimagedisplay.h
 )
 
 add_library(glfw SHARED IMPORTED)
@@ -103,14 +112,21 @@ endif()
 FIND_PACKAGE(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
 
-target_link_libraries(raytracer
-	glfw
-	glew
+target_link_libraries(worker
 	fbxsdk
-	${OPENGL_LIBRARIES}
+    rt
 )
 
-install(TARGETS raytracer DESTINATION bin)
+target_link_libraries(host
+    glfw
+    glew
+    ${OPENGL_LIBRARIES}
+    rt
+)
+
+install(TARGETS worker DESTINATION bin)
+install(TARGETS host DESTINATION bin)
+install(TARGETS rt DESTINATION bin)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/content/" DESTINATION bin/content)
 
@@ -137,9 +153,3 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         CODE "file(INSTALL \${_LIBS_} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)"
     )
 endif ()
-
-#bin/libfbxsdk.dylib: bin/
-#	cp ./external/fbx/lib/Mac/libfbxsdk.dylib bin/
-
-#encode:
-#	ffmpeg -y -i output/frame%d.bmp -c:v libx264 -preset slow -crf 18 -r 30 -pix_fmt yuv420p output/out.mp4

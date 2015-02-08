@@ -52,9 +52,10 @@ Vertex transform_vertex(const Vertex & vertex, const mat4x4 & transform,
 void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & dst,
 	vec3 translation_v, vec3 rotation_v, vec3 scale_v)
 {
-	mat4x4 transform = translation(translation_v.x, translation_v.y, translation_v.z) *
-		yawPitchRoll(rotation_v.x, rotation_v.y, rotation_v.z) *
-		scale(scale_v.x, scale_v.y, scale_v.z);
+	mat4x4 transform =
+        scale(scale_v.x, scale_v.y, scale_v.z) *
+        yawPitchRoll(rotation_v.y, rotation_v.x, rotation_v.z) *
+        translation(translation_v.x, translation_v.y, translation_v.z);
 
 	mat4x4 transformInverseTranspose = transpose(inverse(transform));
 
@@ -74,7 +75,7 @@ int main(int argc, char *argv[]) {
 
     //Camera *camera = new Camera(vec3(-80, 25.0f, -80), vec3(0, 5.0f, 0), aspect,
     //    (float)M_PI / 3.4f, 19.25f, 0.0f);
-    Camera *camera = new Camera(vec3(-40.0f, 25.0f, -40.0f), vec3(0.0f, 5.0f, 0.0f), aspect,
+    Camera *camera = new Camera(vec3(-20.0f, 15.0f, -20.0f), vec3(0.0f, 5.0f, 0.0f), aspect,
         (float)M_PI / 3.4f, 19.25f, 0.0f);
 
     std::shared_ptr<Image> output = std::make_shared<Image>(settings.width, settings.height);
@@ -96,29 +97,27 @@ int main(int argc, char *argv[]) {
 
     Scene *scene = new Scene(camera, output, env_sampler, environment);
 
-    Material *diffuse = new Material(vec3(0.1f, 0.1f, 0.1f), vec3(0.9f, 0.9f, 0.9f),
-        vec3(0.3f, 0.3f, 0.3f), 8.0f, 0.0f, 0.0f, 10.0f, check_sampler, checker);
+    Material *ground = new PBRMaterial();
 
-    Material *chrome = new Material(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f),
-        vec3(1.0f, 1.0f, 1.0f), 16.0f, 0.0f, 0.0f, 10.0f, check_sampler, nullptr);
+    Material *bunny = new PBRMaterial();
 
     std::vector<Triangle> polys, transformed;
 
 	/*FbxLoader::load(
 	PathUtil::prependExecutableDirectory("content/models/box.fbx"),
 	polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
-	FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/dragon.fbx"), polys);
+	FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/bunny_low.fbx"), polys);
 
-    for (int z = -1; z <= 1; z++) {
-        for (int x = -1; x <= 1; x++) {
-            for (int y = -1; y <= 1; y++) {
+    for (int z = -0; z <= 0; z++) {
+        for (int x = -0; x <= 0; x++) {
+            for (int y = -0; y <= 0; y++) {
 				transformed.clear();
 
 				transform_mesh(polys, transformed,
-					vec3(x * 20.0f, y * 20.0f, z * 20.0f), vec3(0.0f), vec3(1.0f));
+					vec3(x * 20.0f, y * 20.0f, z * 20.0f), vec3(0.0f, (float)M_PI, 0.0f), vec3(1.0f));
 
 				for (auto & tri : transformed)
-					scene->addPoly(tri, diffuse);
+					scene->addPoly(tri, bunny);
             }
         }
     }
@@ -130,7 +129,7 @@ int main(int argc, char *argv[]) {
 	transform_mesh(polys, transformed, vec3(0, 0, 0), vec3(0, 0, 0), vec3(3, 1, 3));
 
 	for (auto & tri : transformed)
-		scene->addPoly(tri, diffuse);
+		scene->addPoly(tri, ground);
 
     Light *light1 = new PointLight(vec3(-20, 20, -20), vec3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light1);
@@ -143,6 +142,8 @@ int main(int argc, char *argv[]) {
     if (wdisplay)
         disp = new GLImageDisplay((int)(1024 * aspect), 1024, output);
 
+    printf("%lu polygons, %lu lights\n", scene->triangles.size(), scene->lights.size());
+
     Raytracer *rt = new Raytracer(settings, scene);
     // TODO: thread pool
 
@@ -150,29 +151,17 @@ int main(int argc, char *argv[]) {
 
     printf("Rendering\n");
 
-    int nFrames = 1;
-    for (int i = 0; i < nFrames; i++) {
-        float theta = ((float)i / (float)nFrames + .25f) * 2.0f * (float)M_PI;
-        //camera->setPosition(vec3(cosf(theta) * 15.0f, 10.0f, sinf(theta) * 15.0f));
-        rt->render(disp);
-
-        std::stringstream ss;
-
-        /*ss << "output/frame" << i << ".exr";
-        output->saveEXR(ss.str());*/
-
-        //ss.str("");
-        //ss << "output/frame" << i << ".bmp";
-        //output->applyTonemapping(2.0f);
-        //output->applyGamma(1.0f / 2.2f);
-        //output->saveBMP(ss.str());
-    }
+    rt->render();
 
     printf("Done: %f seconds (total), %f seconds (CPU)\n",
         timer.getElapsedMilliseconds() / 1000.0,
         timer.getCPUTime() / 1000.0);
 
+    printf("Press enter to quit...\n");
     getchar();
+
+    if (wdisplay)
+        delete disp;
 
     return 0;
 }

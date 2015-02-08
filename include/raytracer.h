@@ -15,7 +15,6 @@
 #include <kdtree/kdtree.h>
 #include <kdtree/kdsahbuilder.h>
 #include <kdtree/kdmedianbuilder.h>
-#include <glimagedisplay.h>
 #include <timer.h>
 #include <raytracersettings.h>
 #include <iostream>
@@ -38,7 +37,8 @@ private:
     /** @brief Scene */
     Scene *scene;
 
-    std::atomic<int> currBlockID;
+    std::atomic_int currBlockID;
+    std::atomic_int blocksRemaining;
     int nBlocks;
     int nBlocksW;
     int nBlocksH;
@@ -48,50 +48,6 @@ private:
 
     /** @brief Raytracer settings */
     RaytracerSettings settings;
-
-    /**
-     * @brief Emit photons into the scene and track their bounces
-     *
-     * @param photons     Vector which will be filled with photons
-     * @param num_photons Number of photons to emit
-     */
-    /*void photon_map(std::vector<Photon> & photons, int num_photons) {
-        std::vector<vec3> samples;
-        randSphere(samples, num_photons);
-
-        for (int i = 0; i < samples.size(); i++) {
-            Photon p(samples[i] * 5.0f, vec3(1.0f, 1.0f, 1.0f), vec3());
-            photons.push_back(p);
-        }
-    }*/
-
-    /**
-     * @brief Project photons into the output image for visualization
-     */
-    void photon_vis(std::vector<Photon> & photons) {
-        mat4x4 view = lookAtRH(scene->camera->getPosition(), scene->camera->getTarget(), scene->camera->getUp());
-        mat4x4 projection = perspectiveRH(scene->camera->getFOV(), scene->camera->getAspectRatio(), 0.01f, 100.0f);
-        mat4x4 vp = projection * view;
-
-        for (size_t i = 0; i < photons.size(); i++) {
-            Photon p = photons[i];
-
-            vec4 pos = vp * vec4(p.position, 1);
-            pos = pos / pos.w;
-            pos = (pos / 2.0f) + 0.5f;
-
-            int x = (int)(pos.x * (scene->output->getWidth() - 1));
-            int y = (int)(pos.y * (scene->output->getHeight() - 1));
-
-            if (x < 0 || x >= scene->output->getWidth())
-                continue;
-
-            if (y < 0 || y >= scene->output->getHeight())
-                continue;
-
-            scene->output->setPixel(x, y, vec4(1, 1, 1, 1));
-        }
-    }
 
     /**
      * @brief Shade the result of a view ray/object collision
@@ -156,7 +112,7 @@ private:
                             Collision result;
                             result.distance = INFINITY32F;
 
-                            vec3 sampleColor = vec3(0, 0, 0);//getEnvironment(r.direction);
+                            vec3 sampleColor = getEnvironment(r.direction);
 
                             if (tree->intersect(kdStack, r, result, 0.0f, false))
                                 sampleColor = shade(kdStack, r, &result, 1);
@@ -168,6 +124,8 @@ private:
                     scene->output->setPixel(x, y, vec4(color, 1.0f));
                 }
             }
+
+            blocksRemaining--;
         }
     }
 
@@ -201,10 +159,6 @@ public:
           scene(scene),
           tree(NULL)
     {
-        KDSAHBuilder builder;
-        //KDMedianBuilder builder;
-        tree = builder.build(scene->triangles);
-
         srand((unsigned)time(0));
     }
 
@@ -223,7 +177,7 @@ public:
         std::cout << "[";
 
         // TODO
-        float progress = (float)currBlockID.load() / (float)(nBlocksH * nBlocksW);
+        float progress = (float)currBlockID / (float)(nBlocksH * nBlocksW);
         if (progress > 1.0f)
             progress = 1.0f;
         if (progress < 0.0f)
@@ -244,11 +198,16 @@ public:
     /**
      * @brief Render the scene into the scene's output image
      */
-    void render(GLImageDisplay *display) {
+    void render() {
+        KDSAHBuilder builder;
+        //KDMedianBuilder builder;
+        tree = builder.build(scene->triangles);
+
         nBlocksW = (scene->output->getWidth() + settings.blockSize - 1) / settings.blockSize;
         nBlocksH = (scene->output->getHeight() + settings.blockSize - 1) / settings.blockSize;
         nBlocks = nBlocksW * nBlocksH;
-        currBlockID.store(0);
+        currBlockID = 0;
+        blocksRemaining = nBlocks;
 
         clearChecker();
 
@@ -261,40 +220,17 @@ public:
             workers.push_back(std::thread(std::bind(&Raytracer::worker_thread, this)));
 
         printf("Started %d worker threads\n", nThreads);
+    }
 
-        int time = 0;
+    bool finished() {
+        return blocksRemaining == 0;
+    }
 
-        printProgress(nBlocksW, nBlocksH, false);
-
-        const int refresh_ms = 100;
-
-        if (display != NULL) {
-            while (currBlockID.load() < nBlocks) {
-                display->refresh();
-				std::this_thread::sleep_for(std::chrono::milliseconds(refresh_ms));
-                time += refresh_ms;
-
-                if (time > 250) {
-                    printProgress(nBlocksW, nBlocksH, true);
-                    time = 0;
-                }
-            }
-        }
-
+    void shutdown() {
         for (auto& worker : workers)
             worker.join();
 
         workers.clear();
-
-        printProgress(nBlocksW, nBlocksH, true);
-        std::cout << std::endl;
-
-        //std::vector<Photon> photons;
-        //photon_map(photons, 50);
-        //photon_vis(photons);
-
-        if (display)
-            display->refresh();
     }
 
     /**
