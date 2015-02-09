@@ -12,19 +12,13 @@
 
 int main(int argc, char *argv[]) {
     RTProtocolConnection conn;
-    
-	
+
 	if (!conn.connect_to_server("localhost", 7878)) {
 		printf("Connect to server failed\n");
 		exit(-1);
 	}
 
     SERVER_STATUS stat = WAITING;
-
-	if (!conn.getStatus(&stat)) {
-		printf("Get status failed\n");
-		exit(-1);
-	}
 
     std::shared_ptr<Image> image = std::make_shared<Image>(1920, 1080);
 
@@ -34,7 +28,7 @@ int main(int argc, char *argv[]) {
 
     while (stat != FINISHED) {
         conn.getImage(image);
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 80));
+		std::this_thread::sleep_for(std::chrono::milliseconds(80));
 
         conn.getStatus(&stat);
     }

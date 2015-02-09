@@ -171,8 +171,23 @@ protected:
 
 };
 
+RTServer worker;
+
+void sig_handler(int signo) {
+    if (signo == SIGINT) {
+        printf("Received SIGINT, shutting down...\n");
+        worker.setShouldShutDown();
+    }
+
+    // TODO: a little race conditioney/threading weirdness
+}
+
 int main(int argc, char *argv[]) {
-    RTServer worker;
+    /*if (signal(SIGINT, sig_handler) < 0) {
+        printf("Error setting up signal handler\n");
+        return -1;
+    }*/
+
     worker.serve(7878);
 
     return 0;

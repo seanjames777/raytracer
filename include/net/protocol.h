@@ -27,9 +27,13 @@ enum SERVER_STATUS {
     FINISHED = 2
 };
 
+#pragma pack(push, 1)
+
 struct RequestHeader {
-    enum REQUEST_TYPE request_type;
+    int request_type;
 };
+
+#pragma pack(pop)
 
 /**
  * @file The host coordinates the work of any connected servers, and provides a
@@ -121,7 +125,7 @@ public:
         }
 
         printf("Host shutdown\n");
-        
+
 		disconnect_from_server();
 
         return true;
@@ -185,23 +189,22 @@ public:
 
 			if (!read_buff(clifd, (char *)&header, sizeof(header))) {
 				printf("Error reading request header\n");
+                handleShutdown();
 				return;
 			}
 
 			switch (header.request_type) {
 			case BEGIN_RENDER:
 				handleBeginRender();
-
 				break;
 			case GET_IMAGE:
 				image = getImage();
 
 				if (!writeImage(clifd, image))
 					return;
-
 				break;
 			case GET_STATUS:
-				stat = handleGetStatus();
+                stat = handleGetStatus();
 
 				if (!write_buff(clifd, (char *)&stat, sizeof(stat))) {
 					printf("Error writing response\n");
@@ -210,12 +213,12 @@ public:
 
 				break;
 			case SHUTDOWN:
-				handleShutdown();
+                handleShutdown();
 				setShouldShutDown();
-				break;
+				return;
 			default:
-				printf("Illegal request type\n");
-				continue;
+				handleShutdown();
+				return;
 			}
 		}
 	}

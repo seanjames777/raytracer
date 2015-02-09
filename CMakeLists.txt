@@ -47,6 +47,7 @@ add_library(rt
 	src/net/client.cpp
 	src/net/server.cpp
     src/net/protocol.cpp
+    src/net/net.cpp
 
 	# Include files for visual studio navigation/search
 	include/kdtree/kdbuilder.h
@@ -76,6 +77,7 @@ add_library(rt
 	include/net/protocol.h
 	include/net/client.h
 	include/net/server.h
+    include/net/net.h
 )
 
 add_executable(worker
