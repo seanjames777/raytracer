@@ -16,7 +16,7 @@
 
 enum REQUEST_TYPE {
     BEGIN_RENDER = 0,
-    GET_IMAGE = 1,
+    UPDATE_IMAGE = 1,
     GET_STATUS = 2,
     SHUTDOWN = 3,
 };
@@ -86,11 +86,11 @@ public:
         return true;
     }
 
-    bool getImage(std::shared_ptr<Image> image) {
+    bool updateImage(std::shared_ptr<Image> image) {
 		socket_t sockfd = getSocket();
 
         RequestHeader req;
-        req.request_type = GET_IMAGE;
+        req.request_type = UPDATE_IMAGE;
 
         if (!sendRequestHeader(&req)) {
             printf("Error requesting image\n");
@@ -197,7 +197,7 @@ public:
 			case BEGIN_RENDER:
 				handleBeginRender();
 				break;
-			case GET_IMAGE:
+			case UPDATE_IMAGE:
 				image = getImage();
 
 				if (!writeImage(clifd, image))

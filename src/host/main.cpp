@@ -10,12 +10,20 @@
 #include <string.h>
 #include <net/protocol.h>
 
-bool display = false;
+// Arguments
+bool  display = false;
+char *worker  = "localhost";
+int   port    = 7878;
 
 void parseArgs(int argc, char *argv[]) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-display") == 0)
             display = true;
+        // Note: Only support one worker for now
+        else if (strcmp(argv[i], "-worker") == 0) {
+            worker = argv[++i];
+            port = atoi(argv[++i]);
+        }
     }
 }
 
@@ -24,7 +32,7 @@ int main(int argc, char *argv[]) {
 
     RTProtocolConnection conn;
 
-	if (!conn.connect_to_server("localhost", 7878)) {
+	if (!conn.connect_to_server(worker, port)) {
 		printf("Connect to server failed\n");
 		exit(-1);
 	}
@@ -41,13 +49,13 @@ int main(int argc, char *argv[]) {
     conn.beginRender();
 
     while (stat != FINISHED) {
-        conn.getImage(image);
+        conn.updateImage(image);
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         conn.getStatus(&stat);
     }
 
-    conn.getImage(image);
+    conn.updateImage(image);
 
     conn.shutdown();
 

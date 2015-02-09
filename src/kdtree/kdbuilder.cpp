@@ -147,34 +147,51 @@ void KDBuilder::enqueue_node(KDBuilderQueueNode *q_node) {
 }
 
 KDBuilderQueueNode *KDBuilder::dequeue_node() {
-	queue_lock.lock();
+	/*queue_lock.lock();
 	KDBuilderQueueNode *node = node_queue.empty() ? nullptr : node_queue.dequeue();
 	queue_lock.unlock();
 
-	return node;
+	return node;*/
 }
 
 void KDBuilder::worker_thread() {
 	void *ctx = prepareWorkerThread(0); // TODO: actual index
 
+    util::queue<KDBuilderQueueNode *> local_queue;
+
 	while (outstanding_nodes > 0) {
-		KDBuilderQueueNode *node = dequeue_node();
+        int local_count = 0;
 
-		// TODO: back off maybe
-		if (node == nullptr)
-			continue;
+        queue_lock.lock();
 
-		buildNode(ctx, node);
+        // TODO: Arbitary constant
+        // Collect nodes from the queue until we have enough to reduce locking
+        // overhead.
+        while (!node_queue.empty() && local_count < 20000) {
+            KDBuilderQueueNode *node = node_queue.dequeue();
+            local_queue.enqueue(node);
+            local_count += node->triangles.size();
+        }
 
-		// Decrement reference count of parent. If we are the last child node to finish,
-		// delete the parent and the memory containing its triangle list. The root node
-		// doesn't have a parent.
-		if (node->parent && --node->parent->refCount == 0)
-			delete node->parent;
+        // TODO: back off or sleep until nodes are available
 
-		// Note: This must happen after the node is built, to ensure that its children
-		// are enqueued.
-		outstanding_nodes--;
+        queue_lock.unlock();
+
+        while (!local_queue.empty()) {
+            KDBuilderQueueNode *node = local_queue.dequeue();
+
+    		buildNode(ctx, node);
+
+    		// Decrement reference count of parent. If we are the last child node to finish,
+    		// delete the parent and the memory containing its triangle list. The root node
+    		// doesn't have a parent.
+    		if (node->parent && --node->parent->refCount == 0)
+    			delete node->parent;
+
+    		// Note: This must happen after the node is built, to ensure that its children
+    		// are enqueued.
+    		outstanding_nodes--;
+        }
 	}
 }
 
@@ -223,9 +240,11 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 	// TODO: start worker threads
 	// TODO: join worker threads
 
-    printf("Done: %f seconds (total), %f seconds (CPU)\n",
-        timer.getElapsedMilliseconds() / 1000.0,
-        timer.getCPUTime() / 1000.0);
+    float elapsed = timer.getElapsedMilliseconds() / 1000.0;
+    float cpu     = timer.getCPUTime() / 1000.0;
+
+    printf("Done: %f seconds (total), %f seconds (CPU), speedup: %.02f\n",
+        elapsed, cpu, cpu / elapsed);
 
     KDTree *tree = new KDTree(q_node->node, q_node->bounds);
 

@@ -16,6 +16,16 @@
 #include <string.h>
 #include <net/protocol.h>
 
+// Arguments
+int port = 7878;
+
+void parseArgs(int argc, char *argv[]) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-port") == 0)
+            port = atoi(argv[++i]);
+    }
+}
+
 class RTServer : public RTProtocolServer {
 private:
 
@@ -160,9 +170,12 @@ protected:
     virtual void handleShutdown() override {
         rt->shutdown();
 
-        printf("Done: %f seconds (total), %f seconds (CPU)\n",
-            timer.getElapsedMilliseconds() / 1000.0,
-            timer.getCPUTime() / 1000.0);
+        // TODO: Move into raytracer itself
+        float elapsed = timer.getElapsedMilliseconds() / 1000.0;
+        float cpu     = timer.getCPUTime() / 1000.0;
+
+        printf("Done: %f seconds (total), %f seconds (CPU), speedup: %.02f\n",
+            elapsed, cpu, cpu / elapsed);
     }
 
     virtual std::shared_ptr<Image> getImage() override {
@@ -183,12 +196,14 @@ RTServer worker;
 }*/
 
 int main(int argc, char *argv[]) {
+    parseArgs(argc, argv);
+
     /*if (signal(SIGINT, sig_handler) < 0) {
         printf("Error setting up signal handler\n");
         return -1;
     }*/
 
-    worker.serve(7878);
+    worker.serve(port);
 
     return 0;
 }
