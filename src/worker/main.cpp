@@ -159,12 +159,13 @@ protected:
     }
 
     virtual void handleBeginRender() override {
-        timer.reset();
+        printf("Rendering\n");
 
         rt->render();
         started = true;
 
-        printf("Rendering\n");
+        // TODO not terribly accurate
+        timer.reset();
     }
 
     virtual void handleShutdown() override {
