@@ -19,6 +19,7 @@
     #include <netinet/in.h>
     #include <arpa/inet.h>
     #include <netdb.h>
+	#include <unistd.h>
 #endif
 
 #include <stdio.h>
@@ -28,7 +29,6 @@
 #include <chrono>
 #include <thread>
 #include <string>
-#include <unistd.h>
 
 #define BUFF_SIZE 4096 // Read/write buffer size
 

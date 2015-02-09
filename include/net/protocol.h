@@ -151,7 +151,7 @@ protected:
 
     virtual std::shared_ptr<Image> getImage() = 0;
 
-    bool writeImage(int fd, std::shared_ptr<Image> image) {
+    bool writeImage(socket_t fd, std::shared_ptr<Image> image) {
         int width = image->getWidth();
         int height = image->getHeight();
         int size = width * height * 4 * sizeof(float);
