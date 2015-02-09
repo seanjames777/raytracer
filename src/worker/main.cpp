@@ -22,6 +22,7 @@ private:
     std::shared_ptr<Image> output;
     Raytracer *rt;
     bool started = false;
+    Timer timer;
 
     Vertex transform_vertex(const Vertex & vertex, const mat4x4 & transform,
         const mat4x4 & transformInverseTranspose)
@@ -131,15 +132,6 @@ public:
         printf("%lu polygons, %lu lights\n", scene->triangles.size(), scene->lights.size());
 
         rt = new Raytracer(settings, scene);
-
-        /*Timer timer;
-
-        printf("Rendering\n");
-
-        printf("Done: %f seconds (total), %f seconds (CPU)\n",
-            timer.getElapsedMilliseconds() / 1000.0,
-            timer.getCPUTime() / 1000.0);*/
-
     }
 
     ~RTServer() {
@@ -157,12 +149,20 @@ protected:
     }
 
     virtual void handleBeginRender() override {
+        timer.reset();
+
         rt->render();
         started = true;
+
+        printf("Rendering\n");
     }
 
     virtual void handleShutdown() override {
         rt->shutdown();
+
+        printf("Done: %f seconds (total), %f seconds (CPU)\n",
+            timer.getElapsedMilliseconds() / 1000.0,
+            timer.getCPUTime() / 1000.0);
     }
 
     virtual std::shared_ptr<Image> getImage() override {

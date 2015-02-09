@@ -97,6 +97,13 @@ public:
         return _size == 0;
     }
 
+    /**
+     * @brief Clear the stack
+     */
+    inline void clear() {
+        _size = 0;
+    }
+
 };
 
 }
