@@ -8,6 +8,8 @@
 #include <timer.h>
 #include <iostream> // TODO
 
+// TODO: the enqueue() function can fail
+
 KDBuilder::KDBuilder() {
 }
 
@@ -109,8 +111,11 @@ void KDBuilder::buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int 
 	node->split_dist = split;
 	node->flags = (KDNodeFlags)dir;
 
-	enqueue_node(left);
-	enqueue_node(right);
+    queue_lock.lock();
+    node_queue.enqueue(left);
+    node_queue.enqueue(right);
+    outstanding_nodes += 2;
+	queue_lock.unlock();
 }
 
 void KDBuilder::buildNode(void *threadCtx, KDBuilderQueueNode *q_node) {
@@ -136,22 +141,6 @@ AABB KDBuilder::buildAABB(const std::vector<Triangle *> & triangles) {
         box.join((*it)->bbox);
 
     return box;
-}
-
-void KDBuilder::enqueue_node(KDBuilderQueueNode *q_node) {
-	queue_lock.lock();
-	// TODO can fail
-	outstanding_nodes++;
-	node_queue.enqueue(q_node);
-	queue_lock.unlock();
-}
-
-KDBuilderQueueNode *KDBuilder::dequeue_node() {
-	/*queue_lock.lock();
-	KDBuilderQueueNode *node = node_queue.empty() ? nullptr : node_queue.dequeue();
-	queue_lock.unlock();
-
-	return node;*/
 }
 
 void KDBuilder::worker_thread() {
@@ -219,9 +208,8 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 	// finished.
 	q_node->refCount = 3;
 
-	outstanding_nodes = 0;
-
-	enqueue_node(q_node);
+	outstanding_nodes = 1;
+    node_queue.enqueue(q_node);
 
 	int num_threads = std::thread::hardware_concurrency();
 

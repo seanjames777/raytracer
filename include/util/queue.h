@@ -148,7 +148,7 @@ public:
      *
      * @return First element in queue, assuming it is not empty
      */
-    T dequeue() {
+    inline T dequeue() {
         T elem = _elems[_head];
 
         _head = (_head + 1) & (_capacity - 1); // Queue capacity is always a power of two
@@ -160,21 +160,24 @@ public:
     /**
      * @brief Check whether the queue is empty
      */
-    bool empty() {
+    inline bool empty() {
         return _size == 0;
     }
 
     /**
      * @brief Get number of elements in queue
      */
-    unsigned int size() {
+    inline unsigned int size() {
         return _size;
     }
 
     /**
      * @brief Empty the queue
      */
-    void clear() {
+    inline void clear() {
+        _head = 0;
+        _tail = 0;
+        _size = 0;
     }
 
 };

@@ -46,12 +46,6 @@ private:
 	std::atomic_int outstanding_nodes;
 
 	// TODO
-	void enqueue_node(KDBuilderQueueNode *q_node);
-
-	// TODO
-	KDBuilderQueueNode *dequeue_node();
-
-	// TODO
 	void worker_thread();
 
 	// TODO

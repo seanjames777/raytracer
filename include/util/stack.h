@@ -60,7 +60,7 @@ public:
      * @brief Add a stack frame to the top of the stack, allocating more memory if needed. Returns
      * the newly allocated frame.
      */
-    void push(T elem) {
+    inline void push(T elem) {
         // Note: this rarely happens, so the branch predictor should be happy
         if (_size == _capacity) {
             // Double for amortized constant cost. In reality, we probably won't even need to
