@@ -42,8 +42,9 @@ private:
     // to go while building the tree, and we need more storage space closer to the
     // leaves.
     util::queue<KDBuilderQueueNode *> node_queue;
-	std::mutex queue_lock;
-	std::atomic_int outstanding_nodes;
+	std::mutex                        queue_lock;
+	std::atomic_int                   outstanding_nodes;
+    std::condition_variable           queue_has_work;
 
 	// TODO
 	void worker_thread();

@@ -148,23 +148,41 @@ void KDBuilder::worker_thread() {
 
     util::queue<KDBuilderQueueNode *> local_queue;
 
-	while (outstanding_nodes > 0) {
+	while (true) {
         int local_count = 0;
 
         queue_lock.lock();
 
+        // If there are no more nodes to process, then we will never have more
+        // work to do.
+        if (outstanding_nodes == 0) {
+            queue_lock.unlock();
+            break;
+        }
+
+        // If the queue is empty, sleep until it isn't. We wake up with the lock again.
+        // TODO use condition variable to do this.
+
+        // The queue may now have work, but if another thread woke up first and consumed all of it,
+        // then we will just loop around and go back to sleep.
+
         // TODO: Arbitary constant
-        // Collect nodes from the queue until we have enough to reduce locking
-        // overhead.
+        // Collect a batch of nodes of a reasonable size. This reduces locking overhead. The batch
+        // should be big enough to avoid overhead of tiny nodes, but small enough to ensure that
+        // other threads can do work in parallel.
         while (!node_queue.empty() && local_count < 20000) {
             KDBuilderQueueNode *node = node_queue.dequeue();
             local_queue.enqueue(node);
             local_count += node->triangles.size();
         }
 
-        // TODO: back off or sleep until nodes are available
+        // TODO: Instead of waking up everybody, it may be better to wake up another thread if there
+        // is more in the queue. We'd probably have to know how many threads are waiting.
 
         queue_lock.unlock();
+
+        // Process the batch we collected. When we're done, go back to either
+        // immediately grab another batch or go to sleep.
 
         while (!local_queue.empty()) {
             KDBuilderQueueNode *node = local_queue.dequeue();
