@@ -72,7 +72,8 @@ protected:
 	 * the client. This function is run on its own thread. When it returns,
 	 * the connection with the client will be closed. To signal that the
 	 * server should shut down, call setShouldShutDown(). If an error
-	 * occurs, the function should return.
+	 * occurs, the function should return. The client should return as soon as
+     * possible if shouldShutDown() becomes true.
 	 *
 	 * @param[in] clifd Client socket
 	 */
@@ -89,6 +90,11 @@ public:
 	 * @brief Destructor
 	 */
 	~Server();
+
+    /**
+     * @brief Get whether the server should shut down
+     */
+    bool shouldShutDown();
 
     /**
      * @brief Notify the server that it should stop accepting new

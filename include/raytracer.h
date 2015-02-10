@@ -42,6 +42,7 @@ private:
     int nBlocks;
     int nBlocksW;
     int nBlocksH;
+    bool should_shutdown;
 
     /** @brief Worker threads */
     std::vector<std::thread> workers;
@@ -76,7 +77,7 @@ private:
         // Allocate a reusable KD traversal stack for each thread
         util::stack<KDStackFrame> kdStack;
 
-        while(true) {
+        while(!should_shutdown) {
             int blockID = currBlockID++;
 
             if (blockID >= nBlocks)
@@ -199,6 +200,8 @@ public:
      * @brief Render the scene into the scene's output image
      */
     void render() {
+        should_shutdown = false;
+
         KDSAHBuilder builder;
         //KDMedianBuilder builder;
         tree = builder.build(scene->triangles);
@@ -227,6 +230,8 @@ public:
     }
 
     void shutdown() {
+        should_shutdown = true;
+
         for (auto& worker : workers)
             worker.join();
 
@@ -284,7 +289,7 @@ public:
         int nSamples = sqrtNSamples * sqrtNSamples;
 
         vec3 samples[MAX_AO_SAMPLES]; // TODO
-        randHemisphereCos(normal, samples, sqrtNSamples);
+        randHemisphereCos(normal, samples, sqrtNSamples, 1.0f);
 
         for (int i = 0; i < nSamples; i++) {
             Ray occl_ray(origin, samples[i]);
@@ -326,6 +331,38 @@ public:
 
         return color;
     }*/
+
+    vec3 getGlossyReflection(util::stack<KDStackFrame> & kdStack, const vec3 & origin, const vec3 & normal,
+        const vec3 & refDirection, int depth)
+    {
+        #define GLOSSY_SAMPLES 1
+
+        if (depth >= 2)
+            return getEnvironment(reflect(refDirection, normal));
+
+        vec3 samples[GLOSSY_SAMPLES * GLOSSY_SAMPLES];
+        randHemisphereCos(normal, samples, GLOSSY_SAMPLES, 0.02f);
+
+        float sampleWeight = 1.0f / (float)(GLOSSY_SAMPLES * GLOSSY_SAMPLES);
+
+        vec3 env;
+
+        for (int i = 0; i < GLOSSY_SAMPLES * GLOSSY_SAMPLES; i++) {
+            vec3 reflDir = reflect(refDirection, samples[i]);
+
+            Ray ind_ray(origin + normal * .001f, reflDir);
+            Collision ind_result;
+
+            if (tree->intersect(kdStack, ind_ray, ind_result, 5.0f, true))
+                env += shade(kdStack, ind_ray, &ind_result, depth + 1);
+
+            //env += getEnvironment(reflDir);
+        }
+
+        env *= sampleWeight;
+
+        return env;
+    }
 
     /**
      * @brief Sample the environment map, if there is one. Otherwise, returns the background

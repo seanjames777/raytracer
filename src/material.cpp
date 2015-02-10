@@ -58,7 +58,10 @@ vec3 PhongMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, 
 
     vec3 offset_origin = interp.position + triangle->normal * .001f;
 
-    vec3 tex_diffuse = diffuse_sampler->sample(diffuse_texture.get(), interp.uv).xyz();
+    vec3 tex_diffuse;
+
+    if (diffuse_texture != nullptr)
+        diffuse_sampler->sample(diffuse_texture.get(), interp.uv).xyz();
 
     for (auto it = scene->lights.begin(); it != scene->lights.end(); it++) {
         Light *light = *it;
@@ -92,7 +95,14 @@ vec3 PBRMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Co
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
-    vec3 env = raytracer->getEnvironmentReflection(ray.direction, interp.normal);
+    //vec3 env = raytracer->getGlossyReflection(kdStack, interp.position, interp.normal, ray.direction, depth);
+    vec3 env = raytracer->getAmbientOcclusion(kdStack,
+        interp.position + triangle->normal * .001f, triangle->normal);
+
+    // TODO: preallocate upper bound for samples system wide or something
+    // TODO: why cosine weighted. go do BRDF math.
+    // TODO: maybe interpolate less. there's a cheap way to get position
+    // TODO: move shading logic out of the core raytracer
 
     return env;
 }

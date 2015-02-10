@@ -111,6 +111,8 @@ SetupTriangle::SetupTriangle(const Triangle & triangle)
     n_v = n.v[v];
     n_d = dot(v1, n);
 
+    // TODO: inv_denom
+
     float denom = b.v[u] * c.v[v] - b.v[v] * c.v[u];
     b_nu = -b.v[v] / denom;
     b_nv =  b.v[u] / denom;

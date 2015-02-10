@@ -184,7 +184,7 @@ public:
 		// TODO: send an acknowledgement?
 		// TODO: shutdown vs disconnect
 
-		while (true) {
+		while (!shouldShutDown()) {
 			RequestHeader header;
 
 			if (!read_buff(clifd, (char *)&header, sizeof(header))) {
@@ -213,14 +213,16 @@ public:
 
 				break;
 			case SHUTDOWN:
-                handleShutdown();
 				setShouldShutDown();
-				return;
+				break;
 			default:
-				handleShutdown();
-				return;
+                printf("Invalid request\n");
+                setShouldShutDown();
+				break;
 			}
 		}
+
+        handleShutdown();
 	}
 
 };

@@ -26,8 +26,8 @@ const char *ps_source =
     "uniform sampler2D textureSampler;\n"
     "void main() {\n"
     "    out_color = texture(textureSampler, var_uv);\n"
-    "    out_color.rgb *= 2.0;\n"
-    "    out_color.rgb = out_color.rgb / (1.0 + out_color.rgb);\n"
+    "    // out_color.rgb *= 2.0;\n"
+    "    // out_color.rgb = out_color.rgb / (1.0 + out_color.rgb);\n"
     "    out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
     "}\n";
 

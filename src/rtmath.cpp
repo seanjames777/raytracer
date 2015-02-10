@@ -43,39 +43,51 @@ vec2 randCircle(float rad) {
     return vec2(r * cosf(t), r * sinf(t));
 }
 
-void randHemisphereCos(vec3 norm, vec3 *samples, int sqrtSamples) {
-    float sampleRange = 1.0f / sqrtSamples;
+void randHemisphereCos(vec3 norm, vec3 *samples, int sqrtSamples, float radiusScale) {
+    // TODO: check jittering
+    // TODO: maybe could use an approximate sin/cos?
+    // TODO: port to shiny c++ random thing
+    // TODO: generalize all this
+    // TODO: inlining
+    // TODO: check math
+    // TODO: might be possible to output a denominator or something instead of
+    //       doing math per sample
+    // TODO: maybe could use a random table or something
+    // TODO: drop some normalize() calls
+    // TODO: radiusScale is bogus
+
+    float sampleRange = 1.0f / (sqrtSamples - 1);
 
     int idx = 0;
 
-    for (int i = 0; i < sqrtSamples; i++) {
-        for (int j = 0; j < sqrtSamples; j++) {
-            float min1 = sampleRange * i;
-            float max1 = min1 + sampleRange;
+    // TODO: find something better
+    vec3 forward = normalize(vec3(0.1f, 0.3f, 0.35f));
 
+    if (abs(dot(norm, forward)) == 1.0f)
+        forward = vec3(0, -1, 0);
+
+    vec3 right = normalize(cross(forward, norm));
+    forward = normalize(cross(norm, right));
+
+    for (int i = 0; i < sqrtSamples; i++) {
+        float min1 = sampleRange * i;
+        float max1 = min1 + sampleRange;
+
+        for (int j = 0; j < sqrtSamples; j++) {
             float min2 = sampleRange * j;
             float max2 = min2 + sampleRange;
 
-            float u1 = (randf(0.0f, 1.0f) * (max1 - min1) + min1);
-            float u2 = (randf(0.0f, 1.0f) * (max2 - min2) + min2);
+            float u1 = (randf(0.0f, 1.0f) * sampleRange + min1);
+            float u2 = (randf(0.0f, 1.0f) * sampleRange + min2);
 
-            float theta = u2 * 2.0f * (float)M_PI;
-            float r = sqrtf(u1);
+            float c1 = u2 * 2.0f * (float)M_PI;
+            float c2 = sqrtf(1.0f - u1);
 
-            // TODO: find something better
-            vec3 forward = normalize(vec3(0.1f, 0.3f, 0.35f));
+            vec3 n = right   * cosf(c1) * c2 * radiusScale +
+                     norm    * u1 +
+                     forward * sinf(c1) * c2 * radiusScale;
 
-            if (abs(dot(norm, forward)) == 1.0f)
-                forward = vec3(0, -1, 0);
-
-            vec3 right = normalize(cross(forward, norm));
-            forward = normalize(cross(norm, right));
-
-            vec3 n = right * r * cosf(theta) +
-                norm * sqrtf(1.0f - u1) +
-                forward * r * sinf(theta);
-
-            samples[idx++] = n;
+            samples[idx++] = normalize(n);
         }
     }
 }

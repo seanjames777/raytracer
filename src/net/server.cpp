@@ -181,8 +181,22 @@ void Server::handle_client_worker_thread(socket_t clifd) {
     num_connections--;
 }
 
+bool Server::shouldShutDown() {
+    return should_shutdown;
+}
+
 void Server::setShouldShutDown() {
+    if (should_shutdown)
+        return;
+
+    printf("Received the kill signal thing\n");
+
     // TODO: Find a way to kill the accept()
+
+    shutdown(sockfd, SHUT_RD);
+
+    char buffer[32];
+    while (recv(sockfd, buffer, sizeof(buffer), 0) > 0) {}
 
     should_shutdown = true;
 }

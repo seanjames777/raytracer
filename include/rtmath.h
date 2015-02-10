@@ -222,7 +222,7 @@ public:
 
 void randSphere(vec3 *samples, int sqrtSamples);
 vec2 randCircle(float rad);
-void randHemisphereCos(vec3 norm, vec3 *samples, int sqrtSamples);
+void randHemisphereCos(vec3 norm, vec3 *samples, int sqrtSamples, float radiusScale);
 
 // };
 

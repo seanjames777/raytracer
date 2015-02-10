@@ -50,6 +50,7 @@ private:
      * @param entry        Minimum collision distance
      * @param exit         Maximum collision distance
      * @param anyCollision Whether to accept any collision or to find the closest
+     * TODO: anyCollision -> closestCollision. want false to be easy default probably
      */
     bool intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit,
         bool anyCollision);
