@@ -345,10 +345,13 @@ public:
     {
         #define MAX_GLOSSY_SAMPLES 4
 
-        //if (depth >= 0)
-        //    return getEnvironment(reflect(-refDirection, normal));
-
         vec3 reflDir = reflect(-refDirection, normal);
+
+        if (depth > 1) {
+            // TODO: Maybe precompute a convolved environment map to at least match the glossiness,
+            // or do something else entirely.
+            return getEnvironment(reflect(-refDirection, normal));
+        }
 
         int nSamples = MAX_GLOSSY_SAMPLES;
 
@@ -358,7 +361,7 @@ public:
         // TODO: Align samples to normal
 
         randJittered2D(nSamples, jittered_2d);
-        mapSamplesCosHemisphere(nSamples, 500.0f, jittered_2d, glossy_samples);
+        mapSamplesCosHemisphere(nSamples, 1000.0f, jittered_2d, glossy_samples);
         alignHemisphereNormal(nSamples, glossy_samples, reflDir);
 
         float sampleWeight = 1.0f / (float)(nSamples * nSamples);
@@ -368,13 +371,13 @@ public:
         // TODO: We probably want to actually reflect the vector and sample around it
 
         for (int i = 0; i < nSamples * nSamples; i++) {
-            //Ray ind_ray(origin + normal * .001f, glossy_samples[i]);
-            //Collision ind_result;
+            Ray ind_ray(origin + normal * .001f, glossy_samples[i]);
+            Collision ind_result;
 
-            //if (tree->intersect(kdStack, ind_ray, ind_result, 5.0f, true))
-            //    env += shade(kdStack, ind_ray, &ind_result, depth + 1);
-
-            env += getEnvironment(glossy_samples[i]);
+            if (tree->intersect(kdStack, ind_ray, ind_result, 0.0f, false))
+                env += shade(kdStack, ind_ray, &ind_result, depth + 1);
+            else
+                env += getEnvironment(glossy_samples[i]);
         }
 
         env *= sampleWeight;

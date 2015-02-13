@@ -47,9 +47,9 @@ private:
         vec3 translation_v, vec3 rotation_v, vec3 scale_v)
     {
         mat4x4 transform =
-            scale(scale_v.x, scale_v.y, scale_v.z) *
+            translation(translation_v.x, translation_v.y, translation_v.z) *
             yawPitchRoll(rotation_v.y, rotation_v.x, rotation_v.z) *
-            translation(translation_v.x, translation_v.y, translation_v.z);
+            scale(scale_v.x, scale_v.y, scale_v.z);
 
         mat4x4 transformInverseTranspose = transpose(inverse(transform));
 
@@ -77,7 +77,7 @@ public:
 
         //Camera *camera = new Camera(vec3(-80, 25.0f, -80), vec3(0, 5.0f, 0), aspect,
         //    (float)M_PI / 3.4f, 19.25f, 0.0f);
-        Camera *camera = new Camera(vec3(-20.0f, 15.0f, -20.0f), vec3(0.0f, 5.0f, 0.0f), aspect,
+        Camera *camera = new Camera(vec3(-15.0f, 10.0f, -15.0f), vec3(0.0f, 0.0f, 0.0f), aspect,
             (float)M_PI / 3.4f, 19.25f, 0.0f);
 
         output = std::make_shared<Image>(settings.width, settings.height);
@@ -110,13 +110,13 @@ public:
         polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
         FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/sphere.fbx"), polys);
 
-        for (int z = -0; z <= 0; z++) {
-            for (int x = -0; x <= 0; x++) {
+        for (int z = -1; z <= 1; z++) {
+            for (int x = -1; x <= 1; x++) {
                 for (int y = -0; y <= 0; y++) {
                     transformed.clear();
 
                     transform_mesh(polys, transformed,
-                        vec3(x * 20.0f, y * 20.0f + 1.5f, z * 20.0f), vec3(0.0f, (float)M_PI, 0.0f), vec3(3.0f));
+                        vec3(x * 5.0f, y * 3.0f + 1.0f, z * 5.0f), vec3(0.0f, (float)M_PI, 0.0f), vec3(1.0f));
 
                     for (auto & tri : transformed)
                         scene->addPoly(tri, bunny);
