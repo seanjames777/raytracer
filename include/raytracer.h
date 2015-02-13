@@ -18,6 +18,7 @@
 #include <timer.h>
 #include <raytracersettings.h>
 #include <iostream>
+#include <math/sampling.h>
 
 #include <thread>
 #include <atomic>
@@ -285,19 +286,26 @@ public:
     float getAmbientOcclusion(util::stack<KDStackFrame> & kdStack, const vec3 & origin, const vec3 & normal) {
         float occlusion = 1.0f;
 
-        int sqrtNSamples = (int)sqrt(settings.occlusionSamples);
-        int nSamples = sqrtNSamples * sqrtNSamples;
+        int nSamples = settings.occlusionSamples;
 
-        vec3 samples[MAX_AO_SAMPLES]; // TODO
-        randHemisphereCos(normal, samples, sqrtNSamples, 1.0f);
+        vec2 jittered_2d[MAX_AO_SAMPLES * MAX_AO_SAMPLES];
+        vec3 ao_samples[MAX_AO_SAMPLES * MAX_AO_SAMPLES];
+
+        // TODO: Align samples to normal
+
+        randJittered2D(nSamples, jittered_2d);
+        mapSamplesCosHemisphere(nSamples, 1.0f, jittered_2d, ao_samples);
+        alignHemisphereNormal(nSamples, ao_samples, normal);
+
+        float sampleWeight = 1.0f / (nSamples * nSamples);
+        float invMaxDist = 1.0f / settings.occlusionDistance;
 
         for (int i = 0; i < nSamples; i++) {
-            Ray occl_ray(origin, samples[i]);
+            Ray occl_ray(origin, ao_samples[i]);
 
             Collision occl_result;
             if (tree->intersect(kdStack, occl_ray, occl_result, settings.occlusionDistance, true))
-                occlusion -= (1.0f / nSamples) * (1.0f - SATURATE(occl_result.distance /
-                    settings.occlusionDistance));
+                occlusion -= (1.0f - SATURATE(occl_result.distance * invMaxDist)) * sampleWeight;
         }
 
         return occlusion;
@@ -335,28 +343,38 @@ public:
     vec3 getGlossyReflection(util::stack<KDStackFrame> & kdStack, const vec3 & origin, const vec3 & normal,
         const vec3 & refDirection, int depth)
     {
-        #define GLOSSY_SAMPLES 1
+        #define MAX_GLOSSY_SAMPLES 4
 
-        if (depth >= 2)
-            return getEnvironment(reflect(refDirection, normal));
+        //if (depth >= 0)
+        //    return getEnvironment(reflect(-refDirection, normal));
 
-        vec3 samples[GLOSSY_SAMPLES * GLOSSY_SAMPLES];
-        randHemisphereCos(normal, samples, GLOSSY_SAMPLES, 0.02f);
+        vec3 reflDir = reflect(-refDirection, normal);
 
-        float sampleWeight = 1.0f / (float)(GLOSSY_SAMPLES * GLOSSY_SAMPLES);
+        int nSamples = MAX_GLOSSY_SAMPLES;
+
+        vec2 jittered_2d[MAX_GLOSSY_SAMPLES * MAX_GLOSSY_SAMPLES];
+        vec3 glossy_samples[MAX_GLOSSY_SAMPLES * MAX_GLOSSY_SAMPLES];
+
+        // TODO: Align samples to normal
+
+        randJittered2D(nSamples, jittered_2d);
+        mapSamplesCosHemisphere(nSamples, 500.0f, jittered_2d, glossy_samples);
+        alignHemisphereNormal(nSamples, glossy_samples, reflDir);
+
+        float sampleWeight = 1.0f / (float)(nSamples * nSamples);
 
         vec3 env;
 
-        for (int i = 0; i < GLOSSY_SAMPLES * GLOSSY_SAMPLES; i++) {
-            vec3 reflDir = reflect(refDirection, samples[i]);
+        // TODO: We probably want to actually reflect the vector and sample around it
 
-            Ray ind_ray(origin + normal * .001f, reflDir);
-            Collision ind_result;
+        for (int i = 0; i < nSamples * nSamples; i++) {
+            //Ray ind_ray(origin + normal * .001f, glossy_samples[i]);
+            //Collision ind_result;
 
-            if (tree->intersect(kdStack, ind_ray, ind_result, 5.0f, true))
-                env += shade(kdStack, ind_ray, &ind_result, depth + 1);
+            //if (tree->intersect(kdStack, ind_ray, ind_result, 5.0f, true))
+            //    env += shade(kdStack, ind_ray, &ind_result, depth + 1);
 
-            //env += getEnvironment(reflDir);
+            env += getEnvironment(glossy_samples[i]);
         }
 
         env *= sampleWeight;

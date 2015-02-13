@@ -95,9 +95,9 @@ vec3 PBRMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Co
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
-    //vec3 env = raytracer->getGlossyReflection(kdStack, interp.position, interp.normal, ray.direction, depth);
-    vec3 env = raytracer->getAmbientOcclusion(kdStack,
-        interp.position + triangle->normal * .001f, triangle->normal);
+    vec3 env = raytracer->getGlossyReflection(kdStack, interp.position, interp.normal, ray.direction, depth);
+    //vec3 env = raytracer->getAmbientOcclusion(kdStack,
+    //    interp.position + triangle->normal * .001f, triangle->normal);
 
     // TODO: preallocate upper bound for samples system wide or something
     // TODO: why cosine weighted. go do BRDF math.

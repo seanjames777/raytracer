@@ -22,7 +22,7 @@
 #define SIGNF(x) ((x) > 0.0f ? 1.0f : -1.0f)
 #define INFINITY32F ((float)0x7F800000)
 
-// namespace math { // TODO
+// TODO: Break these remianing things out
 
 /**
  * A ray with an origin and a direction
@@ -216,14 +216,5 @@ public:
         return AABB(); // Shouldn't happen
     }
 };
-
-// TODO
-#define randf(min, max) (min + ((float)rand() / (float)RAND_MAX) * (max - min))
-
-void randSphere(vec3 *samples, int sqrtSamples);
-vec2 randCircle(float rad);
-void randHemisphereCos(vec3 norm, vec3 *samples, int sqrtSamples, float radiusScale);
-
-// };
 
 #endif

@@ -40,7 +40,7 @@ private:
         vec4 position = transform * vec4(vertex.position, 1.0f);
         vec4 normal = transformInverseTranspose * vec4(vertex.normal, 0.0f);
 
-        return Vertex(position.xyz(), normal.xyz(), vertex.uv, vertex.color);
+        return Vertex(position.xyz(), normalize(normal.xyz()), vertex.uv, vertex.color);
     }
 
     void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & dst,
@@ -108,7 +108,7 @@ public:
         /*FbxLoader::load(
         PathUtil::prependExecutableDirectory("content/models/box.fbx"),
         polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
-        FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/dragon.fbx"), polys);
+        FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/sphere.fbx"), polys);
 
         for (int z = -0; z <= 0; z++) {
             for (int x = -0; x <= 0; x++) {
@@ -116,7 +116,7 @@ public:
                     transformed.clear();
 
                     transform_mesh(polys, transformed,
-                        vec3(x * 20.0f, y * 20.0f, z * 20.0f), vec3(0.0f, (float)M_PI, 0.0f), vec3(1.0f));
+                        vec3(x * 20.0f, y * 20.0f + 1.5f, z * 20.0f), vec3(0.0f, (float)M_PI, 0.0f), vec3(3.0f));
 
                     for (auto & tri : transformed)
                         scene->addPoly(tri, bunny);

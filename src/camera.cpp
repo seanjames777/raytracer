@@ -5,6 +5,7 @@
  */
 
 #include <camera.h>
+#include <math/sampling.h>
 
 void Camera::refresh() {
     forward = normalize(target - position);
@@ -31,6 +32,8 @@ Camera::Camera(const vec3 position, const vec3 target, float aspect, float fov, 
 }
 
 Ray Camera::getViewRay(float u, float v) {
+    // TODO: Accept lens coordinates
+
     float x = u * 2.0f - 1.0f;
     float y = v * 2.0f - 1.0f;
 
@@ -38,20 +41,9 @@ Ray Camera::getViewRay(float u, float v) {
     vec3 upAmt    = up    * halfHeight * y;
 
     vec3 targ = forward * focus + rightAmt + upAmt;
-    vec3 orig = position;
-
-    if (aperture > 0.0f) {
-        vec2 rCirc = randCircle(aperture);
-
-        orig = right * rCirc.x + up * rCirc.y;
-        targ = targ - orig;
-
-        orig = orig + position;
-    }
-
     targ = normalize(targ);
 
-    return Ray(orig, targ);
+    return Ray(position, targ);
 }
 
 vec3 Camera::getPosition() {

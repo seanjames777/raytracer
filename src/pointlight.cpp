@@ -5,6 +5,7 @@
  */
 
 #include "pointlight.h"
+#include <math/sampling.h>
 
 PointLight::PointLight(vec3 position, vec3 color, float radius, float range, float power,
     bool shadow)
@@ -44,14 +45,8 @@ void PointLight::getShadowDir(const vec3 & at, vec3 *samples, int nSamples) {
         return;
     }
 
-    int sqrtNSamples = (int)sqrt(nSamples);
-    nSamples = sqrtNSamples * sqrtNSamples;
+    rand3D(nSamples, samples);
 
-    vec3 sphere[MAX_SHADOW_SAMPLES];
-    randSphere(sphere, sqrtNSamples);
-
-    for (int i = 0; i < nSamples; i++) {
-        vec3 dir = (sphere[i] * radius + position) - at;
-        samples[i] = dir;
-    }
+    for (int i = 0; i < nSamples; i++)
+        samples[i] = radius * samples[i] + position - at;
 }

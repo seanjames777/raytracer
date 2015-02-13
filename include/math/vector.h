@@ -588,8 +588,8 @@ inline vector<T, 3, SIMD> cross(const vector<T, 3, SIMD> & lhs, const vector<T, 
  * Reflect this vector across a normal vector. TODO.
  */
 template<typename T, bool SIMD>
-inline vector<T, 3, SIMD> reflect(const vector<T, 3, SIMD> & vec, const vector<T, 3, SIMD> & across) {
-    return vec + across * (-2 * dot(vec, across));
+inline vector<T, 3, SIMD> reflect(const vector<T, 3, SIMD> & vec, const vector<T, 3, SIMD> & norm) {
+    return 2.0f * dot(vec, norm) * norm - vec;
 }
 
 /**
