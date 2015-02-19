@@ -11,7 +11,6 @@
 
 #include <net/net.h>
 
-// TODO: Handle attempts to connect multiple times, etc.
 // TODO: Move net.h, namespacing, call these NetTCPClient or something
 
 /**
@@ -25,13 +24,14 @@ private:
 	/**
 	 * @brief Connect client to server
 	 *
-	 * @param[in] host        Host name to connect to
-	 * @param[in] port        Host port to connect to
-	 * @param[out] sockfd_out On success, connection socket
+	 * @param[in]  host         Host name to connect to
+	 * @param[in]  port         Host port to connect to
+	 * @param[out] sockfd_out   On success, connection socket
+     * @param[in]  max_attempts Maximum number of times to attempt to connect
 	 *
 	 * @return True on success, or false on error
 	 */
-	bool connect_client(std::string host, int port, socket_t *sockfd_out);
+	bool connect_client(std::string host, int port, socket_t *sockfd_out, int max_attempts);
 
 	/**
 	 * @brief Disconnect the client from the server
@@ -63,12 +63,13 @@ public:
 	 * @brief Connect to a server. This may be called multiple times, but only
 	 * from one thread at a time.
 	 *
-	 * @param[in] host Host address
-	 * @param[in] port Host port
+	 * @param[in] host         Host address
+	 * @param[in] port         Host port
+     * @param[in] max_attempts Maximum number of times to attempt to connect
 	 *
 	 * @return True on success, or false on error
 	 */
-	bool connect_to_server(std::string host, int port);
+	bool connect_to_server(std::string host, int port, int max_attempts);
 
 	/**
 	 * @brief Close the connectio to the server

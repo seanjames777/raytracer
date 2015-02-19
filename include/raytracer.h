@@ -298,9 +298,9 @@ public:
         alignHemisphereNormal(nSamples, ao_samples, normal);
 
         float sampleWeight = 1.0f / (nSamples * nSamples);
-        float invMaxDist = 1.0f / settings.occlusionDistance;
+        float invMaxDist = 1.0f / settings.occlusionDistance; // tODO precalculate these kinds of things
 
-        for (int i = 0; i < nSamples; i++) {
+        for (int i = 0; i < nSamples * nSamples; i++) {
             Ray occl_ray(origin, ao_samples[i]);
 
             Collision occl_result;
@@ -343,7 +343,9 @@ public:
     vec3 getGlossyReflection(util::stack<KDStackFrame> & kdStack, const vec3 & origin, const vec3 & normal,
         const vec3 & refDirection, int depth)
     {
-        #define MAX_GLOSSY_SAMPLES 4
+        #define MAX_GLOSSY_SAMPLES 4 // TODO
+
+        // TODO: Handle reflection samples that fall back into object at grazing angles
 
         vec3 reflDir = reflect(-refDirection, normal);
 
@@ -358,17 +360,13 @@ public:
         vec2 jittered_2d[MAX_GLOSSY_SAMPLES * MAX_GLOSSY_SAMPLES];
         vec3 glossy_samples[MAX_GLOSSY_SAMPLES * MAX_GLOSSY_SAMPLES];
 
-        // TODO: Align samples to normal
-
         randJittered2D(nSamples, jittered_2d);
-        mapSamplesCosHemisphere(nSamples, 1000.0f, jittered_2d, glossy_samples);
+        mapSamplesCosHemisphere(nSamples, 500.0f, jittered_2d, glossy_samples);
         alignHemisphereNormal(nSamples, glossy_samples, reflDir);
 
         float sampleWeight = 1.0f / (float)(nSamples * nSamples);
 
         vec3 env;
-
-        // TODO: We probably want to actually reflect the vector and sample around it
 
         for (int i = 0; i < nSamples * nSamples; i++) {
             Ray ind_ray(origin + normal * .001f, glossy_samples[i]);

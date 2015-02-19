@@ -69,15 +69,15 @@ public:
         settings.width = 1920;
         settings.height = 1080;
         settings.pixelSamples = 4;
-        settings.occlusionSamples = 4;
-        settings.occlusionDistance = 5.0f;
+        settings.occlusionSamples = 5;
+        settings.occlusionDistance = 4.0f;
         settings.shadowSamples = 4;
 
         float aspect = (float)settings.width / (float)settings.height;
 
         //Camera *camera = new Camera(vec3(-80, 25.0f, -80), vec3(0, 5.0f, 0), aspect,
         //    (float)M_PI / 3.4f, 19.25f, 0.0f);
-        Camera *camera = new Camera(vec3(-15.0f, 10.0f, -15.0f), vec3(0.0f, 0.0f, 0.0f), aspect,
+        Camera *camera = new Camera(vec3(-15.0f, 10.0f, -15.0f), vec3(0.0f, 3.0f, 0.0f), aspect,
             (float)M_PI / 3.4f, 19.25f, 0.0f);
 
         output = std::make_shared<Image>(settings.width, settings.height);
@@ -108,21 +108,25 @@ public:
         /*FbxLoader::load(
         PathUtil::prependExecutableDirectory("content/models/box.fbx"),
         polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
-        FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/sphere.fbx"), polys);
+        /*FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/sphere.fbx"), polys);
 
         for (int z = -1; z <= 1; z++) {
             for (int x = -1; x <= 1; x++) {
-                for (int y = -0; y <= 0; y++) {
-                    transformed.clear();
-
-                    transform_mesh(polys, transformed,
-                        vec3(x * 5.0f, y * 3.0f + 1.0f, z * 5.0f), vec3(0.0f, (float)M_PI, 0.0f), vec3(1.0f));
-
-                    for (auto & tri : transformed)
-                        scene->addPoly(tri, bunny);
-                }
+                transformed.clear();
+                transform_mesh(polys, transformed,
+                    vec3(x * 5.0f, 1.0f, z * 5.0f), vec3(0.0f), vec3(1.0f));
+                for (auto & tri : transformed)
+                    scene->addPoly(tri, bunny);
             }
-        }
+        }*/
+
+        FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/dragon.fbx"), polys);
+
+        transformed.clear();
+        transform_mesh(polys, transformed, vec3(0.0f), vec3(0.0f), vec3(0.75f));
+
+        for (auto & tri : transformed)
+            scene->addPoly(tri, bunny);
 
         polys.clear();
         transformed.clear();

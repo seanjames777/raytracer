@@ -12,7 +12,7 @@ Client::Client() {
 Client::~Client() {
 }
 
-bool Client::connect_client(std::string host, int port, socket_t *sockfd_out) {
+bool Client::connect_client(std::string host, int port, socket_t *sockfd_out, int max_attempts) {
 #ifdef _WIN32
     WSADATA wsaData;
     SOCKET sockfd;
@@ -43,26 +43,33 @@ bool Client::connect_client(std::string host, int port, socket_t *sockfd_out) {
         return false;
     }
 
-    // Try to connect to addresses until one succeeds
-    for (struct addrinfo *ptr = result; ptr != NULL; ptr = ptr->ai_next) {
-        // Create a socket
-        sockfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+    for (int i = 0; i < max_attempts; i++) {
+        // Try to connect to addresses until one succeeds
+        for (struct addrinfo *ptr = result; ptr != NULL; ptr = ptr->ai_next) {
+            // Create a socket
+            sockfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 
-        if (sockfd == INVALID_SOCKET) {
-            printf("Failed to create socket\n");
-            freeaddrinfo(result);
-            WSACleanup();
-            return false;
+            if (sockfd == INVALID_SOCKET) {
+                printf("Failed to create socket\n");
+                freeaddrinfo(result);
+                WSACleanup();
+                return false;
+            }
+
+            // Try to connect to server
+            if (connect(sockfd, ptr->ai_addr, (int)ptr->ai_addrlen) == SOCKET_ERROR) {
+                closesocket(sockfd);
+                sockfd = INVALID_SOCKET;
+                continue;
+            }
+
+            break;
         }
 
-        // Try to connect to server
-        if (connect(sockfd, ptr->ai_addr, (int)ptr->ai_addrlen) == SOCKET_ERROR) {
-            closesocket(sockfd);
-            sockfd = INVALID_SOCKET;
-            continue;
-        }
-
-        break;
+        if (sockfd == INVALID_SOCKET)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        else
+            break;
     }
 
     freeaddrinfo(result);
@@ -94,7 +101,7 @@ bool Client::connect_client(std::string host, int port, socket_t *sockfd_out) {
     bool connected = false;
     int attempts = 0;
 
-    while (!connected && attempts++ < 15) {
+    while (!connected && attempts++ < max_attempts) {
         if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             printf("Error creating socket\n");
             return false;
@@ -137,8 +144,8 @@ socket_t Client::getSocket() {
     return sockfd;
 }
 
-bool Client::connect_to_server(std::string host, int port) {
-    return connect_client(host, port, &sockfd);
+bool Client::connect_to_server(std::string host, int port, int max_attempts) {
+    return connect_client(host, port, &sockfd, max_attempts);
 }
 
 void Client::disconnect_from_server() {

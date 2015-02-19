@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
     RTProtocolConnection conn;
 
-	if (!conn.connect_to_server(worker, port)) {
+	if (!conn.connect_to_server(worker, port, 15)) {
 		printf("Connect to server failed\n");
 		exit(-1);
 	}
