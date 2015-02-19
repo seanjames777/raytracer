@@ -173,7 +173,7 @@ void KDBuilder::worker_thread() {
         while (!node_queue.empty() && local_count < 20000) {
             KDBuilderQueueNode *node = node_queue.dequeue();
             local_queue.enqueue(node);
-            local_count += node->triangles.size();
+            local_count += (int)node->triangles.size(); // TODO int
         }
 
         // TODO: Instead of waking up everybody, it may be better to wake up another thread if there
@@ -246,8 +246,8 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 	// TODO: start worker threads
 	// TODO: join worker threads
 
-    float elapsed = timer.getElapsedMilliseconds() / 1000.0;
-    float cpu     = timer.getCPUTime() / 1000.0;
+    double elapsed = timer.getElapsedMilliseconds() / 1000.0;
+    double cpu     = timer.getCPUTime() / 1000.0;
 
     printf("Done: %f seconds (total), %f seconds (CPU), speedup: %.02f\n",
         elapsed, cpu, cpu / elapsed);

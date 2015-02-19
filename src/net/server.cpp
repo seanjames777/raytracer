@@ -186,18 +186,7 @@ bool Server::shouldShutDown() {
 }
 
 void Server::setShouldShutDown() {
-    if (should_shutdown)
-        return;
-
-    printf("Received the kill signal thing\n");
-
     // TODO: Find a way to kill the accept()
-
-    shutdown(sockfd, SHUT_RD);
-
-    char buffer[32];
-    while (recv(sockfd, buffer, sizeof(buffer), 0) > 0) {}
-
     should_shutdown = true;
 }
 

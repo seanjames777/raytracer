@@ -44,7 +44,6 @@ private:
     util::queue<KDBuilderQueueNode *> node_queue;
 	std::mutex                        queue_lock;
 	std::atomic_int                   outstanding_nodes;
-    std::condition_variable           queue_has_work;
 
 	// TODO
 	void worker_thread();
