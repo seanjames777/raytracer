@@ -9,8 +9,8 @@
 #ifndef _IMAGE_H
 #define _IMAGE_H
 
-#include <rtmath.h>
 #include <string>
+#include <math/vector.h>
 #include <iostream> // TODO
 
 // TODO: inline functions

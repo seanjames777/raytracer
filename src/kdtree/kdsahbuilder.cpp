@@ -6,6 +6,7 @@
 
 #include <kdtree/kdsahbuilder.h>
 #include <algorithm>
+#include <math/macro.h>
 #include <iostream> // TODO
 
 KDSAHBuilder::KDSAHBuilder() {
@@ -101,13 +102,13 @@ bool KDSAHBuilder::splitNode(
     int num_events = 0;
 
     // We want to find the plane which minimizes the "surface area heuristic"
-    int             min_dir        = -1;          // Split direction
-    float           min_dist       = 0.0f;        // Split location
-	float           min_cost       = INFINITY32F; // Split cost
-    enum PlanarMode min_planarMode = PLANAR_LEFT; // How to handle planar triangles
+    int             min_dir        = -1;                                     // Split direction
+    float           min_dist       = 0.0f;                                   // Split location
+	float           min_cost       = std::numeric_limits<float>::infinity(); // Split cost
+    enum PlanarMode min_planarMode = PLANAR_LEFT;                            // How to handle planar triangles
 
     // Heuristic constants
-    static const float k_t = 1.0f;  // Cost of traversing a KD node
+    static const float k_t = 1.0f; // Cost of traversing a KD node
     static const float k_i = 1.0f; // Cost of intersecting a triangle
 
     // Surface area of parent voxel
@@ -118,15 +119,15 @@ bool KDSAHBuilder::splitNode(
         num_events = 0;
 
         // Min and max of parent node along this axis
-		float min = bounds._min.v[axis];
-		float max = bounds._max.v[axis];
+		float min = bounds.min.v[axis];
+		float max = bounds.max.v[axis];
 
         // Insert start/stop/planar locations of each triangle, clamped to the bounds of the parent
         // box. We assume we won't see triangles fully outside the parent node.
         for (auto tri : triangles) {
             // Triangle bounding box
-			float tri_min = tri->bbox._min.v[axis];
-			float tri_max = tri->bbox._max.v[axis];
+			float tri_min = tri->bbox.min.v[axis];
+			float tri_max = tri->bbox.max.v[axis];
 
             // Clip triangle bounding box to voxel bounding box
             tri_min = tri_min < min ? min : tri_min;

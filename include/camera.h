@@ -9,7 +9,7 @@
 #ifndef _CAMERA_H
 #define _CAMERA_H
 
-#include <rtmath.h>
+#include <math/ray.h>
 
 /*
  * @brief Generic camera class that supports simple perspective projection

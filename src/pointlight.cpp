@@ -6,6 +6,7 @@
 
 #include "pointlight.h"
 #include <math/sampling.h>
+#include <math/macro.h>
 
 PointLight::PointLight(vec3 position, vec3 color, float radius, float range, float power,
     bool shadow)
@@ -28,7 +29,7 @@ vec3 PointLight::getColor(const vec3 & pos) {
     vec3 diff = pos - position;
     float dist2 = length2(diff);
 
-    float falloff = 1.0f - SATURATE(dist2 / range2);
+    float falloff = 1.0f - saturate(dist2 / range2);
     falloff = powf(falloff, power);
 
     return color * falloff;

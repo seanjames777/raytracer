@@ -1,5 +1,5 @@
 /**
- * @file sampling.h
+ * @file math/sampling.h
  *
  * @brief Helper functions for generating random samples with various distributions and combining
  * samples with various filters.

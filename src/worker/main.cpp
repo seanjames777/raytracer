@@ -15,6 +15,7 @@
 #include <bmpimage.h>
 #include <string.h>
 #include <net/protocol.h>
+#include <math/matrix.h>
 
 // Arguments
 int port = 7878;

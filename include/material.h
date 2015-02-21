@@ -10,7 +10,6 @@
 #ifndef _MATERIAL_H
 #define _MATERIAL_H
 
-#include <rtmath.h>
 #include <light.h>
 #include <polygon.h>
 #include <image.h>

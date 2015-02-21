@@ -1,5 +1,5 @@
 /**
- * @file matrix.h
+ * @file math/matrix.h
  *
  * @brief Matrix type
  *

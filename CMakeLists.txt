@@ -34,7 +34,6 @@ add_library(rt
 	src/pointlight.cpp
 	src/directionallight.cpp
 	src/polygon.cpp
-	src/rtmath.cpp
 	src/material.cpp
 	src/scene.cpp
 	src/image.cpp
@@ -71,7 +70,6 @@ add_library(rt
 	include/polygon.h
 	include/raytracer.h
 	include/raytracersettings.h
-	include/rtmath.h
 	include/scene.h
 	include/timer.h
 	include/net/protocol.h

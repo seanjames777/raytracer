@@ -11,14 +11,14 @@
 #include <net/protocol.h>
 
 // Arguments
-bool  display = false;
+bool  display = true;
 char *worker  = "localhost";
 int   port    = 7878;
 
 void parseArgs(int argc, char *argv[]) {
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-display") == 0)
-            display = true;
+        if (strcmp(argv[i], "-nodisplay") == 0)
+            display = false;
         // Note: Only support one worker for now
         else if (strcmp(argv[i], "-worker") == 0) {
             worker = argv[++i];

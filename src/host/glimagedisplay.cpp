@@ -7,6 +7,7 @@
 #include <host/glimagedisplay.h>
 #include <iostream>
 #include <cassert>
+#include <vector>
 
 const char *vs_source =
     "#version 330 core\n"
@@ -42,13 +43,18 @@ vector<float, 2, false> vertices[6] = {
     vector<float, 2, false>(1, -1)
 };
 
+void glfw_error_callback(int error, const char *msg) {
+    printf("GLFW Error (%d): %s\n", error, msg);
+}
+
 void GLImageDisplay::worker_thread() {
+    // TODO: may be initialized alread
     if (!glfwInit()) {
         std::cout << "Error initializing glfw" << std::endl;
-        exit(-1);
+        return; // TODO. Also, other error handling doesn't clean up.
     }
 
-    pixels = new float[image->getWidth() * image->getHeight() * 4]; // TODO delete
+    glfwSetErrorCallback(glfw_error_callback);
 
     glfwWindowHint(GLFW_SAMPLES, 1);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -58,8 +64,10 @@ void GLImageDisplay::worker_thread() {
 
     if (!(window = glfwCreateWindow(width, height, "Window", NULL, NULL))) {
         printf("Error opening glfw window\n");
-        exit(0);
+        return;
     }
+
+    pixels = new float[image->getWidth() * image->getHeight() * 4]; // TODO delete
 
     glfwMakeContextCurrent(window);
 
@@ -155,6 +163,7 @@ void GLImageDisplay::worker_thread() {
 
     while (display && !glfwWindowShouldClose(window)) {
         refresh();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     glfwDestroyWindow(window);

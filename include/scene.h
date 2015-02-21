@@ -14,6 +14,7 @@
 #include <camera.h>
 #include <image.h>
 #include <material.h>
+#include <vector>
 
 /**
  * @brief Scene structure, which tracks the polygons, lights, etc. in a scene

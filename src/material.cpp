@@ -70,12 +70,12 @@ vec3 PhongMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, 
         vec3 lcolor =  light->getColor(interp.position);
         vec3  ldir  = -light->getDirection(interp.position);
 
-        float ndotl =  SATURATE(dot(interp.normal, ldir));
+        float ndotl =  saturate(dot(interp.normal, ldir));
 
         vec3  view  =  ray.direction;
         vec3  ref   =  reflect(ldir, interp.normal);
 
-        float rdotv =  SATURATE(dot(ref, view));
+        float rdotv =  saturate(dot(ref, view));
         float specf =  powf(rdotv, specularPower);
         vec3 spec  =  specular * specf;
 

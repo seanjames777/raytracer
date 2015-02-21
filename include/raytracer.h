@@ -9,7 +9,6 @@
 #ifndef _RAYTRACER_H
 #define _RAYTRACER_H
 
-#include <rtmath.h>
 #include <scene.h>
 #include <image.h>
 #include <kdtree/kdtree.h>
@@ -19,6 +18,7 @@
 #include <raytracersettings.h>
 #include <iostream>
 #include <math/sampling.h>
+#include <math/macro.h>
 
 #include <thread>
 #include <atomic>
@@ -111,10 +111,9 @@ private:
 
                             Ray r = scene->camera->getViewRay(u, v);
 
-                            Collision result;
-                            result.distance = INFINITY32F;
-
                             vec3 sampleColor = getEnvironment(r.direction);
+
+                            Collision result;
 
                             if (tree->intersect(kdStack, r, result, 0.0f, false))
                                 sampleColor = shade(kdStack, r, &result, 1);
@@ -305,7 +304,7 @@ public:
 
             Collision occl_result;
             if (tree->intersect(kdStack, occl_ray, occl_result, settings.occlusionDistance, true))
-                occlusion -= (1.0f - SATURATE(occl_result.distance * invMaxDist)) * sampleWeight;
+                occlusion -= (1.0f - saturate(occl_result.distance * invMaxDist)) * sampleWeight;
         }
 
         return occlusion;
@@ -334,7 +333,7 @@ public:
             Collision ind_result;
             if (tree->intersect(ind_ray, &ind_result, 50.0f, false))
                 color += shade(ind_ray, &ind_result, depth + 1) * (1.0f / nSamples) *
-                    (1.0f - SATURATE(ind_result.distance / 50.0f));
+                    (1.0f - saturate(ind_result.distance / 50.0f));
         }
 
         return color;

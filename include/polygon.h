@@ -9,7 +9,7 @@
 #ifndef _POLYGON_H
 #define _POLYGON_H
 
-#include <rtmath.h>
+#include <math/aabb.h>
 
 //#define USE_SIMD_INTERSECTION
 

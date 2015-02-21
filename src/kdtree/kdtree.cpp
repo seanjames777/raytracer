@@ -104,7 +104,7 @@ bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Colli
 
         // Again, nothing will be closer so we're done
         if (intersectLeaf(currentNode, ray, result, entry, maxDepth > 0.0f ?
-            MIN2(maxDepth, exit) : exit, anyCollision))
+            fminf(maxDepth, exit) : exit, anyCollision))
         {
             stack.clear();
             return true;

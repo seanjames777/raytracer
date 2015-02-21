@@ -9,7 +9,6 @@
 #ifndef _KDNODE_H
 #define _KDNODE_H
 
-#include <rtmath.h>
 #include <polygon.h>
 
 enum KDNodeFlags {

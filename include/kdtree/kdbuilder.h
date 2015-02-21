@@ -14,6 +14,7 @@
 #include <mutex>
 #include <atomic>
 #include <thread>
+#include <vector>
 
 // How to handle triangles that lie in the plane
 enum PlanarMode {

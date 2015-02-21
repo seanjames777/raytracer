@@ -9,7 +9,7 @@
 #ifndef _LIGHT_H
 #define _LIGHT_H
 
-#include <rtmath.h>
+#include <math/vector.h>
 #include <raytracersettings.h>
 
 /**

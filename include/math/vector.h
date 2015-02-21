@@ -1,5 +1,5 @@
 /**
- * @file vector.h
+ * @file math/vector.h
  *
  * @brief Vector type
  *
