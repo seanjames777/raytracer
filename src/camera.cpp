@@ -15,6 +15,8 @@ void Camera::refresh() {
     right = normalize(-cross(forward, gup));
     up = normalize(cross(right, forward));
 
+    // TODO: Handle pointing along axes
+
     halfWidth  = tanf(fov / 2.0f) * focus;
     halfHeight = halfWidth / aspect;
 }
@@ -31,11 +33,25 @@ Camera::Camera(const vec3 position, const vec3 target, float aspect, float fov, 
     refresh();
 }
 
-Ray Camera::getViewRay(float u, float v) {
-    // TODO: Accept lens coordinates
+bool Camera::getSamples(int nSamples, vec2 *samples, const vec2 & min, const vec2 & max) {
+    // TODO: Make sure samples align with pixel grid in a nice way
 
-    float x = u * 2.0f - 1.0f;
-    float y = v * 2.0f - 1.0f;
+    if (aperture == 0.0f) {
+        samples[0] = (min + max) * 0.5f;
+        return false;
+    }
+
+    randJittered2D(nSamples, samples);
+    mapSamplesDisk(nSamples, samples);
+
+    return true;
+}
+
+Ray Camera::getViewRay(const vec2 & uv) {
+    // TODO: Lens coordinates
+
+    float x = uv.x * 2.0f - 1.0f;
+    float y = uv.y * 2.0f - 1.0f;
 
     vec3 rightAmt = right * halfWidth  * x;
     vec3 upAmt    = up    * halfHeight * y;
@@ -50,7 +66,7 @@ vec3 Camera::getPosition() {
     return position;
 }
 
-void Camera::setPosition(const vec3 position) {
+void Camera::setPosition(const vec3 & position) {
     this->position = position;
     refresh();
 }

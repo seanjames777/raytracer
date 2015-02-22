@@ -25,8 +25,13 @@ const char *ps_source =
     "in vec2 var_uv;\n"
     "out vec4 out_color;\n"
     "uniform sampler2D textureSampler;\n"
+    "uniform vec2 imageSize;\n"
     "void main() {\n"
-    "    out_color = texture(textureSampler, var_uv);\n"
+    "    vec4 image = texture(textureSampler, var_uv);\n"
+    "    vec2 pixel = var_uv * imageSize;\n"
+    "    ivec2 check = ivec2(int(pixel.x / 16) %2, int(pixel.y / 16) % 2);\n"
+    "    vec3 check_rgb = vec3(check.x ^ check.y) * .2 + .7;\n"
+    "    out_color.rgb = image.rgb * image.a + check_rgb * (1.0 - image.a);\n"
     "    // out_color.rgb *= 2.0;\n"
     "    // out_color.rgb = out_color.rgb / (1.0 + out_color.rgb);\n"
     "    out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
@@ -150,6 +155,13 @@ void GLImageDisplay::worker_thread() {
 
     glDeleteShader(vs);
     glDeleteShader(ps);
+
+    glUseProgram(shaders);
+    GLuint textureSamplerLocation = glGetUniformLocation(shaders, "textureSampler");
+    GLuint imageSizeLocation = glGetUniformLocation(shaders, "imageSize");
+    glUniform1i(textureSamplerLocation, 0);
+    glUniform2f(imageSizeLocation, width, height);
+    glUseProgram(0);
 
     GLCHECK();
 

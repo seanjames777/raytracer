@@ -4,7 +4,7 @@
  * @author Sean James <seanjames777@gmail.com>
  */
 
-#include <path.h>
+#include <util/path.h>
 #include <sstream>
 #include <cassert>
 #include <algorithm>
@@ -19,29 +19,29 @@
     #define PATH_MAX MAX_PATH
 #endif
 
-namespace PathUtil {
+namespace util {
 
 std::string prependExecutableDirectory(std::string localPath) {
     char buff[PATH_MAX + 1];
 
 #if defined(__APPLE__)
-	uint32_t size = PATH_MAX;
+    uint32_t size = PATH_MAX;
     int stat = _NSGetExecutablePath(buff, &size);
     assert(!stat);
 #elif defined (__linux__)
     ssize_t size = readlink("/proc/self/exe", buff, PATH_MAX);
     assert(size >= 0);
 #elif defined(_WINDOWS)
-	HMODULE module = GetModuleHandle(NULL);
-	DWORD size = GetModuleFileNameA(module, buff, PATH_MAX);
+    HMODULE module = GetModuleHandle(NULL);
+    DWORD size = GetModuleFileNameA(module, buff, PATH_MAX);
     assert(size >= 0);
 #endif
 
-	buff[size] = 0;
-	std::string exe_path(buff);
+    buff[size] = 0;
+    std::string exe_path(buff);
 
 #ifdef _WINDOWS
-	std::replace(exe_path.begin(), exe_path.end(), '\\', '/');
+    std::replace(exe_path.begin(), exe_path.end(), '\\', '/');
 #endif
 
     std::string exe_dir = exe_path.substr(0, exe_path.rfind("/"));

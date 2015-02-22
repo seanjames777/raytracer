@@ -11,7 +11,7 @@
 
 #include <string>
 
-namespace PathUtil {
+namespace util {
 
 /**
  * @brief Inserts the full path to the directory containing the executable

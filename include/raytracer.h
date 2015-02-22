@@ -109,7 +109,7 @@ private:
                         for (int q = 0; q < settings.pixelSamples; q++) {
                             float u = (float)(x + q * sampleOffset) / (float)width;
 
-                            Ray r = scene->camera->getViewRay(u, v);
+                            Ray r = scene->camera->getViewRay(vec2(u, v));
 
                             vec3 sampleColor = getEnvironment(r.direction);
 
@@ -130,24 +130,6 @@ private:
         }
     }
 
-    void clearChecker() {
-        vec4 *pixels = new vec4[scene->output->getWidth() * scene->output->getHeight()];
-        int idx = 0;
-
-        for (int y = 0; y < scene->output->getHeight(); y++)
-            for (int x = 0; x < scene->output->getWidth(); x++) {
-                int bx = (y / 16) % 2;
-                int by = (x / 16) % 2;
-                int b = bx ^ by;
-                float c = b > 0 ? 0.8f : 0.5f;
-
-                pixels[idx++] = vec4(c, c, c, 1.0f);
-            }
-
-        scene->output->setPixels((float *)pixels);
-        delete [] pixels;
-    }
-
 public:
 
     /**
@@ -165,37 +147,6 @@ public:
 
     // TODO: destroy
 
-    void printProgress(int nBlocksW, int nBlocksH, bool clear) {
-		// Windows console can't handle unicode apparently
-#ifndef _WINDOWS
-        const int max_count = 26;
-
-        if (clear) {
-            for (int i = 0; i < max_count + 3; i++)
-                std::cout << (unsigned char)8;
-        }
-
-        std::cout << "[";
-
-        // TODO
-        float progress = (float)currBlockID / (float)(nBlocksH * nBlocksW);
-        if (progress > 1.0f)
-            progress = 1.0f;
-        if (progress < 0.0f)
-            progress = 0.0f;
-
-        int count = (int)(progress * (float)max_count);
-
-        for (int i = 0; i < count; i++)
-            std::cout << "\u2587";
-
-        for (int i = 0; i < max_count - count; i++)
-            std::cout << " ";
-
-        std::cout << " ]" << std::flush;
-#endif
-    }
-
     /**
      * @brief Render the scene into the scene's output image
      */
@@ -211,8 +162,6 @@ public:
         nBlocks = nBlocksW * nBlocksH;
         currBlockID = 0;
         blocksRemaining = nBlocks;
-
-        clearChecker();
 
         int nThreads = settings.numThreads;
 

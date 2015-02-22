@@ -10,7 +10,7 @@
 #include <pointlight.h>
 #include <raytracer.h>
 #include <fbxloader.h>
-#include <path.h>
+#include <util/path.h>
 #include <sstream>
 #include <bmpimage.h>
 #include <string.h>
@@ -84,10 +84,10 @@ public:
         output = std::make_shared<Image>(settings.width, settings.height);
 
         std::shared_ptr<Image> environment = BMPImage::loadBMP(
-            PathUtil::prependExecutableDirectory("content/textures/cubemap.bmp"));
+            util::prependExecutableDirectory("content/textures/cubemap.bmp"));
 
         std::shared_ptr<Image> checker = BMPImage::loadBMP(
-            PathUtil::prependExecutableDirectory("content/textures/checker.bmp"));
+            util::prependExecutableDirectory("content/textures/checker.bmp"));
 
         //environment->applyGamma(2.2f);
         //checker->applyGamma(2.2f);
@@ -107,9 +107,9 @@ public:
         std::vector<Triangle> polys, transformed;
 
         /*FbxLoader::load(
-        PathUtil::prependExecutableDirectory("content/models/box.fbx"),
+        util::prependExecutableDirectory("content/models/box.fbx"),
         polys, vec3(0.0f, 2.5f, 0.0f), vec3(0.0f), vec3(5.0f));*/
-        /*FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/sphere.fbx"), polys);
+        /*FbxLoader::load(util::prependExecutableDirectory("content/models/sphere.fbx"), polys);
 
         for (int z = -1; z <= 1; z++) {
             for (int x = -1; x <= 1; x++) {
@@ -121,7 +121,7 @@ public:
             }
         }*/
 
-        FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/dragon.fbx"), polys);
+        FbxLoader::load(util::prependExecutableDirectory("content/models/dragon.fbx"), polys);
 
         transformed.clear();
         transform_mesh(polys, transformed, vec3(0.0f), vec3(0.0f), vec3(0.75f));
@@ -132,7 +132,7 @@ public:
         polys.clear();
         transformed.clear();
 
-        FbxLoader::load(PathUtil::prependExecutableDirectory("content/models/plane.fbx"), polys);
+        FbxLoader::load(util::prependExecutableDirectory("content/models/plane.fbx"), polys);
         transform_mesh(polys, transformed, vec3(0, 0, 0), vec3(0, 0, 0), vec3(3, 1, 3));
 
         for (auto & tri : transformed)

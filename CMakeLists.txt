@@ -27,8 +27,7 @@ add_library(rt
     src/kdtree/kdnode.cpp
     src/kdtree/kdsahbuilder.cpp
     src/kdtree/kdtree.cpp
-    # TODO: math
-    src/util/queue.cpp
+    src/util/path.cpp
 	src/camera.cpp
 	src/light.cpp
 	src/pointlight.cpp
@@ -41,7 +40,6 @@ add_library(rt
 	src/timer.cpp
 	src/fbxloader.cpp
 	src/raytracersettings.cpp
-    src/path.cpp
     src/bmpimage.cpp
 	src/net/client.cpp
 	src/net/server.cpp
@@ -58,6 +56,7 @@ add_library(rt
 	include/math/vector.h
     include/util/queue.h
     include/util/stack.h
+    include/util/path.h
 	include/bmpimage.h
 	include/camera.h
 	include/directionallight.h
@@ -65,7 +64,6 @@ add_library(rt
 	include/image.h
 	include/light.h
 	include/material.h
-	include/path.h
 	include/pointlight.h
 	include/polygon.h
 	include/raytracer.h

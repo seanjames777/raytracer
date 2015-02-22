@@ -12,7 +12,7 @@
 #include <math/ray.h>
 
 /*
- * @brief Generic camera class that supports simple perspective projection
+ * @brief Perspective projection camera. TODO: other types: fisheye, ortho, etc.
  */
 class Camera {
 private:
@@ -69,12 +69,26 @@ public:
         float focus, float aperture);
 
     /**
+     * @brief Get samples on virtual sensor, jittered across a sample range.
+     *
+     * @param[in]  nSamples Square root of number of samples to get
+     * @param[out] samples  Output samples
+     * @param[in]  min      Minimum
+     * @param[in]  max
+     *
+     * @return Returns false if this is a pinhole camera, in which case there will only be one
+     * output sample at the center of the sample range. Otherwise, returns true and fills in
+     * nSamples * nSamples output samples.
+     */
+    bool getSamples(int nSamples, vec2 *samples, const vec2 & min, const vec2 & max);
+
+    /**
      * @brief Get a new view ray
      *
-     * @param u        Horizontal coordinate of intersection point on view plane
-     * @param v        Vertical coordinate of intersection point on view plane
+     * @param u Horizontal coordinate of intersection point on view plane
+     * @param v Vertical coordinate of intersection point on view plane
      */
-    Ray getViewRay(float u, float v);
+    Ray getViewRay(const vec2 & uv);
 
     /**
      * @brief Get the camera position
@@ -84,7 +98,7 @@ public:
     /**
      * @brief Set the camera position
      */
-    void setPosition(const vec3 position);
+    void setPosition(const vec3 & position);
 
     /**
      * @brief Get the forward vector of the camera

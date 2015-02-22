@@ -10,30 +10,6 @@
 #define _LIGHT_H
 
 #include <math/vector.h>
-#include <raytracersettings.h>
-
-/**
- * @brief Photon
- */
-struct Photon {
-    /** @brief Photon position */
-    vec3 position;
-
-    /** @brief Red, green, blue power */
-    vec3 power;
-
-    /** @brief Incident direction */
-    vec3 direction;
-
-    /**
-     * @brief Constructor
-     *
-     * @param position  Photon position
-     * @param power     Red, green, blue power
-     * @param direction Incident direction
-     */
-    Photon(vec3 position, vec3 power, vec3 direction);
-};
 
 /**
  * @brief Base class for lights
