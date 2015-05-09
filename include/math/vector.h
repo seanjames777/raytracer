@@ -45,7 +45,7 @@ struct vector : public vector_data<T, N, SIMD> {
     }
 };
 
-#define MATH_DEFAULT_SIMD
+//#define MATH_DEFAULT_SIMD
 
 #ifndef MATH_DEFAULT_SIMD
 typedef vector<float, 2, false> vec2;
