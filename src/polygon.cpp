@@ -107,7 +107,7 @@ SetupTriangle::SetupTriangle(const Triangle & triangle)
 }
 
 bool SetupTriangle::intersects(const Ray & ray, Collision & result) {
-#ifdef WALD_INTERSECTION
+#if defined(WALD_INTERSECTION)
     static const int mod_table[5] = { 0, 1, 2, 0, 1 };
 
     // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
@@ -156,43 +156,45 @@ bool SetupTriangle::intersects(const Ray & ray, Collision & result) {
     result.triangle_id = triangle_id;
 
     return true;
-#else
+#elif defined(MOLLER_TRUMBORE_INTERSECTION)
     vec3 e1 = v1 - v0;
     vec3 e2 = v2 - v0;
 
     vec3 p = cross(ray.direction, e2);
 
-    float a = dot(e1, p);
+    float det = dot(e1, p);
 
-    if(a < 0.0f)
+	// Backfacing or parallel to ray
+    if(det <= 0.000001f) // TODO
         return false;
 
-    float f = 1.0f / a;
+    float f = 1.0f / det;
 
     vec3 s = ray.origin - v0;
-    float alpha = f * dot(s, p);
-    if(alpha < 0.0f)
-        return false;
-    if(alpha > 1.0f)
+    float beta = f * dot(s, p);
+
+    if(beta < 0.0f || beta > 1.0f)
         return false;
 
     vec3 q = cross(s, e1);
-    float beta = f * dot(ray.direction, q);
-    if(beta < 0.0f)
-        return false;
-    if(beta + alpha > 1.0f)
-        return false;
 
-    float gamma = f * dot(e2, q);
+    float gamma = f * dot(ray.direction, q);
 
-    if (gamma < 0.0f)
+    if(gamma < 0.0f || beta + gamma > 1.0f)
         return false;
 
-    result.distance = a;
+    float t = f * dot(e2, q);
+
+    if (t < 0.0f)
+        return false;
+
+    result.distance = t;
     result.beta = beta;
     result.gamma = gamma;
     result.triangle_id = triangle_id;
 
     return true;
 #endif
+
+    // TODO: Moller Tumbore 2D
 }

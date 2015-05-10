@@ -34,6 +34,7 @@ KDTree::KDTree(KDNode *root, AABB bounds)
 // TODO: Clone TBB's work queue for construction
 // TODO: Mailboxing is a thing. Figure out what it is.
 // TODO: Is this actually depth first? Make sure. And make sure we want that.
+// TODO: Might want a tree for light extents
 bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit,
     bool anyCollision)
 {
@@ -47,8 +48,9 @@ bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, fl
 
         bool intersects = triangle->intersects(ray, tmpResult);
 
-        if (intersects && tmpResult.distance >= entry &&
-            tmpResult.distance <= exit && (tmpResult.distance < result.distance || !found))
+		// TODO: Getting wrecked by stability here
+        if (intersects/* && tmpResult.distance >= entry &&
+            tmpResult.distance <= exit */&& (tmpResult.distance < result.distance || !found))
         {
             result = tmpResult;
 

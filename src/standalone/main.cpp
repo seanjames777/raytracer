@@ -150,6 +150,9 @@ int main(int argc, char *argv[]) {
 
     printf("Done: %f seconds (total), %f seconds (CPU), speedup: %.02f\n",
         elapsed, cpu, cpu / elapsed);
+
+	printf("Press any key to exit...\n");
+	getchar();
     
     return 0;
 }

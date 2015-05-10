@@ -13,6 +13,7 @@
 #include <rt_defs.h>
 
 //#define WALD_INTERSECTION
+#define MOLLER_TRUMBORE_INTERSECTION
 
 struct RT_EXPORT Vertex {
     vec3 position;
@@ -49,7 +50,7 @@ struct Collision {
 };
 
 struct RT_EXPORT SetupTriangle {
-#ifdef WALD_INTERSECTION
+#if defined(WALD_INTERSECTION)
     float n_u; // normal.u / normal.k
     float n_v; // normal.v / normal.h
     float n_d; // constant of plane equation
@@ -68,7 +69,7 @@ struct RT_EXPORT SetupTriangle {
     unsigned int triangle_id;
 
     char pad[4]; // TODO make sure this is ~cache line size
-#else
+#elif defined(MOLLER_TRUMBORE_INTERSECTION)
     vec3    v0;          // 12
     vec3    v1;          // 12
     vec3    v2;          // 12

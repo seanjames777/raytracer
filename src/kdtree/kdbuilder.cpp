@@ -177,7 +177,7 @@ void KDBuilder::worker_thread() {
         }
 
         // TODO: Instead of waking up everybody, it may be better to wake up another thread if there
-        // is more in the queue. We'd probably have to know how many threads are waiting.
+        // are more in the queue. We'd probably have to know how many threads are waiting.
 
         queue_lock.unlock();
 
@@ -254,7 +254,7 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 
     KDTree *tree = new KDTree(q_node->node, q_node->bounds);
 
-	assert(--q_node->refCount == 0);
+	assert(--q_node->refCount == 0 || (q_node->node->left == nullptr && q_node->node->right == nullptr));
 	delete q_node;
 
 	return tree;

@@ -116,8 +116,9 @@ private:
 
                             Collision result;
 
-                            if (tree->intersect(kdStack, r, result, 0.0f, false))
-                                sampleColor = shade(kdStack, r, &result, 1);
+							if (tree->intersect(kdStack, r, result, 0.0f, false)) {
+								sampleColor = shade(kdStack, r, &result, 1);
+							}
 
                             color += sampleColor * sampleContrib;
                         }
