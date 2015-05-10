@@ -22,7 +22,7 @@ class Scene;
 /**
  * @brief Base class for all materials
  */
-class Material {
+class RT_EXPORT Material {
 public:
 
     Material();
@@ -41,7 +41,7 @@ public:
 /**
  * @brief Phong material
  */
-class PhongMaterial : public Material {
+class RT_EXPORT PhongMaterial : public Material {
 private:
 
     /** @brief Ambient light color */
@@ -102,7 +102,7 @@ public:
 /**
  * @brief Physically based material
  */
-class PBRMaterial : public Material {
+class RT_EXPORT PBRMaterial : public Material {
 private:
 
 public:

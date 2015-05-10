@@ -65,6 +65,7 @@ bool KDSAHBuilder::splitNode(
     //     - Scale cost for empty nodes
     //     - Don't need to use a vector--an array would suffice and possibly be faster
     //     - Convert this to vector instructions, spread branches across multiple threads
+    //     - Clip triangles to bounding box. "perfect splits"
 
     if (triangles.size() == 0)
         return false;

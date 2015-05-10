@@ -41,16 +41,17 @@ else()
 # TODO
 endif()
 
-if (CMAKE_BUILD_TYPE MATCHES "debug")
-    set(BIN_DIR "Debug")
-else()
-    set(BIN_DIR "Release")
-endif()
-
 # Install Windows shared libraries
 if ("${CMAKE_SYSTEM}" MATCHES "Windows")
     install(
-        CODE "file(GLOB    _DLLS_ \"${CMAKE_SOURCE_DIR}/prebuilt/windows/x64/bin/${BIN_DIR}/*.dll\")"
+        CODE "file(GLOB    _DLLS_ \"${CMAKE_SOURCE_DIR}/prebuilt/windows/x64/bin/Debug/*.dll\")"
         CODE "file(INSTALL \${_DLLS_} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)"
+        CONFIGURATIONS Debug
+    )
+
+    install(
+        CODE "file(GLOB    _DLLS_ \"${CMAKE_SOURCE_DIR}/prebuilt/windows/x64/bin/Release/*.dll\")"
+        CODE "file(INSTALL \${_DLLS_} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)"
+        CONFIGURATIONS Release RelWithDebInfo MinSizeRel
     )
 endif()

@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-class FbxLoader {
+class RT_EXPORT FbxLoader {
 public:
 
     /**

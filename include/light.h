@@ -10,11 +10,12 @@
 #define _LIGHT_H
 
 #include <math/vector.h>
+#include <rt_defs.h>
 
 /**
  * @brief Base class for lights
  */
-class Light {
+class RT_EXPORT Light {
 public:
 
     /**

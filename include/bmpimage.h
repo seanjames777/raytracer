@@ -12,6 +12,7 @@
 #include <string>
 #include <image.h>
 #include <memory>
+#include <rt_defs.h>
 
 namespace BMPImage {
 
@@ -22,7 +23,7 @@ namespace BMPImage {
      *
      * @return A pointer to a new bitmap on success, or NULL on error
      */
-    std::shared_ptr<Image> loadBMP(std::string filename);
+    RT_EXPORT std::shared_ptr<Image> loadBMP(std::string filename);
 
     /**
      * @brief Save the image to a .bmp file
@@ -31,7 +32,7 @@ namespace BMPImage {
      *
      * @return True on success, or false on error
      */
-    bool saveBMP(std::string filename, std::shared_ptr<Image> image);
+    RT_EXPORT bool saveBMP(std::string filename, std::shared_ptr<Image> image);
 
 };
 

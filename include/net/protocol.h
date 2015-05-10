@@ -39,7 +39,7 @@ struct RequestHeader {
  * @file The host coordinates the work of any connected servers, and provides a
  * user interface/preview to the user.
  */
-class RTProtocolConnection : public Client {
+class RT_EXPORT RTProtocolConnection : public Client {
 private:
 
     bool sendRequestHeader(RequestHeader *header) {
@@ -136,7 +136,7 @@ public:
 /**
  * @file The worker does the actual work of raytracing and acts as a server.
  */
-class RTProtocolServer : public Server {
+class RT_EXPORT RTProtocolServer : public Server {
 protected:
 
     virtual SERVER_STATUS handleGetStatus() {

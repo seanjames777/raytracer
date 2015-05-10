@@ -10,11 +10,12 @@
 #define _CAMERA_H
 
 #include <math/ray.h>
+#include <rt_defs.h>
 
 /*
  * @brief Perspective projection camera. TODO: other types: fisheye, ortho, etc.
  */
-class Camera {
+class RT_EXPORT Camera {
 private:
 
     /** @brief Position */

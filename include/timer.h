@@ -9,6 +9,8 @@
 #ifndef _TIMER_H
 #define _TIMER_H
 
+#include <rt_defs.h>
+
 #ifndef _WINDOWS
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -20,7 +22,7 @@
 /**
  * @brief Timer utility class
  */
-class Timer {
+class RT_EXPORT Timer {
 private:
 
 	/** @brief Time the timer was started */

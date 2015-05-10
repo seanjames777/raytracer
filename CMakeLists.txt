@@ -23,13 +23,14 @@ endif()
 
 include(prebuilt/CMakeLists.txt)
 
-add_library(rt
+add_library(rt SHARED
     src/kdtree/kdbuilder.cpp
     src/kdtree/kdmedianbuilder.cpp
     src/kdtree/kdnode.cpp
     src/kdtree/kdsahbuilder.cpp
     src/kdtree/kdtree.cpp
     src/util/path.cpp
+    src/util/glimagedisplay.cpp
 	src/camera.cpp
 	src/light.cpp
 	src/pointlight.cpp
@@ -59,6 +60,7 @@ add_library(rt
     include/util/queue.h
     include/util/stack.h
     include/util/path.h
+    include/util/glimagedisplay.h
 	include/bmpimage.h
 	include/camera.h
 	include/directionallight.h
@@ -76,40 +78,35 @@ add_library(rt
 	include/net/client.h
 	include/net/server.h
     include/net/net.h
+    include/rt_defs.h
 )
 
-add_executable(worker
-    src/worker/main.cpp
-)
+add_executable(worker src/worker/main.cpp)
+target_link_libraries(worker rt)
+install(TARGETS worker DESTINATION bin)
 
-add_executable(host
-    src/host/main.cpp
-    src/host/glimagedisplay.cpp
+add_executable(host src/host/main.cpp)
+target_link_libraries(host rt)
+install(TARGETS host DESTINATION bin)
 
-    include/host/glimagedisplay.h
-)
+add_executable(standalone src/standalone/main.cpp)
+target_link_libraries(standalone rt)
+install(TARGETS standalone DESTINATION bin)
 
 FIND_PACKAGE(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
 
-target_link_libraries(worker
+target_link_libraries(rt
+	glfw
+	glew
+	${OPENGL_LIBRARIES}
 	fbx
-    rt
-)
-
-target_link_libraries(host
-    glfw
-    glew
-    ${OPENGL_LIBRARIES}
-    rt
 )
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	target_link_libraries(rt wsock32 ws2_32)
 endif()
 
-install(TARGETS worker DESTINATION bin)
-install(TARGETS host DESTINATION bin)
 install(TARGETS rt DESTINATION bin)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/content/" DESTINATION bin/content)

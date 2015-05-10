@@ -54,35 +54,13 @@ Vertex Triangle::interpolate(float beta, float gamma) {
         v1.color    * alpha + v2.color    * beta + v3.color    * gamma);
 }
 
-VertexBuffer::VertexBuffer(
-    Vertex       *vertices,
-    unsigned int *indices,
-    unsigned int  num_vertices,
-    unsigned int  num_indices)
-    : num_vertices(num_vertices),
-      num_indices(num_indices)
-{
-    // TODO out of memory
-
-    this->vertices = (Vertex *)malloc(sizeof(Vertex) * num_vertices);
-    memcpy(this->vertices, vertices, sizeof(Vertex) * num_vertices);
-
-    this->indices = (unsigned int *)malloc(sizeof(unsigned int) * num_indices);
-    memcpy(this->indices, indices, sizeof(unsigned int) * num_indices);
-}
-
-VertexBuffer::~VertexBuffer() {
-    free(vertices);
-    free(indices);
-}
-
 SetupTriangle::SetupTriangle() {
 }
 
 SetupTriangle::SetupTriangle(const Triangle & triangle)
     : triangle_id(triangle.triangle_id)
 {
-#ifndef USE_SIMD_INTERSECTION
+#ifdef WALD_INTERSECTION
     // TODO: this should be aligned (and possibly padded) to a cache line to
     // make sure it only requires one memory request.
     static const int mod_table[5] = { 0, 1, 2, 0, 1 };
@@ -122,22 +100,16 @@ SetupTriangle::SetupTriangle(const Triangle & triangle)
     c_nv = -c.v[u] / denom;
     c_d  =  (c.v[u] * v1.v[v] - c.v[v] * v1.v[u]) / denom;
 #else
-    a = triangle.v1.position;
-    v0 = triangle.v2.position - triangle.v1.position;
-    v1 = triangle.v3.position - triangle.v1.position;
-    n = cross(v0, v1);
-
-    d00 = dot(v0, v0);
-    d01 = dot(v0, v1);
-    d11 = dot(v1, v1);
-
-    invDenom = 1.0f / (d00 * d11 - d01 * d01);
+	v0 = triangle.v1.position;
+	v1 = triangle.v2.position;
+	v2 = triangle.v3.position;
 #endif
 }
 
 bool SetupTriangle::intersects(const Ray & ray, Collision & result) {
+#ifdef WALD_INTERSECTION
     static const int mod_table[5] = { 0, 1, 2, 0, 1 };
-#ifndef USE_SIMD_INTERSECTION
+
     // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
 
     // TODO: lots of branching here.
@@ -174,29 +146,6 @@ bool SetupTriangle::intersects(const Ray & ray, Collision & result) {
     float gamma = (hu * c_nu + hv * c_nv + c_d);
     if (gamma < 0.0f)
         return false;
-#else
-    vec3 oa = ray.origin - a;
-
-    float t_plane = -dot(oa, n) / dot(ray.direction, n);
-
-    if (t_plane <= 0.0f)
-        return false;
-
-    vec3 v2 = oa + ray.direction * t_plane;
-
-    float d20 = dot(v2, v0);
-    float d21 = dot(v2, v1);
-
-    float beta = (d11 * d20 - d01 * d21) * invDenom;
-
-    if (beta < 0.0f)
-        return false;
-
-    float gamma = (d00 * d21 - d01 * d20) * invDenom;
-
-    if (gamma < 0.0f)
-        return false;
-#endif
 
     if (beta + gamma > 1.0f)
         return false;
@@ -207,4 +156,43 @@ bool SetupTriangle::intersects(const Ray & ray, Collision & result) {
     result.triangle_id = triangle_id;
 
     return true;
+#else
+    vec3 e1 = v1 - v0;
+    vec3 e2 = v2 - v0;
+
+    vec3 p = cross(ray.direction, e2);
+
+    float a = dot(e1, p);
+
+    if(a < 0.0f)
+        return false;
+
+    float f = 1.0f / a;
+
+    vec3 s = ray.origin - v0;
+    float alpha = f * dot(s, p);
+    if(alpha < 0.0f)
+        return false;
+    if(alpha > 1.0f)
+        return false;
+
+    vec3 q = cross(s, e1);
+    float beta = f * dot(ray.direction, q);
+    if(beta < 0.0f)
+        return false;
+    if(beta + alpha > 1.0f)
+        return false;
+
+    float gamma = f * dot(e2, q);
+
+    if (gamma < 0.0f)
+        return false;
+
+    result.distance = a;
+    result.beta = beta;
+    result.gamma = gamma;
+    result.triangle_id = triangle_id;
+
+    return true;
+#endif
 }

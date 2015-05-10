@@ -19,7 +19,7 @@
 /**
  * @brief Scene structure, which tracks the polygons, lights, etc. in a scene
  */
-class Scene {
+class RT_EXPORT Scene {
 public:
 
     unsigned int poly_id;

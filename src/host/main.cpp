@@ -6,7 +6,7 @@
  * @author Sean James
  */
 
-#include <host/glimagedisplay.h>
+#include <util/glimagedisplay.h>
 #include <string.h>
 #include <net/protocol.h>
 

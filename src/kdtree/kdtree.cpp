@@ -12,6 +12,28 @@ KDTree::KDTree(KDNode *root, AABB bounds)
 {
 }
 
+// TODO: Can do 2, 4, 8, etc. at a time with SSE. Need to transpose to SOA
+// TODO: SSE has a min and bit scan
+// TODO: Might want to inline triangle code
+// TODO: Shorter triangle code might be faser if it stores less
+// TODO: KD heuristic could prefer larger leaves if we use SSE -> better
+//       caching and less memory. Heuristic could prefer leaves that
+//       are a multiple of SSE line size
+// TODO: Search back to front along split plane assuming triangles are
+//       sorted within KD node. Early reject triangles outside running
+//       min and max distance, backfacing triangles.
+// TODO: Intersection-test-only mode to avoid computing barycentric? probably not
+// TODO: Might be faster to store less data and compute a bit more in triangle test
+// TODO: Cache align KD nodes, maybe other stuff: avoids false sharing during
+//       construction, allows clean caching at runtime
+// TODO: Group KD nodes in memory by some criteria. Probably want to keep top of
+//       tree in cache, allow locality to determine bottom portion to keep in
+//       cache. Might be able to micromanage this? Want to keep child nodes
+//       near parent or near each other or something. We do a depth first
+//       traversal on one thread.
+// TODO: Clone TBB's work queue for construction
+// TODO: Mailboxing is a thing. Figure out what it is.
+// TODO: Is this actually depth first? Make sure. And make sure we want that.
 bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit,
     bool anyCollision)
 {
