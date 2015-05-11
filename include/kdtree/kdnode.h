@@ -28,11 +28,11 @@ enum KDNodeFlags {
 struct KDNode {
     // 32 bytes = 1/2 cache line on x86/64
 
-    KDNode        *left;
-    KDNode        *right;
-    SetupTriangleBuffer *triangles; // TODO: Embed into struct to avoid indirection?
-    float          split_dist;
-    unsigned int   flags;
+    KDNode       *left;
+    KDNode       *right;
+    char         *triangles;
+    float         split_dist;
+    unsigned int  flags;
 
     KDNode();
 

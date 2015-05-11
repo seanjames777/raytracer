@@ -65,7 +65,7 @@ void KDBuilder::buildLeafNode(KDBuilderQueueNode *q_node) {
     // TODO multiple constructor calls, etc.
 
 	// TODO: We sometimes get empty leaves, which is a total waste
-	SetupTriangleBuffer *buffer = new SetupTriangleBuffer(
+	char *triangleData = SetupTriangleBuffer::pack(
 		q_node->triangles.size() > 0 ? &q_node->triangles[0] : nullptr, q_node->triangles.size());
     
     // TODO: Might want to change constructor of KDNode to do this stuff,
@@ -78,7 +78,7 @@ void KDBuilder::buildLeafNode(KDBuilderQueueNode *q_node) {
 	node->left = NULL;
 	node->right = NULL;
 	node->split_dist = 0.0f;
-	node->triangles = buffer;
+	node->triangles = triangleData;
 	node->flags = num_triangles | KD_IS_LEAF;
 }
 
@@ -226,8 +226,6 @@ void computeStats(KDNode *root, KDStats *stats, int depth) {
 
 		if ((root->flags & KD_SIZE_MASK) == 0)
 			stats->num_zero_leaves++;
-
-		stats->tree_mem += sizeof(SetupTriangleBuffer);
 
 		stats->sum_depth += depth;
 

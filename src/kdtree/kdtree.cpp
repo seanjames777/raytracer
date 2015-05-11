@@ -38,13 +38,6 @@ KDTree::KDTree(KDNode *root, AABB bounds)
 // TODO: Maybe help the heuristic with creating big empty gaps? Something about this
 //       in the SAH paper. Creating empty nodes or whatever.
 // TODO: Tweak heursitic constants
-bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit,
-    bool anyCollision)
-{
-	// TODO: Might want to inline this, though intersects() is already inlined
-	// TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
-	return leaf->triangles->intersects(ray, leaf->flags & KD_SIZE_MASK, anyCollision, result);
-}
 
 bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result, float maxDepth,
     bool anyCollision)
@@ -62,59 +55,61 @@ bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Colli
 
     KDNode *currentNode;
 
-    while (!stack.empty()) {
-        curr_stack = stack.pop(); // TODO: copy
+	while (!stack.empty()) {
+		curr_stack = stack.pop(); // TODO: copy
 
-        currentNode = curr_stack.node;
-        entry = curr_stack.enter;
-        exit = curr_stack.exit;
+		currentNode = curr_stack.node;
+		entry = curr_stack.enter;
+		exit = curr_stack.exit;
 
-        // Nothing will be closer, give up
-        if (maxDepth > 0.0f && entry > maxDepth) {
-            stack.clear();
-            return false;
-        }
+		// Nothing will be closer, give up
+		if (maxDepth > 0.0f && entry > maxDepth) {
+			stack.clear();
+			return false;
+		}
 
-        while (!(currentNode->flags & KD_IS_LEAF)) {
-            int dir = currentNode->flags & KD_SPLIT_DIR_MASK;
+		while (!(currentNode->flags & KD_IS_LEAF)) {
+			int dir = currentNode->flags & KD_SPLIT_DIR_MASK;
 
-            float split = currentNode->split_dist;
-            float origin = ray.origin.v[dir];
+			float split = currentNode->split_dist;
+			float origin = ray.origin.v[dir];
 
-            float t = (split - origin) * ray.inv_direction.v[dir];
+			float t = (split - origin) * ray.inv_direction.v[dir];
 
-            KDNode *nearNode = currentNode->left;
-            KDNode *farNode  = currentNode->right;
+			KDNode *nearNode = currentNode->left;
+			KDNode *farNode = currentNode->right;
 
-            if (split < origin) {
-                KDNode *temp = nearNode;
-                nearNode = farNode;
-                farNode = temp;
-            }
+			if (split < origin) {
+				KDNode *temp = nearNode;
+				nearNode = farNode;
+				farNode = temp;
+			}
 
-            if (t > exit || t < 0)
-                currentNode = nearNode;
-            else if (t < entry)
-                currentNode = farNode;
-            else {
-                curr_stack.node = farNode;
-                curr_stack.enter = t;
-                curr_stack.exit = exit;
+			if (t > exit || t < 0)
+				currentNode = nearNode;
+			else if (t < entry)
+				currentNode = farNode;
+			else {
+				curr_stack.node = farNode;
+				curr_stack.enter = t;
+				curr_stack.exit = exit;
 
-                stack.push(curr_stack); // TODO: copy
+				stack.push(curr_stack); // TODO: copy
 
-                currentNode = nearNode;
-                exit = t;
-            }
-        }
+				currentNode = nearNode;
+				exit = t;
+			}
+		}
 
-        // Again, nothing will be closer so we're done
-        if (intersectLeaf(currentNode, ray, result, entry, maxDepth > 0.0f ?
-            fminf(maxDepth, exit) : exit, anyCollision))
-        {
-            stack.clear();
-            return true;
-        }
+		// TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
+		// TODO: Ignores max depth
+
+		if (SetupTriangleBuffer::intersects(ray, currentNode->triangles,
+			currentNode->flags & KD_SIZE_MASK, anyCollision, result))
+		{
+			stack.clear();
+			return true;
+		}
     }
 
     return false;

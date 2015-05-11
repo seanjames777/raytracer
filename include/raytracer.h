@@ -168,7 +168,7 @@ public:
         int nThreads = settings.numThreads;
 
         if (nThreads == 0)
-            nThreads = std::thread::hardware_concurrency() - 1; // TODO: Maybe better way to update image
+            nThreads = std::thread::hardware_concurrency(); // TODO: Maybe better way to update image
 
         for (int i = 0; i < nThreads; i++)
             workers.push_back(std::make_shared<std::thread>(std::bind(&Raytracer::worker_thread, this)));

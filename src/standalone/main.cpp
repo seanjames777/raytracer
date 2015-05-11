@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
 		for (int x = 0; x <= 0; x++) {
 			transformed.clear();
 			transform_mesh(polys, transformed,
-				vec3(x * 5.0f, 1.0f, z * 5.0f), vec3(0.0f), vec3(0.75f));
+				vec3(x * 5.0f, 0.0f, z * 5.0f), vec3(0.0f), vec3(0.75f));
 			for (auto & tri : transformed)
 				scene->addPoly(tri, bunny);
 		}
