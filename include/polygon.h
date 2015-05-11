@@ -89,6 +89,7 @@ struct Collision {
 	#define MM_SETR_INT4      _mm_setr_epi32
 	#define MM_CMPGT_INT4     _mm_cmpgt_epi32
 	#define MM_SET1_INT       _mm_set1_epi32
+	#define MM_ADD_INT4       _mm_add_epi32
 	#define MM_AND_PS         _mm_and_ps
 	#define MM_SUB_PS         _mm_sub_ps
 	#define MM_ADD_PS         _mm_add_ps
@@ -423,6 +424,9 @@ inline bool SetupTriangleBuffer::intersects(const Ray & ray, int count, bool any
 	MMVEC rdz = MM_SET1_PS(ray.direction.z);
 
 	MMVEC mask_all = MM_CAST_FLOAT_INT(MM_SET1_INT(0xFFFFFFFF));
+	MMVECI4 idx0 = MM_SETR_INT4(0, 1, 2, 3);
+	MMVECI4 idx1 = MM_SETR_INT4(4, 5, 6, 7);
+	MMVECI4 incr = MM_SET1_INT4(MM_STEP);
 
 	SetupTriangle *aligned = (SetupTriangle *)ALIGN_PTR(data);
 
@@ -449,17 +453,16 @@ inline bool SetupTriangleBuffer::intersects(const Ray & ray, int count, bool any
 		MMVEC e2z = MM_LOAD_PS(aligned[j].e2z);
 
 		// Active triangle mask
-#if MM_STEP == 4
-		MMVECI idx = MM_SETR_INT4(i0, i0 + 1, i0 + 2, i0 + 3);
-		MMVEC valid = MM_CAST_FLOAT_INT(MM_CMPGT_INT4(MM_SET1_INT(count), idx));
-#elif MM_STEP == 8
-		MMVECI4 idx0 = MM_SETR_INT4(i0 + 0, i0 + 1, i0 + 2, i0 + 3);
-		MMVECI4 idx1 = MM_SETR_INT4(i0 + 4, i0 + 5, i0 + 6, i0 + 7);
-
 		MMVECI4 count4 = MM_SET1_INT4(count);
+#if MM_STEP == 4
+		MMVEC valid = MM_CAST_FLOAT_INT(MM_CMPGT_INT4(count4, idx0));
+		idx0 = MM_ADD_INT4(idx0, incr);
+#elif MM_STEP == 8
 		MMVECI4 valid0 = MM_CMPGT_INT4(count4, idx0);
 		MMVECI4 valid1 = MM_CMPGT_INT4(count4, idx1);
 		MMVEC valid = MM_CAST_FLOAT_INT(_mm256_set_m128i(valid1, valid0));
+		idx0 = MM_ADD_INT4(idx0, incr);
+		idx1 = MM_ADD_INT4(idx1, incr);
 #endif
 
 		// TODO: There are FMA opportunities in here, but not on my lame CPU
