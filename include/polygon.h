@@ -18,6 +18,9 @@
 //#define MOLLER_TRUMBORE_INTERSECTION
 #define MOLLER_TRUMBORE_SIMD_INTERSECTION
 
+#define BUFFER_ALIGN 32
+#define ALIGN_PTR(p) (((unsigned long long)(p) + BUFFER_ALIGN - 1) & ~(BUFFER_ALIGN - 1))
+
 struct RT_EXPORT Vertex {
     vec3 position;
     vec3 normal;
@@ -51,6 +54,57 @@ struct Collision {
     float gamma;
     unsigned int triangle_id;
 };
+
+#define MM_STEP           4
+#if MM_STEP == 8
+	#define MMVEC             __m256
+	#define MMVECI            __m256i
+	#define MMVECI4           __m128i
+	#define MM_LOAD_PS        _mm256_load_ps
+	#define MM_SET1_INT4      _mm_set1_epi32
+	#define MM_SETR_INT4      _mm_setr_epi32
+	#define MM_CMPGT_INT4     _mm_cmpgt_epi32
+	#define MM_SET1_INT       _mm256_set1_epi32
+	#define MM_AND_PS         _mm256_and_ps
+	#define MM_SUB_PS         _mm256_sub_ps
+	#define MM_ADD_PS         _mm256_add_ps
+	#define MM_MUL_PS         _mm256_mul_ps
+	#define MM_DIV_PS         _mm256_div_ps
+	#define MM_SET1_PS        _mm256_set1_ps
+	#define MM_CMPGT_PS(a, b) _mm256_cmp_ps(a, b, 30)
+	#define MM_CMPGE_PS(a, b) _mm256_cmp_ps(a, b, 29)
+	#define MM_CMPLT_PS(a, b) _mm256_cmp_ps(a, b, 17)
+	#define MM_CMPLE_PS(a, b) _mm256_cmp_ps(a, b, 18)
+	#define MM_CAST_INT_FLOAT _mm256_castps_si256
+	#define MM_CAST_FLOAT_INT _mm256_castsi256_ps
+	#define MM_ALL_ZERO       _mm256_testz_ps
+	#define MM_PI_SUB(v, i)   ((v).m256i_u32[i])
+	#define MM_PS_SUB(v, i)   ((v).m256_f32[i])
+#elif MM_STEP == 4
+	#define MMVEC             __m128
+	#define MMVECI            __m128i
+	#define MMVECI4           __m128i
+	#define MM_LOAD_PS        _mm_load_ps
+	#define MM_SET1_INT4      _mm_set1_epi32
+	#define MM_SETR_INT4      _mm_setr_epi32
+	#define MM_CMPGT_INT4     _mm_cmpgt_epi32
+	#define MM_SET1_INT       _mm_set1_epi32
+	#define MM_AND_PS         _mm_and_ps
+	#define MM_SUB_PS         _mm_sub_ps
+	#define MM_ADD_PS         _mm_add_ps
+	#define MM_MUL_PS         _mm_mul_ps
+	#define MM_DIV_PS         _mm_div_ps
+	#define MM_SET1_PS        _mm_set1_ps
+	#define MM_CMPGT_PS(a, b) _mm_cmp_ps(a, b, 30)
+	#define MM_CMPGE_PS(a, b) _mm_cmp_ps(a, b, 29)
+	#define MM_CMPLT_PS(a, b) _mm_cmp_ps(a, b, 17)
+	#define MM_CMPLE_PS(a, b) _mm_cmp_ps(a, b, 18)
+	#define MM_CAST_INT_FLOAT _mm_castps_si128
+	#define MM_CAST_FLOAT_INT _mm_castsi128_ps
+	#define MM_ALL_ZERO       _mm_testz_ps
+	#define MM_PI_SUB(v, i)   ((v).m128i_u32[i])
+	#define MM_PS_SUB(v, i)   ((v).m128_f32[i])
+#endif
 
 struct RT_EXPORT SetupTriangleBuffer {
 #if defined(WALD_INTERSECTION)
@@ -91,14 +145,16 @@ struct RT_EXPORT SetupTriangleBuffer {
 	// TODO: Better to use SOA or just unpack 4 at a time?
 
 	struct SetupTriangle {
-		__m128 v0x, v0y, v0z;
-		__m128 e1x, e1y, e1z;
-		__m128 e2x, e2y, e2z;
-		unsigned int triangle_id[4];
-	} *data;
+		float v0x[MM_STEP], v0y[MM_STEP], v0z[MM_STEP];
+		float e1x[MM_STEP], e1y[MM_STEP], e1z[MM_STEP];
+		float e2x[MM_STEP], e2y[MM_STEP], e2z[MM_STEP];
+		unsigned int triangle_id[MM_STEP];
+	};
+	
+	char *data; // Triangles are aligned
 
 	const static size_t elemSize = sizeof(SetupTriangle);
-	const static size_t elemStep = 4;
+	const static size_t elemStep = MM_STEP;
 #endif
 
     SetupTriangleBuffer(Triangle **triangles, int num_triangles);
@@ -201,13 +257,17 @@ inline SetupTriangleBuffer::SetupTriangleBuffer(Triangle **triangles, int num_tr
 		data[i].triangle_id = tri.triangle_id;
 	}
 #elif defined(MOLLER_TRUMBORE_SIMD_INTERSECTION)
-	data = new SetupTriangle[(num_triangles + 3) / 4];
+	size_t data_size = ((num_triangles + MM_STEP - 1) / MM_STEP) * sizeof(SetupTriangle);
 
-	for (int i0 = 0; i0 < num_triangles; i0 += 4) {
-		int j = i0 / 4;
-		SetupTriangle & setup = data[j];
+	data = (char *)malloc(data_size + BUFFER_ALIGN);
 
-		for (int k = 0; k < 4; k++) {
+	SetupTriangle *aligned = (SetupTriangle *)ALIGN_PTR(data);
+
+	for (int i0 = 0; i0 < num_triangles; i0 += MM_STEP) {
+		int j = i0 / MM_STEP;
+		SetupTriangle & setup = aligned[j];
+
+		for (int k = 0; k < MM_STEP; k++) {
 			int i = i0 + k;
 
 			if (i >= num_triangles)
@@ -215,17 +275,17 @@ inline SetupTriangleBuffer::SetupTriangleBuffer(Triangle **triangles, int num_tr
 
 			const Triangle & tri = *(triangles[i]);
 
-			setup.v0x.m128_f32[k] = tri.v1.position.x;
-			setup.v0y.m128_f32[k] = tri.v1.position.y;
-			setup.v0z.m128_f32[k] = tri.v1.position.z;
+			setup.v0x[k] = tri.v1.position.x;
+			setup.v0y[k] = tri.v1.position.y;
+			setup.v0z[k] = tri.v1.position.z;
 
-			setup.e1x.m128_f32[k] = tri.v2.position.x - tri.v1.position.x;
-			setup.e1y.m128_f32[k] = tri.v2.position.y - tri.v1.position.y;
-			setup.e1z.m128_f32[k] = tri.v2.position.z - tri.v1.position.z;
-
-			setup.e2x.m128_f32[k] = tri.v3.position.x - tri.v1.position.x;
-			setup.e2y.m128_f32[k] = tri.v3.position.y - tri.v1.position.y;
-			setup.e2z.m128_f32[k] = tri.v3.position.z - tri.v1.position.z;
+			setup.e1x[k] = tri.v2.position.x - tri.v1.position.x;
+			setup.e1y[k] = tri.v2.position.y - tri.v1.position.y;
+			setup.e1z[k] = tri.v2.position.z - tri.v1.position.z;
+			
+			setup.e2x[k] = tri.v3.position.x - tri.v1.position.x;
+			setup.e2y[k] = tri.v3.position.y - tri.v1.position.y;
+			setup.e2z[k] = tri.v3.position.z - tri.v1.position.z;
 
 			setup.triangle_id[k] = tri.triangle_id;
 		}
@@ -234,16 +294,8 @@ inline SetupTriangleBuffer::SetupTriangleBuffer(Triangle **triangles, int num_tr
 }
 
 inline SetupTriangleBuffer::~SetupTriangleBuffer() {
-#if defined(WALD_INTERSECTION)
 	if (data)
-		delete [] data;
-#elif defined(MOLLER_TRUMBORE_INTERSECTION)
-	if (data)
-		delete[] data;
-#elif defined(MOLLER_TRUMBORE_SIMD_INTERSECTION)
-	if (data)
-		delete[] data;
-#endif
+		free(data);
 }
 
 // TODO: Moller Trumbore 2D?
@@ -352,126 +404,159 @@ inline bool SetupTriangleBuffer::intersects(const Ray & ray, int count, bool any
 	return found;
 #elif defined(MOLLER_TRUMBORE_SIMD_INTERSECTION)
 	bool found = false;
+	float min_distance = 0.0f;
+	float min_gamma = 0.0f;
+	float min_beta = 0.0f;
+	unsigned int min_id = 0;
 
 	// Constants
-	__m128 epsilon_4 = _mm_set1_ps(0.000001f);
-	__m128 zero_4 = _mm_set1_ps(0.0f);
-	__m128 one_4 = _mm_set1_ps(1.0f);
+	MMVEC epsilon = MM_SET1_PS(0.000001f);
+	MMVEC zero = MM_SET1_PS(0.0f);
+	MMVEC one = MM_SET1_PS(1.0f);
 
 	// Loaded from ray
-	__m128 rox_4 = _mm_set1_ps(ray.origin.x);
-	__m128 roy_4 = _mm_set1_ps(ray.origin.y);
-	__m128 roz_4 = _mm_set1_ps(ray.origin.z);
-	__m128 rdx_4 = _mm_set1_ps(ray.direction.x);
-	__m128 rdy_4 = _mm_set1_ps(ray.direction.y);
-	__m128 rdz_4 = _mm_set1_ps(ray.direction.z);
+	MMVEC rox = MM_SET1_PS(ray.origin.x);
+	MMVEC roy = MM_SET1_PS(ray.origin.y);
+	MMVEC roz = MM_SET1_PS(ray.origin.z);
+	MMVEC rdx = MM_SET1_PS(ray.direction.x);
+	MMVEC rdy = MM_SET1_PS(ray.direction.y);
+	MMVEC rdz = MM_SET1_PS(ray.direction.z);
+
+	MMVEC mask_all = MM_CAST_FLOAT_INT(MM_SET1_INT(0xFFFFFFFF));
+
+	SetupTriangle *aligned = (SetupTriangle *)ALIGN_PTR(data);
+
+    // TODO: This function doesn't go much faster, probably? because the early outs
+    // are divergent? It might be possible to reshuffle triangles that reach each
+    // stage or something?
 
 	// TODO: __m256
-	for (int i0 = 0; i0 < count; i0 += 4) {
-		// TODO: Make sure this can use an aligned move--needs to be aligned in memory
+	for (int i0 = 0; i0 < count; i0 += MM_STEP) {
+		// TODO: Make sure these can use an aligned move--needs to be aligned in memory
 		// Loaded from buffer
-		int j = i0 / 4;
-		__m128 v0x = data[j].v0x;
-		__m128 v0y = data[j].v0y;
-		__m128 v0z = data[j].v0z;
+		int j = i0 / MM_STEP;
 
-		__m128 e1x = data[j].e1x;
-		__m128 e1y = data[j].e1y;
-		__m128 e1z = data[j].e1z;
+		MMVEC v0x = MM_LOAD_PS(aligned[j].v0x);
+		MMVEC v0y = MM_LOAD_PS(aligned[j].v0y);
+		MMVEC v0z = MM_LOAD_PS(aligned[j].v0z);
 
-		__m128 e2x = data[j].e2x;
-		__m128 e2y = data[j].e2y;
-		__m128 e2z = data[j].e2z;
+		MMVEC e1x = MM_LOAD_PS(aligned[j].e1x);
+		MMVEC e1y = MM_LOAD_PS(aligned[j].e1y);
+		MMVEC e1z = MM_LOAD_PS(aligned[j].e1z);
+
+		MMVEC e2x = MM_LOAD_PS(aligned[j].e2x);
+		MMVEC e2y = MM_LOAD_PS(aligned[j].e2y);
+		MMVEC e2z = MM_LOAD_PS(aligned[j].e2z);
 
 		// Active triangle mask
-		__m128i mask_all = _mm_set1_epi32(0xFFFFFFFF);
+#if MM_STEP == 4
+		MMVECI idx = MM_SETR_INT4(i0, i0 + 1, i0 + 2, i0 + 3);
+		MMVEC valid = MM_CAST_FLOAT_INT(MM_CMPGT_INT4(MM_SET1_INT(count), idx));
+#elif MM_STEP == 8
+		MMVECI4 idx0 = MM_SETR_INT4(i0 + 0, i0 + 1, i0 + 2, i0 + 3);
+		MMVECI4 idx1 = MM_SETR_INT4(i0 + 4, i0 + 5, i0 + 6, i0 + 7);
 
-		__m128i idx = _mm_setr_epi32(i0, i0 + 1, i0 + 2, i0 + 3);
-		__m128i count_4 = _mm_set1_epi32(count);
-		__m128i valid = _mm_cmplt_epi32(idx, count_4);
+		MMVECI4 count4 = MM_SET1_INT4(count);
+		MMVECI4 valid0 = MM_CMPGT_INT4(count4, idx0);
+		MMVECI4 valid1 = MM_CMPGT_INT4(count4, idx1);
+		MMVEC valid = MM_CAST_FLOAT_INT(_mm256_set_m128i(valid1, valid0));
+#endif
 
 		// TODO: There are FMA opportunities in here, but not on my lame CPU
 
 		// p[i] = cross(ray.direction, e2[i]);
-		__m128 px = _mm_sub_ps(_mm_mul_ps(rdy_4, e2z), _mm_mul_ps(rdz_4, e2y));
-		__m128 py = _mm_sub_ps(_mm_mul_ps(rdz_4, e2x), _mm_mul_ps(rdx_4, e2z));
-		__m128 pz = _mm_sub_ps(_mm_mul_ps(rdx_4, e2y), _mm_mul_ps(rdy_4, e2x));
+		MMVEC px = MM_SUB_PS(MM_MUL_PS(rdy, e2z), MM_MUL_PS(rdz, e2y));
+		MMVEC py = MM_SUB_PS(MM_MUL_PS(rdz, e2x), MM_MUL_PS(rdx, e2z));
+		MMVEC pz = MM_SUB_PS(MM_MUL_PS(rdx, e2y), MM_MUL_PS(rdy, e2x));
 
 		// det[i] = dot(e1[i], p[i]);
-		__m128 det = _mm_add_ps(_mm_add_ps(_mm_mul_ps(e1x, px), _mm_mul_ps(e1y, py)), _mm_mul_ps(e1z, pz));
+		MMVEC det = MM_ADD_PS(MM_ADD_PS(MM_MUL_PS(e1x, px), MM_MUL_PS(e1y, py)), MM_MUL_PS(e1z, pz));
 
 		// if (det > epsilon)
-		valid = _mm_and_si128(valid, _mm_castps_si128(_mm_cmpgt_ps(det, epsilon_4)));
+		valid = MM_AND_PS(valid, MM_CMPGT_PS(det, epsilon));
 
 		// Vote whether to stop
 		// TODO: Maybe we can sort somehow to make this more coherent
-		if (_mm_test_all_zeros(mask_all, valid))
+		if (MM_ALL_ZERO(mask_all, valid))
 			continue;
 
 		// f[i] = 1.0f / det[i]
-		__m128 f = _mm_div_ps(one_4, det);
+		MMVEC f = MM_DIV_PS(one, det);
 
 		// s[i] = ray.origin - v0[i];
-		__m128 sx = _mm_sub_ps(rox_4, v0x);
-		__m128 sy = _mm_sub_ps(roy_4, v0y);
-		__m128 sz = _mm_sub_ps(roz_4, v0z);
+		MMVEC sx = MM_SUB_PS(rox, v0x);
+		MMVEC sy = MM_SUB_PS(roy, v0y);
+		MMVEC sz = MM_SUB_PS(roz, v0z);
 
 		// beta[i] = f[i] * dot(s[i], p[i]);
-		__m128 dsp = _mm_add_ps(_mm_add_ps(_mm_mul_ps(sx, px), _mm_mul_ps(sy, py)), _mm_mul_ps(sz, pz));
-		__m128 beta = _mm_mul_ps(f, dsp);
+		MMVEC dsp = MM_ADD_PS(MM_ADD_PS(MM_MUL_PS(sx, px), MM_MUL_PS(sy, py)), MM_MUL_PS(sz, pz));
+		MMVEC beta = MM_MUL_PS(f, dsp);
 
 		// if (beta[i] >= 0.0f && beta[i] <= 1.0f)
-		valid = _mm_and_si128(valid, _mm_castps_si128(_mm_cmpge_ps(beta, zero_4)));
-		valid = _mm_and_si128(valid, _mm_castps_si128(_mm_cmple_ps(beta, one_4)));
+		valid = MM_AND_PS(valid, MM_CMPGE_PS(beta, zero));
+		valid = MM_AND_PS(valid, MM_CMPLE_PS(beta, one));
 
 		// Vote whether to stop
 		// TODO: Maybe worth doing this twice? Doubt it
-		if (_mm_test_all_zeros(mask_all, valid))
+		if (MM_ALL_ZERO(mask_all, valid))
 			continue;
 
 		// q[i] = cross(s[i], e1[i]);
-		__m128 qx = _mm_sub_ps(_mm_mul_ps(sy, e1z), _mm_mul_ps(sz, e1y));
-		__m128 qy = _mm_sub_ps(_mm_mul_ps(sz, e1x), _mm_mul_ps(sx, e1z));
-		__m128 qz = _mm_sub_ps(_mm_mul_ps(sx, e1y), _mm_mul_ps(sy, e1x));
+		MMVEC qx = MM_SUB_PS(MM_MUL_PS(sy, e1z), MM_MUL_PS(sz, e1y));
+		MMVEC qy = MM_SUB_PS(MM_MUL_PS(sz, e1x), MM_MUL_PS(sx, e1z));
+		MMVEC qz = MM_SUB_PS(MM_MUL_PS(sx, e1y), MM_MUL_PS(sy, e1x));
 
 		// gamma[i] = f[i] * dot(ray.direction, q[i]);
-		__m128 drdq = _mm_add_ps(_mm_add_ps(_mm_mul_ps(rdx_4, qx), _mm_mul_ps(rdy_4, qy)), _mm_mul_ps(rdz_4, qz));
-		__m128 gamma = _mm_mul_ps(f, drdq);
+		MMVEC drdq = MM_ADD_PS(MM_ADD_PS(MM_MUL_PS(rdx, qx), MM_MUL_PS(rdy, qy)), MM_MUL_PS(rdz, qz));
+		MMVEC gamma = MM_MUL_PS(f, drdq);
 
 		// if (gamma[i] >= 0.0f && beta[i] + gamma[i] <= 1.0f)
-		valid = _mm_and_si128(valid, _mm_castps_si128(_mm_cmpge_ps(gamma, zero_4)));
-		valid = _mm_and_si128(valid, _mm_castps_si128(_mm_cmple_ps(_mm_add_ps(beta, gamma), one_4)));
+		valid = MM_AND_PS(valid, MM_CMPGE_PS(gamma, zero));
+		valid = MM_AND_PS(valid, MM_CMPLE_PS(MM_ADD_PS(beta, gamma), one));
 
 		// Vote whether to stop
-		if (_mm_test_all_zeros(mask_all, valid))
+		if (MM_ALL_ZERO(mask_all, valid))
 			continue;
 
 		// t[i] = f[i] * dot(e2[i], q[i]);
-		__m128 de2q = _mm_add_ps(_mm_add_ps(_mm_mul_ps(e2x, qx), _mm_mul_ps(e2y, qy)), _mm_mul_ps(e2z, qz));
-		__m128 t = _mm_mul_ps(f, de2q);
+		MMVEC de2q = MM_ADD_PS(MM_ADD_PS(MM_MUL_PS(e2x, qx), MM_MUL_PS(e2y, qy)), MM_MUL_PS(e2z, qz));
+		MMVEC t = MM_MUL_PS(f, de2q);
 
 		// if (t[i] >= 0.0f)
-		valid = _mm_and_si128(valid, _mm_castps_si128(_mm_cmpge_ps(t, zero_4)));
+		valid = MM_AND_PS(valid, MM_CMPGE_PS(t, zero));
 
-		if (found) {
-			__m128  max_4 = _mm_set1_ps(result.distance);
-			valid = _mm_and_si128(valid, _mm_castps_si128(_mm_cmplt_ps(t, max_4)));
-		}
+		// Vote whether to stop
+		if (MM_ALL_ZERO(mask_all, valid))
+			continue;
 
 		// TODO: Could keep four min results and collapse them down at the end instead of every 4
-		for (int i = 0; i < 4; i++) {
-			if (!valid.m128i_u32[i])
+		// TODO: Bit scan to find valid indices
+		for (int i = 0; i < MM_STEP; i++) {
+			if (!MM_PS_SUB(valid, i))
 				continue;
 
-			result.distance = t.m128_f32[i];
-			result.beta = beta.m128_f32[i];
-			result.gamma = gamma.m128_f32[i];
-			result.triangle_id = data[j].triangle_id[i];
-			found = true;
+			float distance = MM_PS_SUB(t, i);
+
+			if (distance < min_distance || !found) {
+				min_distance = distance;
+				min_beta = MM_PS_SUB(beta, i);
+				min_gamma = MM_PS_SUB(gamma, i);
+				min_id = aligned[j].triangle_id[i];
+				found = true;
+			}
 
 			if (anyCollision)
-				return true;
+				goto done;
 		}
+	}
+
+done:
+
+	if (found) {
+		result.distance = min_distance;
+		result.beta = min_beta;
+		result.gamma = min_gamma;
+		result.triangle_id = min_id;
 	}
 
 	return found;

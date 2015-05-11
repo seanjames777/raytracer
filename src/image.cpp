@@ -145,6 +145,7 @@ vec4 Sampler::sample(Image *image, const vec2 & uv) {
 }
 
 vec4 Sampler::sample(Image *image, const vec3 & norm) {
+	// TODO: This atan2 and acosf is super expensive
     vec2 uv = vec2(atan2f(norm.z, norm.x) + (float)M_PI, acosf(-norm.y));
     uv = uv / vec2(2.0f * (float)M_PI, (float)M_PI);
 

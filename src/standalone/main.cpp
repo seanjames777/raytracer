@@ -56,8 +56,8 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 10;
-    settings.occlusionSamples = 0;
+    settings.pixelSamples = 4;
+    settings.occlusionSamples = 5;
     settings.occlusionDistance = 4.0f;
     settings.shadowSamples = 4;
 
