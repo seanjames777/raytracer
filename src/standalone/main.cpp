@@ -56,8 +56,8 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 4;
-    settings.occlusionSamples = 5;
+    settings.pixelSamples = 10;
+    settings.occlusionSamples = 0;
     settings.occlusionDistance = 4.0f;
     settings.shadowSamples = 4;
 
@@ -110,12 +110,16 @@ int main(int argc, char *argv[]) {
 
     FbxLoader::load(util::prependExecutableDirectory("content/models/dragon.fbx"), polys);
 
-    transformed.clear();
-    transform_mesh(polys, transformed, vec3(0.0f), vec3(0.0f), vec3(0.75f));
-
-    for (auto & tri : transformed)
-        scene->addPoly(tri, bunny);
-
+	for (int z = 0; z <= 0; z++) {
+		for (int x = 0; x <= 0; x++) {
+			transformed.clear();
+			transform_mesh(polys, transformed,
+				vec3(x * 5.0f, 1.0f, z * 5.0f), vec3(0.0f), vec3(0.75f));
+			for (auto & tri : transformed)
+				scene->addPoly(tri, bunny);
+		}
+	}
+    
     polys.clear();
     transformed.clear();
 

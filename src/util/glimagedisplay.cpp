@@ -38,14 +38,14 @@ const char *ps_source =
     "}\n";
 
 // TODO: shorthand for this type
-vector<float, 2, false> vertices[6] = {
-    vector<float, 2, false>(-1, -1),
-    vector<float, 2, false>(-1, 1),
-    vector<float, 2, false>(1, 1),
+vec2 vertices[6] = {
+	vec2(-1, -1),
+	vec2(-1, 1),
+	vec2(1, 1),
 
-    vector<float, 2, false>(-1, -1),
-    vector<float, 2, false>(1, 1),
-    vector<float, 2, false>(1, -1)
+	vec2(-1, -1),
+	vec2(1, 1),
+	vec2(1, -1)
 };
 
 void glfw_error_callback(int error, const char *msg) {

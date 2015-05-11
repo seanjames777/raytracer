@@ -95,7 +95,8 @@ vec3 PBRMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Co
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
-    vec3 env = raytracer->getGlossyReflection(kdStack, interp.position, interp.normal, ray.direction, depth);
+    //vec3 env = raytracer->getGlossyReflection(kdStack, interp.position, interp.normal, ray.direction, depth);
+	vec3 env = vec3(1, 0, 0);
     //vec3 env = raytracer->getAmbientOcclusion(kdStack,
     //    interp.position + triangle->normal * .001f, triangle->normal);
 

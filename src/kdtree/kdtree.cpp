@@ -35,33 +35,15 @@ KDTree::KDTree(KDNode *root, AABB bounds)
 // TODO: Mailboxing is a thing. Figure out what it is.
 // TODO: Is this actually depth first? Make sure. And make sure we want that.
 // TODO: Might want a tree for light extents
+// TODO: Maybe help the heuristic with creating big empty gaps? Something about this
+//       in the SAH paper. Creating empty nodes or whatever.
+// TODO: Tweak heursitic constants
 bool KDTree::intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit,
     bool anyCollision)
 {
-    bool found = false;
-    Collision tmpResult; // TODO
-
-    unsigned int num_triangles = leaf->flags & KD_SIZE_MASK;
-
-    for (unsigned int i = 0; i < num_triangles; i++) {
-        SetupTriangle *triangle = &leaf->triangles[i];
-
-        bool intersects = triangle->intersects(ray, tmpResult);
-
-		// TODO: Getting wrecked by stability here
-        if (intersects/* && tmpResult.distance >= entry &&
-            tmpResult.distance <= exit */&& (tmpResult.distance < result.distance || !found))
-        {
-            result = tmpResult;
-
-            if (anyCollision)
-                return true;
-
-            found = true;
-        }
-    }
-
-    return found;
+	// TODO: Might want to inline this, though intersects() is already inlined
+	// TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
+	return leaf->triangles->intersects(ray, leaf->flags & KD_SIZE_MASK, anyCollision, result);
 }
 
 bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result, float maxDepth,

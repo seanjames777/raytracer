@@ -30,7 +30,7 @@ struct KDNode {
 
     KDNode        *left;
     KDNode        *right;
-    SetupTriangle *triangles;
+    SetupTriangleBuffer *triangles; // TODO: Embed into struct to avoid indirection?
     float          split_dist;
     unsigned int   flags;
 
