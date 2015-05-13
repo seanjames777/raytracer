@@ -75,8 +75,8 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute) {
                     }
                 }
                 else {
-                    int normIdx = mesh->GetTextureUVIndex(i, j);
-                    vertexUV = uvs->GetDirectArray().GetAt(normIdx);
+                    int uvIdx = mesh->GetTextureUVIndex(i, j);
+                    vertexUV = uvs->GetDirectArray().GetAt(uvIdx);
                 }
             }
 
