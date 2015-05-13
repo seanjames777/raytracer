@@ -24,20 +24,13 @@ enum KDNodeFlags {
     KD_IS_LEAF         =   1 << 31,
 };
 
-// TODO cache alignment, maybe compact, and child node heap?
+// 32 bytes = 1/2 cache line size
 struct KDNode {
-    // 32 bytes = 1/2 cache line on x86/64
-
-    KDNode       *left;
-    KDNode       *right;
-    char         *triangles;
-    float         split_dist;
-    unsigned int  flags;
-
-    KDNode();
-
-    ~KDNode();
-
+    KDNode       *left;       // 8
+    KDNode       *right;      // 8
+    char         *triangles;  // 8
+    float         split_dist; // 4
+    unsigned int  flags;      // 4 -- Triangle count and leaf or flags and not leaf
 };
 
 #endif

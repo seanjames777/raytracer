@@ -64,6 +64,8 @@ public:
      */
     KDTree(KDNode *root, AABB bounds);
 
+	// TODO: Destructor??!
+
     /**
      * @brief Intersect a ray against the KD-Tree
      *

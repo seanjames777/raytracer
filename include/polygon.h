@@ -132,7 +132,7 @@ namespace SetupTriangleBuffer {
 		unsigned int triangle_id;
 
 		char pad[4]; // TODO make sure this is ~cache line size
-	} *data;
+	};
 
 	const static size_t elemSize = sizeof(SetupTriangle);
 	const static size_t elemStep = 1;
@@ -142,7 +142,7 @@ namespace SetupTriangleBuffer {
 		vec3    e1;          // 12
 		vec3    e2;          // 12
 		unsigned int triangle_id; //  4  40
-	} *data;
+	};
 
 	const static size_t elemSize = sizeof(SetupTriangle);
 	const static size_t elemStep = 1;

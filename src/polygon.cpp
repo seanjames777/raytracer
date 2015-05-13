@@ -95,7 +95,7 @@ char *pack(Triangle **triangles, int num_triangles) {
 	c_nv = -c.v[u] / denom;
 	c_d = (c.v[u] * v1.v[v] - c.v[v] * v1.v[u]) / denom;
 #elif defined(MOLLER_TRUMBORE_INTERSECTION)
-	data = new SetupTriangle[num_triangles];
+	SetupTriangle *data = (SetupTriangle *)malloc(sizeof(SetupTriangle) * num_triangles);
 
 	for (int i = 0; i < num_triangles; i++) {
 		const Triangle & tri = *(triangles[i]);
@@ -104,6 +104,8 @@ char *pack(Triangle **triangles, int num_triangles) {
 		data[i].e2 = tri.v3.position - tri.v1.position;
 		data[i].triangle_id = tri.triangle_id;
 	}
+
+	return (char *)data;
 #elif defined(MOLLER_TRUMBORE_SIMD_INTERSECTION)
 	size_t data_size = ((num_triangles + MM_STEP - 1) / MM_STEP) * sizeof(SetupTriangle);
 
@@ -212,7 +214,7 @@ bool intersects(const Ray & ray, char *data, int count, bool anyCollision, Colli
 	bool found = false;
 
 	for (int i = 0; i < count; i++) {
-		const SetupTriangle & tri = data[i];
+		const SetupTriangle & tri = ((SetupTriangle *)data)[i];
 		vec3 p = cross(ray.direction, tri.e2);
 
 		float det = dot(tri.e1, p);
@@ -253,11 +255,11 @@ bool intersects(const Ray & ray, char *data, int count, bool anyCollision, Colli
 
 	return found;
 #elif defined(MOLLER_TRUMBORE_SIMD_INTERSECTION)
-	MMVEC  found = MM_CAST_FLOAT_INT(MM_SET1_INT(false));
+	MMVEC  found        = MM_CAST_FLOAT_INT(MM_SET1_INT(false));
 	MMVEC  min_distance = MM_SET1_PS(0.0f);
-	MMVEC  min_gamma = MM_SET1_PS(0.0f);
-	MMVEC  min_beta = MM_SET1_PS(0.0f);
-	MMVEC  min_id = MM_CAST_FLOAT_INT(MM_SET1_INT(0));
+	MMVEC  min_gamma    = MM_SET1_PS(0.0f);
+	MMVEC  min_beta     = MM_SET1_PS(0.0f);
+	MMVEC  min_id       = MM_CAST_FLOAT_INT(MM_SET1_INT(0));
 
 	// Constants
 	MMVEC epsilon = MM_SET1_PS(0.000001f);
@@ -265,12 +267,13 @@ bool intersects(const Ray & ray, char *data, int count, bool anyCollision, Colli
 	MMVEC one = MM_SET1_PS(1.0f);
 
 	// Loaded from ray
-	MMVEC rox = MM_SET1_PS(ray.origin.x);
-	MMVEC roy = MM_SET1_PS(ray.origin.y);
-	MMVEC roz = MM_SET1_PS(ray.origin.z);
-	MMVEC rdx = MM_SET1_PS(ray.direction.x);
-	MMVEC rdy = MM_SET1_PS(ray.direction.y);
-	MMVEC rdz = MM_SET1_PS(ray.direction.z);
+	// TODO: Can reshuffle this stuff perhaps, or set up the ray beforehand
+	MMVEC rox = _mm_load_ps((float *)&ray.ox); // MM_SET1_PS(ray.origin.x);
+	MMVEC roy = _mm_load_ps((float *)&ray.oy); // MM_SET1_PS(ray.origin.y);
+	MMVEC roz = _mm_load_ps((float *)&ray.oz); // MM_SET1_PS(ray.origin.z);
+	MMVEC rdx = _mm_load_ps((float *)&ray.dx); // MM_SET1_PS(ray.direction.x);
+	MMVEC rdy = _mm_load_ps((float *)&ray.dy); // MM_SET1_PS(ray.direction.y);
+	MMVEC rdz = _mm_load_ps((float *)&ray.dz); // MM_SET1_PS(ray.direction.z);
 
 	MMVEC mask_all = MM_CAST_FLOAT_INT(MM_SET1_INT(0xFFFFFFFF));
 	MMVECI4 idx0 = MM_SETR_INT4(0, 1, 2, 3);
@@ -402,6 +405,8 @@ bool intersects(const Ray & ray, char *data, int count, bool anyCollision, Colli
 done:
 
 	// TODO: Could do one last vote here
+
+	// TODO: Could do a min in parallel, then find the index in parallel, then do 1 copy
 
 	float min_distance_1 = 0.0f, min_gamma_1 = 0.0f, min_beta_1 = 0.0f;
 	unsigned int min_id_1 = 0;

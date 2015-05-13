@@ -10,6 +10,13 @@
 
 // TODO: the enqueue() function can fail
 
+KDNode *alloc_node() {
+	// half cache line. TODO allocate a bunch together
+	KDNode *node = (KDNode *)_aligned_malloc(sizeof(KDNode), 32);
+
+	return node;
+}
+
 KDBuilder::KDBuilder() {
 }
 
@@ -287,9 +294,6 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 	KDStats stats;
 	memset(&stats, 0, sizeof(KDStats));
 	computeStats(q_node->node, &stats, 1);
-
-	// TODO: start worker threads
-	// TODO: join worker threads
 
     double elapsed = timer.getElapsedMilliseconds() / 1000.0;
     double cpu     = timer.getCPUTime() / 1000.0;

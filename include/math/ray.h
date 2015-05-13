@@ -12,9 +12,13 @@
 #include <math/vector.h>
 
 struct Ray {
-    vec3 origin;        //!< Ray origin point
-    vec3 direction;     //!< Ray direction vector
-    vec3 inv_direction; //!< 1 / ray direction components
+	// TODO decide how to handle aligns and the W component
+	vec3 origin;        //!< Ray origin point
+	vec3 direction;     //!< Ray direction vector
+	vec3 inv_direction; //!< 1 / ray direction components
+
+	__m128 ox, oy, oz;
+	__m128 dx, dy, dz;
 
     // TODO: Derivatives for sampling
 
@@ -35,6 +39,13 @@ struct Ray {
           direction(direction),
           inv_direction(1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z) // TODO SSE
     {
+		ox = _mm_set1_ps(origin.x);
+		oy = _mm_set1_ps(origin.y);
+		oz = _mm_set1_ps(origin.z);
+
+		dx = _mm_set1_ps(direction.x);
+		dy = _mm_set1_ps(direction.y);
+		dz = _mm_set1_ps(direction.z);
     }
 
     /**
