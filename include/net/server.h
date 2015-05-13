@@ -10,6 +10,7 @@
 #define __NET_SERVER_H
 
 #include <net/net.h>
+#include <rt_defs.h>
 
 // TODO: Windows shutdown()
 
@@ -17,7 +18,7 @@
  * @brief Generic TCP server. Simply binds to a socket and accepts connections.
  * Derived classes are responsible for handling connections.
  */
-class Server {
+class RT_EXPORT Server {
 private:
 
 	bool            should_shutdown; //!< Whether the server should shut down

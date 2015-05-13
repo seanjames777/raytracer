@@ -11,56 +11,36 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <xmmintrin.h>
-#include <smmintrin.h>
 #include <array>
 
-// TODO: Some of the functions IN vector classes might be optimized with SSE
-// instructions.
-// TODO: SSE for other types and sizes
-
-template<typename T, unsigned int N, bool SIMD>
+template<typename T, unsigned int N>
 struct vector_data {
     T v[N];
 };
 
-template<unsigned int N>
-struct vector_data<float, N, true> {
-    union {
-        float v[N];
-		std::array<__m128, (N + 3) / 4> simd; // TODO: does this degrade perf? shouldn't
-    };
-};
-
-template<typename T, unsigned int N, bool SIMD = false>
-struct vector : public vector_data<T, N, SIMD> {
-    vector<T, N, SIMD>() {
+template<typename T, unsigned int N>
+struct vector : public vector_data<T, N> {
+    vector<T, N>() {
         for (unsigned int i = 0; i < N; i++)
-            vector_data<T, N, SIMD>::v[i] = 0;
+            vector_data<T, N>::v[i] = 0;
     }
 
-    vector<T, N, SIMD>(T fill) {
+    vector<T, N>(T fill) {
         for (unsigned int i = 0; i < N; i++)
-            vector_data<T, N, SIMD>::v[i] = fill;
+            vector_data<T, N>::v[i] = fill;
     }
 };
 
-#define MATH_DEFAULT_SIMD
+//#define MATH_DEFAULT_SIMD
 
-#ifndef MATH_DEFAULT_SIMD
-typedef vector<float, 2, false> vec2;
-typedef vector<float, 3, false> vec3;
-typedef vector<float, 4, false> vec4;
-#else
-typedef vector<float, 2, true> vec2;
-typedef vector<float, 3, true> vec3;
-typedef vector<float, 4, true> vec4;
-#endif
+typedef vector<float, 2> vec2;
+typedef vector<float, 3> vec3;
+typedef vector<float, 4> vec4;
 
 // TODO initialization list
 
 template<typename T>
-struct vector<T, 2, false> {
+struct vector<T, 2> {
     union {
         T v[2];
         struct {
@@ -69,59 +49,27 @@ struct vector<T, 2, false> {
         };
     };
 
-    vector<T, 2, false>()
+    vector<T, 2>()
         : x(0),
           y(0)
     {
     }
 
-    vector<T, 2, false>(T fill)
+    vector<T, 2>(T fill)
         : x(fill),
           y(fill)
     {
     }
 
-    vector<T, 2, false>(T x, T y)
+    vector<T, 2>(T x, T y)
         : x(x),
           y(y)
     {
     }
 };
 
-template <>
-struct vector<float, 2, true> {
-    union {
-        float v[2];
-        struct {
-            float x;
-            float y;
-        };
-		std::array<__m128, 1> simd;
-    };
-
-	vector<float, 2, true>()
-		: simd({ _mm_setzero_ps() })
-    {
-    }
-
-    vector<float, 2, true>(__m128 simd)
-        : simd({ simd })
-    {
-    }
-
-    vector<float, 2, true>(float fill)
-        : simd({ _mm_set1_ps(fill) })
-    {
-    }
-
-    vector<float, 2, true>(float x, float y)
-        : simd({ _mm_setr_ps(x, y, 0.0f, 0.0f) })
-    {
-    }
-};
-
 template<typename T>
-struct vector<T, 3, false> {
+struct vector<T, 3> {
     union {
         T v[3];
         struct {
@@ -131,68 +79,28 @@ struct vector<T, 3, false> {
         };
     };
 
-    vector<T, 3, false>()
+    vector<T, 3>()
         : x(0),
           y(0),
           z(0)
     {
     }
 
-    vector<T, 3, false>(T fill)
+    vector<T, 3>(T fill)
         : x(fill),
           y(fill),
           z(fill)
     {
     }
 
-    vector<T, 3, false>(T x, T y, T z)
+    vector<T, 3>(T x, T y, T z)
         : x(x),
           y(y),
           z(z)
     {
     }
 
-    vector<T, 3, false>(const vector<T, 2, false> & xy, T z)
-        : x(xy.x),
-          y(xy.y),
-          z(z)
-    {
-    }
-};
-
-template<>
-struct vector<float, 3, true> {
-    union {
-        float v[3];
-        struct {
-            float x;
-            float y;
-            float z;
-        };
-		std::array<__m128, 1> simd;
-    };
-
-    vector<float, 3, true>()
-        : simd({ _mm_setzero_ps() })
-    {
-    }
-
-    vector<float, 3, true>(__m128 simd)
-        : simd({ simd })
-    {
-    }
-
-    vector<float, 3, true>(float fill)
-        : simd({ _mm_set1_ps(fill) })
-    {
-    }
-
-    vector<float, 3, true>(float x, float y, float z)
-        : simd({ _mm_setr_ps(x, y, z, 0.0f) })
-    {
-    }
-
-    vector<float, 3, true>(const vector<float, 2, true> & xy, float z)
+    vector<T, 3>(const vector<T, 2> & xy, T z)
         : x(xy.x),
           y(xy.y),
           z(z)
@@ -201,7 +109,7 @@ struct vector<float, 3, true> {
 };
 
 template<typename T>
-struct vector<T, 4, false> {
+struct vector<T, 4> {
     union {
         T v[4];
         struct {
@@ -212,7 +120,7 @@ struct vector<T, 4, false> {
         };
     };
 
-    vector<T, 4, false>()
+    vector<T, 4>()
         : x(0),
           y(0),
           z(0),
@@ -220,7 +128,7 @@ struct vector<T, 4, false> {
     {
     }
 
-    vector<T, 4, false>(T fill)
+    vector<T, 4>(T fill)
         : x(fill),
           y(fill),
           z(fill),
@@ -228,7 +136,7 @@ struct vector<T, 4, false> {
     {
     }
 
-    vector<T, 4, false>(T x, T y, T z, T w)
+    vector<T, 4>(T x, T y, T z, T w)
         : x(x),
           y(y),
           z(z),
@@ -236,7 +144,7 @@ struct vector<T, 4, false> {
     {
     }
 
-    vector<T, 4, false>(vector<T, 3, false> v3, T w)
+    vector<T, 4>(vector<T, 3> v3, T w)
         : x(v3.x),
           y(v3.y),
           z(v3.z),
@@ -244,140 +152,69 @@ struct vector<T, 4, false> {
     {
     }
 
-    vector<T, 3, false> xyz() {
-        return vector<T, 3, false>(x, y, z);
+    vector<T, 3> xyz() {
+        return vector<T, 3>(x, y, z);
     }
 };
 
-template<>
-struct vector<float, 4, true> {
-    union {
-        float v[4];
-        struct {
-            float x;
-            float y;
-            float z;
-            float w;
-        };
-        std::array<__m128, 1> simd;
-    };
-
-    vector<float, 4, true>()
-        : simd({ _mm_setzero_ps() })
-    {
-    }
-
-    vector<float, 4, true>(__m128 simd)
-        : simd({ simd })
-    {
-    }
-
-    vector<float, 4, true>(float fill)
-        : simd({ _mm_set1_ps(fill) })
-    {
-    }
-
-    vector<float, 4, true>(float x, float y, float z, float w)
-        : simd({ _mm_setr_ps(x, y, z, w) })
-    {
-    }
-
-    vector<float, 4, true>(vector<float, 3, true> v3, float w)
-        : simd({ _mm_setr_ps(v3.x, v3.y, v3.z, w) }) // TODO might be a better way
-    {
-    }
-
-    vector<float, 3, true> xyz() {
-        return vector<float, 3, true>(simd[0]);
-    }
-};
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> & operator+=(vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
+template<typename T, unsigned int N>
+inline vector<T, N> & operator+=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] += rhs.v[i];
     return lhs;
 }
 
-template<unsigned int N>
-inline vector<float, N, true> & operator+=(vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        lhs.simd[i] = _mm_add_ps(lhs.simd[i], rhs.simd[i]);
-    return lhs;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator+(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val = lhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator+(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+    vector<T, N> val = lhs;
     val += rhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> & operator-=(vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
+template<typename T, unsigned int N>
+inline vector<T, N> & operator-=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] -= rhs.v[i];
     return lhs;
 }
 
-template<unsigned int N>
-inline vector<float, N, true> & operator-=(vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        lhs.simd[i] = _mm_sub_ps(lhs.simd[i], rhs.simd[i]);
-    return lhs;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator-(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val = lhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator-(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+    vector<T, N> val = lhs;
     val -= rhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> & operator*=(vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
+template<typename T, unsigned int N>
+inline vector<T, N> & operator*=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] *= rhs.v[i];
     return lhs;
 }
 
-template<unsigned int N>
-inline vector<float, N, true> & operator*=(vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        lhs.simd[i] = _mm_mul_ps(lhs.simd[i], rhs.simd[i]);
-    return lhs;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator*(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val = lhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator*(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+    vector<T, N> val = lhs;
     val *= rhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> & operator/=(vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
+template<typename T, unsigned int N>
+inline vector<T, N> & operator/=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] /= rhs.v[i];
     return lhs;
 }
 
-template<unsigned int N>
-inline vector<float, N, true> & operator/=(vector<float, N, true> & lhs, const vector<float, N, true> & rhs) {
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        lhs.simd[i] = _mm_div_ps(lhs.simd[i], rhs.simd[i]);
-    return lhs;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator/(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val = lhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator/(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+    vector<T, N> val = lhs;
     val /= rhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> & operator+=(vector<T, N, SIMD> & lhs, T rhs) {
+template<typename T, unsigned int N>
+inline vector<T, N> & operator+=(vector<T, N> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] += rhs;
     return lhs;
@@ -386,126 +223,86 @@ inline vector<T, N, SIMD> & operator+=(vector<T, N, SIMD> & lhs, T rhs) {
 // TODO: Maybe there's a way to load constants outside the functions in case
 // they're reused?
 
-template<unsigned int N>
-inline vector<float, N, true> & operator+=(vector<float, N, true> & lhs, float rhs) {
-    __m128 rhs_simd = _mm_set1_ps(rhs);
-
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        lhs.simd[i] = _mm_add_ps(lhs.simd[i], rhs_simd);
-
-    return lhs;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator+(const vector<T, N, SIMD> & lhs, T rhs) {
-    vector<T, N, SIMD> val = lhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator+(const vector<T, N> & lhs, T rhs) {
+    vector<T, N> val = lhs;
     val += rhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator+(T lhs, const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val = rhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator+(T lhs, const vector<T, N> & rhs) {
+    vector<T, N> val = rhs;
     val += lhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> & operator-=(vector<T, N, SIMD> & lhs, T rhs) {
+template<typename T, unsigned int N>
+inline vector<T, N> & operator-=(vector<T, N> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] -= rhs;
     return lhs;
 }
 
-template<unsigned int N>
-inline vector<float, N, true> & operator-=(vector<float, N, true> & lhs, float rhs) {
-    __m128 rhs_simd = _mm_set1_ps(rhs);
-
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        lhs.simd[i] = _mm_sub_ps(lhs.simd[i], rhs_simd);
-
-    return lhs;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator-(const vector<T, N, SIMD> & lhs, T rhs) {
-    vector<T, N, SIMD> val = lhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator-(const vector<T, N> & lhs, T rhs) {
+    vector<T, N> val = lhs;
     val -= rhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator-(T lhs, const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val = rhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator-(T lhs, const vector<T, N> & rhs) {
+    vector<T, N> val = rhs;
     val -= lhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> & operator*=(vector<T, N, SIMD> & lhs, T rhs) {
+template<typename T, unsigned int N>
+inline vector<T, N> & operator*=(vector<T, N> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] *= rhs;
     return lhs;
 }
 
-template<unsigned int N>
-inline vector<float, N, true> & operator*=(vector<float, N, true> & lhs, float rhs) {
-    __m128 rhs_simd = _mm_set1_ps(rhs);
-
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        lhs.simd[i] = _mm_mul_ps(lhs.simd[i], rhs_simd);
-
-    return lhs;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator*(const vector<T, N, SIMD> & lhs, T rhs) {
-    vector<T, N, SIMD> val = lhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator*(const vector<T, N> & lhs, T rhs) {
+    vector<T, N> val = lhs;
     val *= rhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator*(T lhs, const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val = rhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator*(T lhs, const vector<T, N> & rhs) {
+    vector<T, N> val = rhs;
     val *= lhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> & operator/=(vector<T, N, SIMD> & lhs, T rhs) {
+template<typename T, unsigned int N>
+inline vector<T, N> & operator/=(vector<T, N> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs.v[i] /= rhs;
     return lhs;
 }
 
-template<unsigned int N>
-inline vector<float, N, true> & operator/=(vector<float, N, true> & lhs, float rhs) {
-    __m128 rhs_simd = _mm_set1_ps(rhs);
-
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        lhs.simd[i] = _mm_div_ps(lhs.simd[i], rhs_simd);
-
-    return lhs;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator/(const vector<T, N, SIMD> & lhs, T rhs) {
-    vector<T, N, SIMD> val = lhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator/(const vector<T, N> & lhs, T rhs) {
+    vector<T, N> val = lhs;
     val /= rhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator/(T lhs, const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val = rhs;
+template<typename T, unsigned int N>
+inline vector<T, N> operator/(T lhs, const vector<T, N> & rhs) {
+    vector<T, N> val = rhs;
     val /= lhs;
     return val;
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> operator-(const vector<T, N, SIMD> & rhs) {
-    vector<T, N, SIMD> val;
+template<typename T, unsigned int N>
+inline vector<T, N> operator-(const vector<T, N> & rhs) {
+    vector<T, N> val;
 
     for (unsigned int i = 0; i < N; i++)
         val.v[i] = -rhs.v[i];
@@ -513,19 +310,8 @@ inline vector<T, N, SIMD> operator-(const vector<T, N, SIMD> & rhs) {
     return val;
 }
 
-template<unsigned int N>
-inline vector<float, N, true> operator-(vector<float, N, true> & rhs) {
-    vector<float, N, true> val;
-    __m128 zero = _mm_setzero_ps();
-
-    for (unsigned int i = 0; i < (N + 3) / 4; i++)
-        val.simd[i] = _mm_sub_ps(zero, rhs.simd[i]);
-
-    return val;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline T dot(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
+template<typename T, unsigned int N>
+inline T dot(const vector<T, N> & lhs, const vector<T, N> & rhs) {
     T result = 0;
 
     for (unsigned int i = 0; i < N; i++)
@@ -534,51 +320,30 @@ inline T dot(const vector<T, N, SIMD> & lhs, const vector<T, N, SIMD> & rhs) {
     return result;
 }
 
-// TODO: general SIMD dot product. Hard because MSVC is stupid.
-// TODO: vector2/3 mask
-
-template<>
-inline float dot(const vector<float, 2, true> & lhs, const vector<float, 2, true> & rhs) {
-	vector<float, 4, true> simd(_mm_dp_ps(lhs.simd[0], rhs.simd[0], 0x31));
-	return simd.x;
-}
-
-template<>
-inline float dot(const vector<float, 3, true> & lhs, const vector<float, 3, true> & rhs) {
-	vector<float, 4, true> simd(_mm_dp_ps(lhs.simd[0], rhs.simd[0], 0x71));
-	return simd.x;
-}
-
-template<>
-inline float dot(const vector<float, 4, true> & lhs, const vector<float, 4, true> & rhs) {
-	vector<float, 4, true> simd(_mm_dp_ps(lhs.simd[0], rhs.simd[0], 0xF1));
-	return simd.x;
-}
-
-template<typename T, unsigned int N, bool SIMD>
-inline T length2(const vector<T, N, SIMD> & vec) {
+template<typename T, unsigned int N>
+inline T length2(const vector<T, N> & vec) {
     return dot(vec, vec);
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline T length(const vector<T, N, SIMD> & vec) {
+template<typename T, unsigned int N>
+inline T length(const vector<T, N> & vec) {
     return static_cast<T>(sqrt(dot(vec, vec)));
 }
 
-template<unsigned int N, bool SIMD>
-inline float length(const vector<float, N, SIMD> & vec) {
+template<unsigned int N>
+inline float length(const vector<float, N> & vec) {
     return sqrtf(dot(vec, vec));
 }
 
-template<typename T, unsigned int N, bool SIMD>
-inline vector<T, N, SIMD> normalize(const vector<T, N, SIMD> & vec) {
+template<typename T, unsigned int N>
+inline vector<T, N> normalize(const vector<T, N> & vec) {
     T len = length(vec);
     return vec / len;
 }
 
-template<typename T, bool SIMD>
-inline vector<T, 3, SIMD> cross(const vector<T, 3, SIMD> & lhs, const vector<T, 3, SIMD> & rhs) {
-    return vector<T, 3, SIMD>(
+template<typename T>
+inline vector<T, 3> cross(const vector<T, 3> & lhs, const vector<T, 3> & rhs) {
+    return vector<T, 3>(
         lhs.y * rhs.z - lhs.z * rhs.y,
         lhs.z * rhs.x - lhs.x * rhs.z,
         lhs.x * rhs.y - lhs.y * rhs.x);
@@ -587,8 +352,8 @@ inline vector<T, 3, SIMD> cross(const vector<T, 3, SIMD> & lhs, const vector<T, 
 /**
  * Reflect this vector across a normal vector. TODO.
  */
-template<typename T, bool SIMD>
-inline vector<T, 3, SIMD> reflect(const vector<T, 3, SIMD> & vec, const vector<T, 3, SIMD> & norm) {
+template<typename T>
+inline vector<T, 3> reflect(const vector<T, 3> & vec, const vector<T, 3> & norm) {
     return 2.0f * dot(vec, norm) * norm - vec;
 }
 
@@ -600,10 +365,10 @@ inline vector<T, 3, SIMD> reflect(const vector<T, 3, SIMD> & vec, const vector<T
  * @param n1   Index of refraction of material being left
  * @param n2   Index of refractio nof material being entered
  */
-template<typename T, bool SIMD>
-inline vector<T, 3, SIMD> refract(const vector<T, 3, SIMD> & vec, const vector<T, 3, SIMD> & norm, float n1, float n2) {
-    vector<T, 3, SIMD> L = -vec;
-    vector<T, 3, SIMD> N = norm;
+template<typename T>
+inline vector<T, 3> refract(const vector<T, 3> & vec, const vector<T, 3> & norm, float n1, float n2) {
+    vector<T, 3> L = -vec;
+    vector<T, 3> N = norm;
 
     float r = n1 / n2;
     float cos_theta_l = dot(L, N);
@@ -626,8 +391,8 @@ inline vector<T, 3, SIMD> refract(const vector<T, 3, SIMD> & vec, const vector<T
  * @return A factor for blending reflection and refraction. 0 = refraction only,
  * 1 = reflection only
  */
-template<typename T, bool SIMD>
-inline float schlick(const vector<T, 3, SIMD> & n, const vector<T, 3, SIMD> & v, float n1, float n2) {
+template<typename T>
+inline float schlick(const vector<T, 3> & n, const vector<T, 3> & v, float n1, float n2) {
     // TODO specular highlights can use this too?
 
     float cos_i = dot(n, v);

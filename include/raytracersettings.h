@@ -9,10 +9,12 @@
 #ifndef _RAYTRACERSETTINGS_H
 #define _RAYTRACERSETTINGS_H
 
+#include <rt_defs.h>
+
 #define MAX_SHADOW_SAMPLES 64
 #define MAX_AO_SAMPLES     64
 
-struct RaytracerSettings {
+struct RT_EXPORT RaytracerSettings {
     /** @brief Image width */
     int width;
 

@@ -10,6 +10,7 @@
 #define __PATH_H
 
 #include <string>
+#include <rt_defs.h>
 
 namespace util {
 
@@ -18,7 +19,7 @@ namespace util {
  * before a 'local' path. This is useful for loading content distributed
  * alongside the executable.
  */
-std::string prependExecutableDirectory(std::string localPath);
+RT_EXPORT std::string prependExecutableDirectory(std::string localPath);
 
 }
 

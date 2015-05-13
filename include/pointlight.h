@@ -14,7 +14,7 @@
 /**
  * @brief A point light with an origin, radius, and falloff curve
  */
-class PointLight : public Light {
+class RT_EXPORT PointLight : public Light {
 private:
 
     /** @brief Position */

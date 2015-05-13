@@ -12,6 +12,7 @@
 #include <string>
 #include <math/vector.h>
 #include <iostream> // TODO
+#include <rt_defs.h>
 
 // TODO: inline functions
 
@@ -25,7 +26,7 @@
  * @brief Stores an array of integral pixels with between 1 and 4 components and can load and store
  * bitmaps in the .bmp format
  */
-class Image {
+class RT_EXPORT Image {
 private:
 
     int width;
@@ -134,7 +135,8 @@ enum BorderMode {
     Wrap
 };
 
-struct Sampler {
+// TODO: Might be faster to use template filter settings for inlining
+struct RT_EXPORT Sampler {
     FilterMode minFilter;
     FilterMode magFilter;
     BorderMode border;

@@ -9,6 +9,7 @@
 #ifndef _RAYTRACER_H
 #define _RAYTRACER_H
 
+#include <rt_defs.h>
 #include <scene.h>
 #include <image.h>
 #include <kdtree/kdtree.h>
@@ -29,7 +30,7 @@
 //     - Lock-free indexing
 //     - Per-mesh materials, sorted, instaed of poly -> naterial map
 
-class Raytracer {
+class RT_EXPORT Raytracer {
 private:
 
     /** @brief Intersection test tree */
@@ -46,7 +47,7 @@ private:
     bool should_shutdown;
 
     /** @brief Worker threads */
-    std::vector<std::thread> workers;
+    std::vector<std::shared_ptr<std::thread>> workers;
 
     /** @brief Raytracer settings */
     RaytracerSettings settings;
@@ -115,8 +116,9 @@ private:
 
                             Collision result;
 
-                            if (tree->intersect(kdStack, r, result, 0.0f, false))
-                                sampleColor = shade(kdStack, r, &result, 1);
+							if (tree->intersect(kdStack, r, result, 0.0f, false)) {
+								sampleColor = shade(kdStack, r, &result, 1);
+							}
 
                             color += sampleColor * sampleContrib;
                         }
@@ -166,10 +168,10 @@ public:
         int nThreads = settings.numThreads;
 
         if (nThreads == 0)
-            nThreads = std::thread::hardware_concurrency();
+            nThreads = std::thread::hardware_concurrency(); // TODO: Maybe better way to update image
 
         for (int i = 0; i < nThreads; i++)
-            workers.push_back(std::thread(std::bind(&Raytracer::worker_thread, this)));
+            workers.push_back(std::make_shared<std::thread>(std::bind(&Raytracer::worker_thread, this)));
 
         printf("Started %d worker threads\n", nThreads);
     }
@@ -178,11 +180,12 @@ public:
         return blocksRemaining == 0;
     }
 
-    void shutdown() {
-        should_shutdown = true;
+    void shutdown(bool waitUntilFinished) {
+        if (!waitUntilFinished)
+            should_shutdown = true;
 
         for (auto& worker : workers)
-            worker.join();
+            worker->join();
 
         workers.clear();
     }

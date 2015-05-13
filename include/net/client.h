@@ -10,13 +10,14 @@
 #define __NET_CLIENT_H
 
 #include <net/net.h>
+#include <rt_defs.h>
 
 // TODO: Move net.h, namespacing, call these NetTCPClient or something
 
 /**
  * @brief Generic TCP client
  */
-class Client {
+class RT_EXPORT Client {
 private:
 
 	socket_t sockfd; //!< Client connection socket

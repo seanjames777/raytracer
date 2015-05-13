@@ -174,7 +174,7 @@ protected:
     }
 
     virtual void handleShutdown() override {
-        rt->shutdown();
+        rt->shutdown(false);
 
         // TODO: Move into raytracer itself
         float elapsed = (float)timer.getElapsedMilliseconds() / 1000.0f;
@@ -192,22 +192,8 @@ protected:
 
 RTServer worker;
 
-/*void sig_handler(int signo) {
-    if (signo == SIGINT) {
-        printf("Received SIGINT, shutting down...\n");
-        worker.setShouldShutDown();
-    }
-
-    // TODO: a little race conditioney/threading weirdness
-}*/
-
 int main(int argc, char *argv[]) {
     parseArgs(argc, argv);
-
-    /*if (signal(SIGINT, sig_handler) < 0) {
-        printf("Error setting up signal handler\n");
-        return -1;
-    }*/
 
     worker.serve(port);
 
