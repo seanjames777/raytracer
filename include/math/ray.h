@@ -10,6 +10,8 @@
 #define __MATH_RAY_H
 
 #include <math/vector.h>
+#include <xmmintrin.h>
+#include <smmintrin.h>
 
 struct Ray {
 	// TODO decide how to handle aligns and the W component

@@ -177,7 +177,7 @@ bool KDSAHBuilder::splitNode(
             int count_planar = 0;
 
             // Handle all events at this plane position
-            while (event_idx < num_events && event.dist == dist) {
+            while (true) {
                 // SAH_* have known values, so the compiler is able to turn this into
                 // bit masks, etc. to optimize away the switch here. The events are also
                 // sorted, so the branch predictor would perform OK either way.
@@ -193,7 +193,14 @@ bool KDSAHBuilder::splitNode(
                     break;
                 }
 
-                event = events[++event_idx];
+                if (++event_idx < num_events) {
+                    event = events[event_idx]; // TODO: past end by 1?
+
+                    if (event.dist != dist)
+                        break;
+                }
+                else
+                    break;
             }
 
             // Move triangles that lie in or start on this plane out of the "right" set

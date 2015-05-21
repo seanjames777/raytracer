@@ -11,8 +11,17 @@
 // TODO: the enqueue() function can fail
 
 KDNode *alloc_node() {
+#if 1
 	// half cache line. TODO allocate a bunch together
+#ifdef WIN32
 	KDNode *node = (KDNode *)_aligned_malloc(sizeof(KDNode), 32);
+#else
+    KDNode *node;
+    posix_memalign((void **)&node, 32, sizeof(KDNode));
+#endif
+#else
+    KDNode *node = new KDNode();
+#endif
 
 	return node;
 }
@@ -74,7 +83,7 @@ void KDBuilder::buildLeafNode(KDBuilderQueueNode *q_node) {
 	// TODO: We sometimes get empty leaves, which is a total waste
 	char *triangleData = SetupTriangleBuffer::pack(
 		q_node->triangles.size() > 0 ? &q_node->triangles[0] : nullptr, q_node->triangles.size());
-    
+
     // TODO: Might want to change constructor of KDNode to do this stuff,
     // especially to not mix allocations
 
@@ -95,12 +104,12 @@ void KDBuilder::buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int 
 	KDBuilderQueueNode *left = new KDBuilderQueueNode();
 	KDBuilderQueueNode *right = new KDBuilderQueueNode();
 
-	left->node = new KDNode();
+	left->node = alloc_node();
 	left->depth = depth + 1;
 	left->refCount = 2;
 	left->parent = q_node;
 
-	right->node = new KDNode();
+	right->node = alloc_node();
 	right->depth = depth + 1;
 	right->refCount = 2;
 	right->parent = q_node;
@@ -151,7 +160,7 @@ AABB KDBuilder::buildAABB(const std::vector<Triangle *> & triangles) {
 }
 
 void KDBuilder::worker_thread() {
-	void *ctx = prepareWorkerThread(0); // TODO: actual index
+    void *ctx = prepareWorkerThread(0); // TODO: actual index
 
     util::queue<KDBuilderQueueNode *> local_queue;
 
@@ -204,7 +213,7 @@ void KDBuilder::worker_thread() {
 
     		// Note: This must happen after the node is built, to ensure that its children
     		// are enqueued.
-    		outstanding_nodes--;
+    		--outstanding_nodes;
         }
 	}
 }
@@ -311,7 +320,7 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 	printf("num_empty_leaves: %d (%.02f%%)\n", stats.num_zero_leaves, (float)stats.num_zero_leaves / (float)stats.num_leaves * 100.0f);
 	printf("tree_mem:         %.02fmb\n", stats.tree_mem / (1024.0f * 1024.0f));
 	printf("triangle_mem:     %.02fmb\n", stats.num_triangles * SetupTriangleBuffer::elemSize / SetupTriangleBuffer::elemStep / (1024.0f * 1024.0f));
-	
+
     KDTree *tree = new KDTree(q_node->node, q_node->bounds);
 
 	assert(--q_node->refCount == 0 || (q_node->node->left == nullptr && q_node->node->right == nullptr));

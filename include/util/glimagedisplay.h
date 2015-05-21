@@ -81,14 +81,6 @@ private:
     // TODO
     float *pixels;
 
-    bool display;
-
-    std::thread thread;
-
-    void refresh();
-
-    void worker_thread();
-
 public:
 
     /**
@@ -104,6 +96,8 @@ public:
      * @brief Destructor
      */
     ~GLImageDisplay();
+
+    void refresh();
 
 };
 

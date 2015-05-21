@@ -294,7 +294,7 @@ public:
     vec3 getGlossyReflection(util::stack<KDStackFrame> & kdStack, const vec3 & origin, const vec3 & normal,
         const vec3 & refDirection, int depth)
     {
-        #define MAX_GLOSSY_SAMPLES 4 // TODO
+        #define MAX_GLOSSY_SAMPLES 2 // TODO
 
         // TODO: Handle reflection samples that fall back into object at grazing angles
 

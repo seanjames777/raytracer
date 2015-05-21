@@ -11,15 +11,17 @@ message("Compiler: ${CMAKE_CXX_COMPILER_ID}")
 message("System: ${CMAKE_SYSTEM_NAME}")
 
 if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
-    #add_definitions(-std=c++11 -fno-exceptions -fno-rtti -O3 -Wno-comment -Wno-unused-value)
-	# TODO: -g
-	set(CMAKE_CXX_FLAGS "-msse4.1 -std=c++11 -fno-exceptions -fno-rtti -O3 -g -Wno-comment -Wno-unused-value") #TODO exceptions
-#	set(CMAKE_CXX_FLAGS "-I/usr/local/include/ -I/opt/local/include/ -I/opt/local/include/OpenEXR/ -I${CMAKE_CURRENT_SOURCE_DIR}/external/fbx/include/ ${CMAKE_CXX_FLAGS}")
-endif()
+    message("Unix")
+    add_definitions(-fno-rtti -fno-exceptions -Wno-comment -Wno-unused-value -msse4.1 -std=c++11)
 
-#CC=clang++
-#CFLAGS=-O3 -g -Iinclude/ -I/opt/local/include/ -I/opt/local/include/OpenEXR -Iexternal/fbx/include/ -std=c++11 -stdlib=libc++ -Wno-unused-value -Wno-comment
-#LDFLAGS=-O3 -g -std=c++11 -stdlib=libc++ -L/opt/local/lib/ -Lexternal/fbx/lib/Mac/ -lfbxsdk -lglfw -lilmimf -framework Foundation -framework OpenGL -framework Cocoa
+    if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+        message("Debug build")
+        add_definitions(-O0 -g)
+    else()
+        message("Debug build")
+        add_definitions(-O3)
+    endif()
+endif()
 
 include(prebuilt/CMakeLists.txt)
 

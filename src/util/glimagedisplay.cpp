@@ -52,7 +52,11 @@ void glfw_error_callback(int error, const char *msg) {
     printf("GLFW Error (%d): %s\n", error, msg);
 }
 
-void GLImageDisplay::worker_thread() {
+GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> image)
+    : width(width),
+      height(height),
+      image(image)
+{
     // TODO: may be initialized alread
     if (!glfwInit()) {
         std::cout << "Error initializing glfw" << std::endl;
@@ -174,30 +178,12 @@ void GLImageDisplay::worker_thread() {
 
     glfwSwapBuffers(window);
     glfwPollEvents();
-
-    while (display && !glfwWindowShouldClose(window)) {
-        refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-    glfwDestroyWindow(window);
-
-    glfwTerminate();
-}
-
-GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> image)
-    : width(width),
-      height(height),
-      image(image),
-      display(true)
-{
-    thread = std::thread(&GLImageDisplay::worker_thread, this);
 }
 
 GLImageDisplay::~GLImageDisplay() {
-    display = false;
+    glfwDestroyWindow(window);
 
-    thread.join();
+    glfwTerminate();
 }
 
 /*

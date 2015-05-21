@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
 				scene->addPoly(tri, bunny);
 		}
 	}
-    
+
     polys.clear();
     transformed.clear();
 
@@ -146,7 +146,13 @@ int main(int argc, char *argv[]) {
     timer.reset();
     rt->render();
 
+    while (!rt->finished()) {
+        disp->refresh();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
     rt->shutdown(true);
+    disp->refresh();
 
     // TODO: Move into raytracer itself
     float elapsed = (float)timer.getElapsedMilliseconds() / 1000.0f;
@@ -157,6 +163,6 @@ int main(int argc, char *argv[]) {
 
 	printf("Press any key to exit...\n");
 	getchar();
-    
+
     return 0;
 }
