@@ -28,13 +28,14 @@
 // TODO:
 //     - Tiled backbuffer
 //     - Lock-free indexing
-//     - Per-mesh materials, sorted, instaed of poly -> naterial map
+//     - Per-mesh shaders, sorted, instaed of poly -> naterial map
 
 class RT_EXPORT Raytracer {
 private:
 
     /** @brief Intersection test tree */
     KDTree *tree;
+    KDTreeStatistics stats;
 
     /** @brief Scene */
     Scene *scene;
@@ -64,10 +65,10 @@ private:
         if (depth > settings.maxDepth)
             return color;
 
-        Material *material = scene->materialMap[result->triangle_id];
+        Shader *shader = scene->shaderMap[result->triangle_id];
 
         // TODO: might be better to pass ray by pointer or something
-        color = material->shade(kdStack, ray, result, scene, this, depth);
+        color = shader->shade(kdStack, ray, result, scene, this, depth);
 
         return color;
     }
@@ -76,8 +77,10 @@ private:
      * @brief Entry point for a worker thread
      */
     void worker_thread() {
-        // Allocate a reusable KD traversal stack for each thread
-        util::stack<KDStackFrame> kdStack;
+        // Allocate a reusable KD traversal stack for each thread. Uses statistics computed
+        // during tree construction to preallocate a stack with the worst case depth/size to avoid
+        // bounds checks/dynamic resizing during rendering.
+        util::stack<KDStackFrame> kdStack(stats.max_depth);
 
         while(!should_shutdown) {
             int blockID = currBlockID++;
@@ -157,7 +160,7 @@ public:
 
         KDSAHBuilder builder;
         //KDMedianBuilder builder;
-        tree = builder.build(scene->triangles);
+        tree = builder.build(scene->triangles, &stats);
 
         nBlocksW = (scene->output->getWidth() + settings.blockSize - 1) / settings.blockSize;
         nBlocksH = (scene->output->getHeight() + settings.blockSize - 1) / settings.blockSize;
@@ -361,7 +364,7 @@ public:
      * is filled with air.
      *
      * @param result Collision information
-     * @param ior    Index of refraction of material
+     * @param ior    Index of refraction of shader
      */
     vec3 getEnvironmentRefraction(const vec3 & direction, const vec3 & normal, float ior) {
         return getEnvironment(refract(direction, normal, 1.0f, ior));

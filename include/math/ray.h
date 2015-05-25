@@ -14,13 +14,8 @@
 #include <smmintrin.h>
 
 struct Ray {
-	// TODO decide how to handle aligns and the W component
 	vec3 origin;        //!< Ray origin point
 	vec3 direction;     //!< Ray direction vector
-	vec3 inv_direction; //!< 1 / ray direction components
-
-	__m128 ox, oy, oz;
-	__m128 dx, dy, dz;
 
     // TODO: Derivatives for sampling
 
@@ -38,16 +33,8 @@ struct Ray {
      */
     Ray(const vec3 & origin, const vec3 & direction)
         : origin(origin),
-          direction(direction),
-          inv_direction(1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z) // TODO SSE
+          direction(direction)
     {
-		ox = _mm_set1_ps(origin.x);
-		oy = _mm_set1_ps(origin.y);
-		oz = _mm_set1_ps(origin.z);
-
-		dx = _mm_set1_ps(direction.x);
-		dy = _mm_set1_ps(direction.y);
-		dz = _mm_set1_ps(direction.z);
     }
 
     /**
@@ -55,6 +42,13 @@ struct Ray {
      */
     inline vec3 at(float t) const {
         return origin + direction * t;
+    }
+
+    /**
+     * @brief Get inverse ray direction
+     */
+    inline vec3 invDirection() const {
+        return vec3(1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z);
     }
 };
 

@@ -75,17 +75,19 @@ public:
      * @return Whether the ray intersected the box
      */
     // TODO test inline
-    bool intersects(const Ray & r, float *tmin_out, float *tmax_out) const {
+    inline bool intersects(const Ray & r, float *tmin_out, float *tmax_out) const {
         // http://people.csail.mit.edu/amy/papers/box-jgt.pdf
+
+        vec3 inv_direction = r.invDirection();
 
         float tmin, tmax;
 
-        float txmin = (min.x - r.origin.x) * r.inv_direction.x;
-        float txmax = (max.x - r.origin.x) * r.inv_direction.x;
+        float txmin = (min.x - r.origin.x) * inv_direction.x;
+        float txmax = (max.x - r.origin.x) * inv_direction.x;
         if (txmin > txmax) swap(&txmin, &txmax);
 
-        float tymin = (min.y - r.origin.y) * r.inv_direction.y;
-        float tymax = (max.y - r.origin.y) * r.inv_direction.y;
+        float tymin = (min.y - r.origin.y) * inv_direction.y;
+        float tymax = (max.y - r.origin.y) * inv_direction.y;
         if (tymin > tymax) swap(&tymin, &tymax);
 
         if (txmin > tymax || tymin > txmax) return false;
@@ -93,8 +95,8 @@ public:
         tmin = fmaxf(txmin, tymin);
         tmax = fminf(txmax, tymax);
 
-        float tzmin = (min.z - r.origin.z) * r.inv_direction.z;
-        float tzmax = (max.z - r.origin.z) * r.inv_direction.z;
+        float tzmin = (min.z - r.origin.z) * inv_direction.z;
+        float tzmax = (max.z - r.origin.z) * inv_direction.z;
         if (tzmin > tzmax) swap(&tzmin, &tzmax);
 
         if (tmin > tzmax || tzmin > tmax)

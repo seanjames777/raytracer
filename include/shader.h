@@ -1,14 +1,13 @@
 /**
- * @file surface.h
+ * @file shader.h
  *
- * @brief Material base class. Initially simple, only contains the parameters for shading with a
- * phong appearance.
+ * @brief Shader base class
  *
  * @author Sean James
  */
 
-#ifndef _MATERIAL_H
-#define _MATERIAL_H
+#ifndef __SHADER_H
+#define __SHADER_H
 
 #include <light.h>
 #include <polygon.h>
@@ -20,14 +19,14 @@ class Raytracer;
 class Scene;
 
 /**
- * @brief Base class for all materials
+ * @brief Base class for all Shaders
  */
-class RT_EXPORT Material {
+class RT_EXPORT Shader {
 public:
 
-    Material();
+    Shader();
 
-    ~Material();
+    ~Shader();
 
     virtual vec3 shade(
         util::stack<KDStackFrame> & stack,
@@ -39,9 +38,9 @@ public:
 };
 
 /**
- * @brief Phong material
+ * @brief Phong Shader
  */
-class RT_EXPORT PhongMaterial : public Material {
+class RT_EXPORT PhongShader : public Shader {
 private:
 
     /** @brief Ambient light color */
@@ -81,7 +80,7 @@ public:
      * @param refraction    Refraction amount
      * @param ior           Index of refraction
      */
-    PhongMaterial(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower, float reflection,
+    PhongShader(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower, float reflection,
         float refraction, float ior, std::shared_ptr<Sampler> diffuse_sampler,
         std::shared_ptr<Image> diffuse_texture);
 
@@ -100,14 +99,14 @@ public:
 };
 
 /**
- * @brief Physically based material
+ * @brief Physically based Shader
  */
-class RT_EXPORT PBRMaterial : public Material {
+class RT_EXPORT PBRShader : public Shader {
 private:
 
 public:
 
-    PBRMaterial();
+    PBRShader();
 
     /**
      * @brief Shade the surface for a given collision and light source. Will be called for each

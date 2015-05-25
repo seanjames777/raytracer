@@ -7,23 +7,32 @@
 #include <kdtree/kdbuilder.h>
 #include <timer.h>
 #include <iostream> // TODO
-
+#include <unistd.h>
 // TODO: the enqueue() function can fail
 
 KDNode *alloc_node() {
-#if 1
-	// half cache line. TODO allocate a bunch together
-#ifdef WIN32
-	KDNode *node = (KDNode *)_aligned_malloc(sizeof(KDNode), 32);
-#else
     KDNode *node;
+
+#ifdef WIN32
+    node = (KDNode *)_aligned_malloc(sizeof(KDNode), 32);
+#else
     posix_memalign((void **)&node, 32, sizeof(KDNode));
 #endif
+
+    return node;
+}
+
+void alloc_nodes(KDNode **left, KDNode **right) {
+    KDNode *nodes;
+
+#ifdef WIN32
+	nodes = (KDNode *)_aligned_malloc(sizeof(KDNode) * 2, 32);
 #else
-    KDNode *node = new KDNode();
+    posix_memalign((void **)&nodes, 32, sizeof(KDNode) * 2);
 #endif
 
-	return node;
+    *left = &nodes[0];
+    *right = &nodes[1];
 }
 
 KDBuilder::KDBuilder() {
@@ -91,11 +100,8 @@ void KDBuilder::buildLeafNode(KDBuilderQueueNode *q_node) {
 
 	KDNode *node = q_node->node;
 
-	node->left = NULL;
-	node->right = NULL;
-	node->split_dist = 0.0f;
-	node->triangles = triangleData;
-	node->flags = num_triangles | KD_IS_LEAF;
+	node->ptr = (unsigned long long)triangleData | KD_LEAF;
+	node->count = q_node->triangles.size();
 }
 
 void KDBuilder::buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int dir, float split,
@@ -104,12 +110,12 @@ void KDBuilder::buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int 
 	KDBuilderQueueNode *left = new KDBuilderQueueNode();
 	KDBuilderQueueNode *right = new KDBuilderQueueNode();
 
-	left->node = alloc_node();
+    alloc_nodes(&left->node, &right->node);
+
 	left->depth = depth + 1;
 	left->refCount = 2;
 	left->parent = q_node;
 
-	right->node = alloc_node();
 	right->depth = depth + 1;
 	right->refCount = 2;
 	right->parent = q_node;
@@ -121,11 +127,8 @@ void KDBuilder::buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int 
 
 	KDNode *node = q_node->node;
 
-	node->left = left->node;
-	node->right = right->node;
-	node->triangles = NULL;
+	node->ptr = (unsigned long long)left->node | dir;
 	node->split_dist = split;
-	node->flags = (KDNodeFlags)dir;
 
     queue_lock.lock();
     node_queue.enqueue(left);
@@ -218,29 +221,17 @@ void KDBuilder::worker_thread() {
 	}
 }
 
-struct KDStats {
-	int num_nodes;
-	int num_leaves;
-	int num_internal;
-	int num_triangles;
-	int max_depth;
-	int min_depth;
-	int sum_depth;
-	int num_zero_leaves;
-	int tree_mem;
-};
-
-void computeStats(KDNode *root, KDStats *stats, int depth) {
+void computeStats(KDNode *root, KDTreeStatistics *stats, int depth) {
 	// TODO: Pass that eliminates leaves that don't improve on their parents split
 
 	stats->num_nodes++;
 	stats->tree_mem += sizeof(KDNode);
 
-	if (root->flags & KD_IS_LEAF) {
+	if (KDNODE_TYPE(root) == KD_LEAF) {
 		stats->num_leaves++;
-		stats->num_triangles += root->flags & KD_SIZE_MASK;
+		stats->num_triangles += root->count;
 
-		if ((root->flags & KD_SIZE_MASK) == 0)
+		if (root->count == 0)
 			stats->num_zero_leaves++;
 
 		stats->sum_depth += depth;
@@ -254,12 +245,12 @@ void computeStats(KDNode *root, KDStats *stats, int depth) {
 	else {
 		stats->num_internal++;
 
-		computeStats(root->left, stats, depth + 1);
-		computeStats(root->right, stats, depth + 1);
+		computeStats(KDNODE_LEFT(root), stats, depth + 1);
+		computeStats(KDNODE_RIGHT(root), stats, depth + 1);
 	}
 }
 
-KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
+KDTree *KDBuilder::build(const std::vector<Triangle> & triangles, KDTreeStatistics *stats) {
 	Timer timer;
 
 	std::cout << "Building KD tree" << std::endl;
@@ -276,7 +267,7 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 
 	q_node->bounds = buildAABB(q_node->triangles);
 	q_node->depth = 0;
-	q_node->node = new KDNode();
+	q_node->node = alloc_node();
 	q_node->parent = nullptr;
 
 	// Reference count of 3 so that we can access its members after construction has
@@ -300,9 +291,10 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 
 	workers.clear();
 
-	KDStats stats;
-	memset(&stats, 0, sizeof(KDStats));
-	computeStats(q_node->node, &stats, 1);
+    if (stats) {
+    	memset(stats, 0, sizeof(KDTreeStatistics));
+    	computeStats(q_node->node, stats, 1);
+    }
 
     double elapsed = timer.getElapsedMilliseconds() / 1000.0;
     double cpu     = timer.getCPUTime() / 1000.0;
@@ -310,20 +302,24 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
     printf("Done: %f seconds (total), %f seconds (CPU), speedup: %.02f\n",
         elapsed, cpu, cpu / elapsed);
 
-	printf("num_nodes:        %d\n", stats.num_nodes);
-	printf("num_leaves:       %d (%.02f%%)\n", stats.num_leaves, (float)stats.num_leaves / (float)stats.num_nodes * 100.0f);
-	printf("num_internal:     %d (%.02f%%)\n", stats.num_internal, (float)stats.num_internal / (float)stats.num_nodes * 100.0f);
-	printf("num_triangles:    %d (average %.02f, %.02fx input)\n", stats.num_triangles, (float)stats.num_triangles / (float)stats.num_leaves * 100.0f, (float)stats.num_triangles / (float)triangles.size());
-	printf("max_depth:        %d\n", stats.max_depth);
-	printf("min_depth:        %d\n", stats.min_depth);
-	printf("avg_depth:        %.02f\n", (float)stats.sum_depth / (float)stats.num_leaves);
-	printf("num_empty_leaves: %d (%.02f%%)\n", stats.num_zero_leaves, (float)stats.num_zero_leaves / (float)stats.num_leaves * 100.0f);
-	printf("tree_mem:         %.02fmb\n", stats.tree_mem / (1024.0f * 1024.0f));
-	printf("triangle_mem:     %.02fmb\n", stats.num_triangles * SetupTriangleBuffer::elemSize / SetupTriangleBuffer::elemStep / (1024.0f * 1024.0f));
+    if (stats) {
+        std::cout << "KD Tree statistics:" << std::endl;
+
+    	printf("Nodes:            %d\n", stats->num_nodes);
+    	printf("Leaf Nodes:       %d (%.02f%%)\n", stats->num_leaves, (float)stats->num_leaves / (float)stats->num_nodes * 100.0f);
+    	printf("Internal Nodes:   %d (%.02f%%)\n", stats->num_internal, (float)stats->num_internal / (float)stats->num_nodes * 100.0f);
+    	printf("Triangles:        %d (average %.02f, %.02fx input)\n", stats->num_triangles, (float)stats->num_triangles / (float)stats->num_leaves * 100.0f, (float)stats->num_triangles / (float)triangles.size());
+    	printf("Max Node Depth:   %d\n", stats->max_depth);
+    	printf("Min Node Depth:   %d\n", stats->min_depth);
+    	printf("Avg Node Depth:   %.02f\n", (float)stats->sum_depth / (float)stats->num_leaves);
+    	printf("Empty Leaf Nodes: %d (%.02f%%)\n", stats->num_zero_leaves, (float)stats->num_zero_leaves / (float)stats->num_leaves * 100.0f);
+    	printf("Tree Memory:      %.02fmb\n", stats->tree_mem / (1024.0f * 1024.0f));
+    	printf("Triangle Memory:  %.02fmb\n", stats->num_triangles * SetupTriangleBuffer::elemSize / SetupTriangleBuffer::elemStep / (1024.0f * 1024.0f));
+    }
 
     KDTree *tree = new KDTree(q_node->node, q_node->bounds);
 
-	assert(--q_node->refCount == 0 || (q_node->node->left == nullptr && q_node->node->right == nullptr));
+	assert(--q_node->refCount == 0 || (q_node->node->flags & KD_IS_LEAF));
 	delete q_node;
 
 	return tree;

@@ -1,19 +1,19 @@
 /**
- * @file material.cpp
+ * @file shader.cpp
  *
  * @author Sean James
  */
 
-#include <material.h>
+#include <shader.h>
 #include <raytracer.h>
 
-Material::Material() {
+Shader::Shader() {
 }
 
-Material::~Material() {
+Shader::~Shader() {
 }
 
-PhongMaterial::PhongMaterial(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower,
+PhongShader::PhongShader(vec3 ambient, vec3 diffuse, vec3 specular, float specularPower,
     float reflection, float refraction, float ior, std::shared_ptr<Sampler> diffuse_sampler,
     std::shared_ptr<Image> diffuse_texture)
     : ambient(ambient),
@@ -28,7 +28,7 @@ PhongMaterial::PhongMaterial(vec3 ambient, vec3 diffuse, vec3 specular, float sp
 {
 }
 
-vec3 PhongMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
+vec3 PhongShader::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
@@ -88,10 +88,10 @@ vec3 PhongMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, 
     return color;
 }
 
-PBRMaterial::PBRMaterial() {
+PBRShader::PBRShader() {
 }
 
-vec3 PBRMaterial::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
+vec3 PBRShader::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 

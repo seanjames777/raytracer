@@ -100,9 +100,9 @@ public:
 
         Scene *scene = new Scene(camera, output, env_sampler, environment);
 
-        Material *ground = new PBRMaterial();
+        Shader *ground = new PBRShader();
 
-        Material *bunny = new PBRMaterial();
+        Shader *bunny = new PBRShader();
 
         std::vector<Triangle> polys, transformed;
 

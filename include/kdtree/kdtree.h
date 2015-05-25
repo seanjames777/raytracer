@@ -30,6 +30,13 @@ struct KDStackFrame {
 
     /** @brief Exit distance from ray origin */
     float exit;
+
+    KDStackFrame(KDNode *node, float enter, float exit)
+        : node(node),
+          enter(enter),
+          exit(exit)
+    {
+    }
 };
 
 /**

@@ -18,7 +18,7 @@
 #include <cassert>
 
 // Default initial stack capacity
-#define DEFAULT_INIT_STACK_CAPACITY 16
+#define DEFAULT_INIT_STACK_CAPACITY 1024
 
 // TODO:
 //     - Align the stack
@@ -47,8 +47,11 @@ public:
           _size(0)
     {
         // TODO: handle failure
+
         // Note: util::stack<KDStackFrame>Frame is POD, so we don't need to worry about constructors TODO
-        _stack = (T *)malloc(sizeof(T) * _capacity);
+        // _stack = (T *)malloc(sizeof(T) * _capacity);
+
+        posix_memalign((void **)&_stack, alignof(T), sizeof(T) * _capacity);
     }
 
     ~stack() {
@@ -60,8 +63,10 @@ public:
      * @brief Add a stack frame to the top of the stack, allocating more memory if needed. Returns
      * the newly allocated frame.
      */
-    inline void push(T elem) {
-        // Note: this rarely happens, so the branch predictor should be happy
+    inline void push(const T & elem) {
+        // TODO: Removing this branch improves performance by about 3%-4%, but we need to make sure
+        // to allocate for the worst case.
+        /*// Note: this rarely happens, so the branch predictor should be happy
         if (_size == _capacity) {
             // Double for amortized constant cost. In reality, we probably won't even need to
             // double too often. The first few rays will hopefully set the stack size, and the
@@ -70,7 +75,7 @@ public:
 
             // TODO: handle failure
             _stack = (T *)realloc(_stack, sizeof(T) * _capacity);
-        }
+        }*/
 
         _stack[_size++] = elem; // TODO: Copy
     }
@@ -86,14 +91,14 @@ public:
     /**
      * @brief Get number of elements in stack
      */
-    inline unsigned int size() {
+    inline unsigned int size() const {
         return _size;
     }
 
     /**
      * @brief Check whether the stack is empty
      */
-    inline bool empty() {
+    inline bool empty() const {
         return _size == 0;
     }
 

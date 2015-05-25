@@ -13,7 +13,7 @@
 #include <light.h>
 #include <camera.h>
 #include <image.h>
-#include <material.h>
+#include <shader.h>
 #include <vector>
 
 /**
@@ -29,8 +29,8 @@ public:
     /** @brief Set of lights */
     std::vector<Light *> lights;
 
-    /** @brief Mapping from polygons to materials */
-    std::vector<Material *> materialMap;
+    /** @brief Mapping from polygons to shaders */
+    std::vector<Shader *> shaderMap;
 
     /** @brief Camera */
     Camera *camera;
@@ -60,7 +60,7 @@ public:
      */
     void addLight(Light *light);
 
-    void addPoly(Triangle triangle, Material *material);
+    void addPoly(Triangle triangle, Shader *shader);
 
 };
 

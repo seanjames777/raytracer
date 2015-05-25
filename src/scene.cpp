@@ -17,10 +17,10 @@ Scene::Scene(Camera *camera, std::shared_ptr<Image> output,
 {
 }
 
-void Scene::addPoly(Triangle poly, Material *material) {
+void Scene::addPoly(Triangle poly, Shader *shader) {
     poly.triangle_id = poly_id++;
     triangles.push_back(poly);
-    materialMap.push_back(material);
+    shaderMap.push_back(shader);
 }
 
 void Scene::addLight(Light *light) {

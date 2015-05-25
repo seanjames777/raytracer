@@ -11,26 +11,30 @@
 
 #include <polygon.h>
 
-enum KDNodeFlags {
-    // If the node is a leaf, the bottom 31 bits are the size and the top
-    // bit is 1. Otherwise, the node is not a leaf, so the top bit is 0
-    // and the bottom two bits are the split direction.
+#define KDNODE_LEFT(node)      (&((KDNode *)(node->ptr & 0xfffffffffffffffc))[0])
+#define KDNODE_RIGHT(node)     (&((KDNode *)(node->ptr & 0xfffffffffffffffc))[1])
+#define KDNODE_TYPE(node)      (node->ptr & 0x0000000000000003)
+#define KDNODE_TRIANGLES(node) ((char *)(node->ptr & 0xfffffffffffffffc))
 
-    KD_SIZE_MASK       = ~(1 << 31),
-    KD_SPLIT_DIR_X     =   0,
-    KD_SPLIT_DIR_Y     =   1,
-    KD_SPLIT_DIR_Z     =   2,
-    KD_SPLIT_DIR_MASK  =   3,
-    KD_IS_LEAF         =   1 << 31,
-};
+#define KD_INTERNAL_X 0
+#define KD_INTERNAL_Y 1
+#define KD_INTERNAL_Z 2
+#define KD_LEAF       3 // TODO: if this was 0 comparisons could be faster
 
 // 32 bytes = 1/2 cache line size
 struct KDNode {
-    KDNode       *left;       // 8
-    KDNode       *right;      // 8
-    char         *triangles;  // 8
-    float         split_dist; // 4
-    unsigned int  flags;      // 4 -- Triangle count and leaf or flags and not leaf
+    // TODO: could get this down to 8 bytes. With proper alignment, it's actually
+    // 16 bytes
+
+    // 8. Triangle pointer for leaves, children (adjacent) pointer for internal.
+    // Bottom two bits store node type, nodes are at least 16 bit aligned.
+    unsigned long long ptr;
+
+    // 4/4. Split distance or triangle count
+    union {
+        float          split_dist;
+        unsigned int   count;
+    };
 };
 
 #endif

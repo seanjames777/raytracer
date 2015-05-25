@@ -42,21 +42,18 @@ KDTree::KDTree(KDNode *root, AABB bounds)
 bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result, float maxDepth,
     bool anyCollision)
 {
+    KDNode *currentNode;
     float entry, exit;
 
     if (!bounds.intersects(ray, &entry, &exit))
         return false;
 
-    KDStackFrame curr_stack;
-    curr_stack.node = root;
-    curr_stack.enter = entry;
-    curr_stack.exit = exit;
-    stack.push(curr_stack);
+    vec3 inv_direction = ray.invDirection();
 
-    KDNode *currentNode;
+    stack.push(KDStackFrame(root, entry, exit));
 
 	while (!stack.empty()) {
-		curr_stack = stack.pop(); // TODO: copy
+		KDStackFrame curr_stack = stack.pop();
 
 		currentNode = curr_stack.node;
 		entry = curr_stack.enter;
@@ -68,16 +65,16 @@ bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Colli
 			return false;
 		}
 
-		while (!(currentNode->flags & KD_IS_LEAF)) {
-			int dir = currentNode->flags & KD_SPLIT_DIR_MASK;
+        int type = KDNODE_TYPE(currentNode);
 
+		while (type != KD_LEAF) {
 			float split = currentNode->split_dist;
-			float origin = ray.origin.v[dir];
+			float origin = ray.origin.v[type];
 
-			float t = (split - origin) * ray.inv_direction.v[dir];
+			float t = (split - origin) * inv_direction.v[type];
 
-			KDNode *nearNode = currentNode->left;
-			KDNode *farNode = currentNode->right;
+			KDNode *nearNode = KDNODE_LEFT(currentNode);
+			KDNode *farNode  = KDNODE_RIGHT(currentNode);
 
 			if (split < origin) {
 				KDNode *temp = nearNode;
@@ -85,27 +82,25 @@ bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Colli
 				farNode = temp;
 			}
 
+            // TODO: Avoid doing all the work for empty leaves
 			if (t > exit || t < 0)
 				currentNode = nearNode;
 			else if (t < entry)
 				currentNode = farNode;
 			else {
-				curr_stack.node = farNode;
-				curr_stack.enter = t;
-				curr_stack.exit = exit;
-
-				stack.push(curr_stack); // TODO: copy
-
+                stack.push(KDStackFrame(farNode, t, exit));
 				currentNode = nearNode;
 				exit = t;
 			}
+
+            type = KDNODE_TYPE(currentNode);
 		}
 
 		// TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
 		// TODO: Ignores max depth
 
-		if (SetupTriangleBuffer::intersects(ray, currentNode->triangles,
-			currentNode->flags & KD_SIZE_MASK, anyCollision, result))
+		if (SetupTriangleBuffer::intersects(ray, KDNODE_TRIANGLES(currentNode),
+			currentNode->count, anyCollision, result))
 		{
 			stack.clear();
 			return true;

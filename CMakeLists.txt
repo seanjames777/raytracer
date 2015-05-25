@@ -38,7 +38,7 @@ add_library(rt SHARED
 	src/pointlight.cpp
 	src/directionallight.cpp
 	src/polygon.cpp
-	src/material.cpp
+	src/shader.cpp
 	src/scene.cpp
 	src/image.cpp
 	src/raytracer.cpp
@@ -69,7 +69,7 @@ add_library(rt SHARED
 	include/fbxloader.h
 	include/image.h
 	include/light.h
-	include/material.h
+	include/shader.h
 	include/pointlight.h
 	include/polygon.h
 	include/raytracer.h

@@ -34,6 +34,18 @@ struct KDBuilderQueueNode {
     // TODO: false sharing
 };
 
+struct KDTreeStatistics {
+    int num_nodes;
+    int num_leaves;
+    int num_internal;
+    int num_triangles;
+    int max_depth;
+    int min_depth;
+    int sum_depth;
+    int num_zero_leaves;
+    int tree_mem;
+};
+
 class KDBuilder {
 private:
 
@@ -111,7 +123,7 @@ public:
 
     virtual ~KDBuilder();
 
-    KDTree *build(const std::vector<Triangle> & triangles);
+    KDTree *build(const std::vector<Triangle> & triangles, KDTreeStatistics *stats = nullptr);
 
 };
 

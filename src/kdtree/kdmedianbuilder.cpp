@@ -29,9 +29,9 @@ bool KDMedianBuilder::splitNode(
 	vec3 axis_len = bounds.max - bounds.min;
 
     if (axis_len.x > axis_len.y)
-        dir = axis_len.x > axis_len.z ? KD_SPLIT_DIR_X : KD_SPLIT_DIR_Z;
+        dir = axis_len.x > axis_len.z ? KD_INTERNAL_X : KD_INTERNAL_Z;
     else
-        dir = axis_len.y > axis_len.z ? KD_SPLIT_DIR_Y : KD_SPLIT_DIR_Z;
+        dir = axis_len.y > axis_len.z ? KD_INTERNAL_Y : KD_INTERNAL_Z;
 #else
     // Split round robin
     dir = depth % 3;
