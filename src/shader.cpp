@@ -28,8 +28,8 @@ PhongShader::PhongShader(vec3 ambient, vec3 diffuse, vec3 specular, float specul
 {
 }
 
-vec3 PhongShader::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
-    Triangle *triangle = &scene->triangles[result->triangle_id];
+vec3 PhongShader::shade(RayBuffer & rayBuff, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer) {
+    /*Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
     vec3 color = vec3(0, 0, 0);
@@ -85,17 +85,22 @@ vec3 PhongShader::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Co
     float occlusion = raytracer->getAmbientOcclusion(kdStack, offset_origin, triangle->normal);
     color = color * occlusion;
 
-    return color;
+    return color;*/
+
+    return vec3(0, 0, 0);
 }
 
 PBRShader::PBRShader() {
 }
 
-vec3 PBRShader::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer, int depth) {
+vec3 PBRShader::shade(RayBuffer & rayBuff, const Ray & ray, Collision *result, Scene *scene, Raytracer *raytracer) {
     Triangle *triangle = &scene->triangles[result->triangle_id];
     Vertex interp = triangle->interpolate(result->beta, result->gamma);
 
-    vec3 env = raytracer->getGlossyReflection(kdStack, interp.position, interp.normal, ray.direction, depth);
+    // TODO: ray.direction and ray are redundant. If this shows up elsewhere, maybe remove the direction
+    // argument everywhere.
+    return raytracer->getGlossyReflection(rayBuff, interp.position, interp.normal, ray.direction, ray);
+
     //vec3 env = raytracer->getAmbientOcclusion(kdStack,
     //    interp.position + triangle->normal * .001f, triangle->normal);
 
@@ -103,6 +108,4 @@ vec3 PBRShader::shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Coll
     // TODO: why cosine weighted. go do BRDF math.
     // TODO: maybe interpolate less. there's a cheap way to get position
     // TODO: move shading logic out of the core raytracer
-
-    return env;
 }

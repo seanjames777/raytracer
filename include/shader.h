@@ -14,6 +14,7 @@
 #include <image.h>
 #include <memory>
 #include <kdtree/kdtree.h>
+#include <raybuffer.h>
 
 class Raytracer;
 class Scene;
@@ -29,12 +30,11 @@ public:
     ~Shader();
 
     virtual vec3 shade(
-        util::stack<KDStackFrame> & stack,
+        RayBuffer & rayBuff,
         const Ray & ray,
         Collision *result,
         Scene *scene,
-        Raytracer *raytracer,
-        int depth) = 0;
+        Raytracer *raytracer) = 0; // TODO: can drop raytracer reference
 };
 
 /**
@@ -89,12 +89,11 @@ public:
      * light source and mixed externally with shadows, reflections, etc.
      */
     virtual vec3 shade(
-        util::stack<KDStackFrame> & stack,
+        RayBuffer & rayBuff,
         const Ray & ray,
         Collision *result,
         Scene *scene,
-        Raytracer *raytracer,
-        int depth) override;
+        Raytracer *raytracer) override;
 
 };
 
@@ -113,12 +112,11 @@ public:
      * light source and mixed externally with shadows, reflections, etc.
      */
     virtual vec3 shade(
-        util::stack<KDStackFrame> & stack,
+        RayBuffer & rayBuff,
         const Ray & ray,
         Collision *result,
         Scene *scene,
-        Raytracer *raytracer,
-        int depth) override;
+        Raytracer *raytracer) override;
 
 };
 

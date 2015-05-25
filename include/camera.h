@@ -89,7 +89,7 @@ public:
      * @param u Horizontal coordinate of intersection point on view plane
      * @param v Vertical coordinate of intersection point on view plane
      */
-    Ray getViewRay(const vec2 & uv);
+    Ray getViewRay(const vec2 & uv, const vec3 & weight, short px, short py, char depth);
 
     /**
      * @brief Get the camera position

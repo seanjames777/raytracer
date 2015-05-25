@@ -64,9 +64,10 @@ public:
      * the newly allocated frame.
      */
     inline void push(const T & elem) {
+#if 0
         // TODO: Removing this branch improves performance by about 3%-4%, but we need to make sure
         // to allocate for the worst case.
-        /*// Note: this rarely happens, so the branch predictor should be happy
+        // Note: this rarely happens, so the branch predictor should be happy
         if (_size == _capacity) {
             // Double for amortized constant cost. In reality, we probably won't even need to
             // double too often. The first few rays will hopefully set the stack size, and the
@@ -75,7 +76,8 @@ public:
 
             // TODO: handle failure
             _stack = (T *)realloc(_stack, sizeof(T) * _capacity);
-        }*/
+        }
+#endif
 
         _stack[_size++] = elem; // TODO: Copy
     }

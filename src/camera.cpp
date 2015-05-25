@@ -47,19 +47,19 @@ bool Camera::getSamples(int nSamples, vec2 *samples, const vec2 & min, const vec
     return true;
 }
 
-Ray Camera::getViewRay(const vec2 & uv) {
+Ray Camera::getViewRay(const vec2 & uv, const vec3 & weight, short px, short py, char depth) {
     // TODO: Lens coordinates
 
     float x = uv.x * 2.0f - 1.0f;
     float y = uv.y * 2.0f - 1.0f;
 
-    vec3 rightAmt = right * halfWidth  * x;
+    vec3 rightAmt = right * halfWidth  * x; // TODO: Premultiply right/up
     vec3 upAmt    = up    * halfHeight * y;
 
     vec3 targ = forward * focus + rightAmt + upAmt;
     targ = normalize(targ);
 
-    return Ray(position, targ);
+    return Ray(position, targ, weight, px, py, depth);
 }
 
 vec3 Camera::getPosition() {

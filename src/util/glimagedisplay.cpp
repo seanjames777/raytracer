@@ -28,13 +28,13 @@ const char *ps_source =
     "uniform vec2 imageSize;\n"
     "void main() {\n"
     "    vec4 image = texture(textureSampler, var_uv);\n"
-    "    vec2 pixel = var_uv * imageSize;\n"
-    "    ivec2 check = ivec2(int(pixel.x / 16) %2, int(pixel.y / 16) % 2);\n"
-    "    vec3 check_rgb = vec3(check.x ^ check.y) * .2 + .7;\n"
-    "    out_color.rgb = image.rgb * image.a + check_rgb * (1.0 - image.a);\n"
+    "    // vec2 pixel = var_uv * imageSize;\n"
+    "    // ivec2 check = ivec2(int(pixel.x / 16) %2, int(pixel.y / 16) % 2);\n"
+    "    // vec3 check_rgb = vec3(check.x ^ check.y) * .2 + .7;\n"
+    "    out_color.rgb = image.rgb; /* * image.a + check_rgb * (1.0 - image.a); */\n"
     "    // out_color.rgb *= 2.0;\n"
     "    // out_color.rgb = out_color.rgb / (1.0 + out_color.rgb);\n"
-    "    out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
+    "    // out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
     "}\n";
 
 // TODO: shorthand for this type
@@ -72,6 +72,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> ima
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DEPTH_BITS, 0);
     glfwWindowHint(GLFW_STENCIL_BITS, 0);
+    glfwWindowHint(GLFW_SRGB_CAPABLE, true);
 
     if (!(window = glfwCreateWindow(width, height, "Window", NULL, NULL))) {
         printf("Error opening glfw window\n");
@@ -95,6 +96,8 @@ GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> ima
 
     // GLEW sometimes produces a spurious error
     glGetError();
+
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     glGenVertexArrays(1, &va);
     glBindVertexArray(va);

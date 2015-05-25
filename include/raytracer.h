@@ -20,6 +20,7 @@
 #include <iostream>
 #include <math/sampling.h>
 #include <math/macro.h>
+#include <raybuffer.h>
 
 #include <thread>
 #include <atomic>
@@ -40,12 +41,12 @@ private:
     /** @brief Scene */
     Scene *scene;
 
-    std::atomic_int currBlockID;
-    std::atomic_int blocksRemaining;
     int nBlocks;
     int nBlocksW;
     int nBlocksH;
     bool should_shutdown;
+    std::atomic_int numThreadsAlive;
+    std::atomic_int currBlockID;
 
     /** @brief Worker threads */
     std::vector<std::shared_ptr<std::thread>> workers;
@@ -59,16 +60,17 @@ private:
      * @param result Collision information
      * @param depth  Recursion depth
      */
-    vec3 shade(util::stack<KDStackFrame> & kdStack, const Ray & ray, Collision *result, int depth) {
+    inline vec3 shade(RayBuffer & rayBuff, const Ray & ray, Collision *result) {
         vec3 color = vec3(0.0f, 0.0f, 0.0f);
 
-        if (depth > settings.maxDepth)
+        // TODO: Background color? Standardize settings?
+        if (ray.depth > settings.maxDepth)
             return color;
 
         Shader *shader = scene->shaderMap[result->triangle_id];
 
         // TODO: might be better to pass ray by pointer or something
-        color = shader->shade(kdStack, ray, result, scene, this, depth);
+        color = shader->shade(rayBuff, ray, result, scene, this);
 
         return color;
     }
@@ -76,14 +78,26 @@ private:
     /**
      * @brief Entry point for a worker thread
      */
-    void worker_thread() {
+    void worker_thread(int idx, int numThreads) {
         // Allocate a reusable KD traversal stack for each thread. Uses statistics computed
         // during tree construction to preallocate a stack with the worst case depth/size to avoid
         // bounds checks/dynamic resizing during rendering.
         util::stack<KDStackFrame> kdStack(stats.max_depth);
+        RayBuffer rayBuff;
+
+        int width = scene->output->getWidth();
+        int height = scene->output->getHeight();
+
+        float invWidth = 1.0f / (float)width;
+        float invHeight = 1.0f / (float)height;
+
+        float sampleOffset = 1.0f / (float)(settings.pixelSamples + 1);
+        float sampleContrib = 1.0f / (float)(settings.pixelSamples * settings.pixelSamples);
+
+        int blockID = idx;
 
         while(!should_shutdown) {
-            int blockID = currBlockID++;
+            //blockID = currBlockID++;
 
             if (blockID >= nBlocks)
                 break;
@@ -94,45 +108,63 @@ private:
             int x0 = settings.blockSize * x;
             int y0 = settings.blockSize * y;
 
-            int width = scene->output->getWidth();
-            int height = scene->output->getHeight();
-
-            float sampleOffset = 1.0f / (float)(settings.pixelSamples + 1);
-            float sampleContrib = 1.0f / (float)(settings.pixelSamples * settings.pixelSamples);
-
             for (int y = y0; y < y0 + settings.blockSize; y++) {
                 for (int x = x0; x < x0 + settings.blockSize; x++) {
                     if (x >= width || y >= height)
                         continue;
 
-                    vec3 color = vec3(0.0f, 0.0f, 0.0f);
+                    // tODO: Is the pointer chasing through scene bad?
+                    scene->output->setPixel(x, y, vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+                    // TODO: It's possible to do better sampling
 
                     for (int p = 0; p < settings.pixelSamples; p++) {
-                        float v = (float)(y + p * sampleOffset) / (float)height;
+                        float v = (float)(y + p * sampleOffset) * invHeight;
 
                         for (int q = 0; q < settings.pixelSamples; q++) {
-                            float u = (float)(x + q * sampleOffset) / (float)width;
+                            float u = (float)(x + q * sampleOffset) * invWidth;
 
-                            Ray r = scene->camera->getViewRay(vec2(u, v));
+                            Ray r = scene->camera->getViewRay(vec2(u, v), vec3(sampleContrib), (short)x, (short)y, 1);
 
-                            vec3 sampleColor = getEnvironment(r.direction);
-
-                            Collision result;
-
-							if (tree->intersect(kdStack, r, result, 0.0f, false)) {
-								sampleColor = shade(kdStack, r, &result, 1);
-							}
-
-                            color += sampleColor * sampleContrib;
+                            // TODO: Super slow possibly. Fixed size queue? Could preallocate enough
+                            // rays for samples? Or, could alternate between filling and draining
+                            // when queue is full?
+                            // TODO: Makes a copy
+                            rayBuff.enqueue(r);
                         }
                     }
-
-                    scene->output->setPixel(x, y, vec4(color, 1.0f));
                 }
             }
 
-            blocksRemaining--;
+            // TODO: Flushing one tile at a time keeps the tile in the cache probably, but might
+            // not get the most coherence. Adjusting the tile size would affect this probably.
+
+            while (!rayBuff.empty()) {
+                Ray r = rayBuff.dequeue(); // TODO: Makes a copy
+
+                // TODO: Might be worth skipping rays with really tiny contributions
+
+                vec3 sampleColor = getEnvironment(r.direction);
+
+                Collision result;
+
+                if (tree->intersect(kdStack, r, result, 0.0f, false))
+                    sampleColor = shade(rayBuff, r, &result);
+
+                // TODO: Under this decomposition, many rays might have zero
+                // contribution because they defer work to secondary rays
+
+                vec4 color = scene->output->getPixel(r.px, r.py);
+                color += vec4(sampleColor * r.weight, 1.0f); // TODO: Bogus alpha
+                scene->output->setPixel(r.px, r.py, color);
+            }
+
+            blockID += numThreads;
         }
+
+        std::cout << "Ray buffer size: " << rayBuff.capacity() << " (" << (rayBuff.capacity() * sizeof(Ray) + 1024 - 1) / 1024 << "kb)" << std::endl;
+
+        numThreadsAlive--;
     }
 
 public:
@@ -165,22 +197,25 @@ public:
         nBlocksW = (scene->output->getWidth() + settings.blockSize - 1) / settings.blockSize;
         nBlocksH = (scene->output->getHeight() + settings.blockSize - 1) / settings.blockSize;
         nBlocks = nBlocksW * nBlocksH;
+
         currBlockID = 0;
-        blocksRemaining = nBlocks;
 
         int nThreads = settings.numThreads;
 
         if (nThreads == 0)
             nThreads = std::thread::hardware_concurrency(); // TODO: Maybe better way to update image
 
+        numThreadsAlive = nThreads;
+
         for (int i = 0; i < nThreads; i++)
-            workers.push_back(std::make_shared<std::thread>(std::bind(&Raytracer::worker_thread, this)));
+            workers.push_back(std::make_shared<std::thread>(std::bind(&Raytracer::worker_thread,
+                this, i, nThreads)));
 
         printf("Started %d worker threads\n", nThreads);
     }
 
-    bool finished() {
-        return blocksRemaining == 0;
+    inline bool finished() {
+        return numThreadsAlive == 0;
     }
 
     void shutdown(bool waitUntilFinished) {
@@ -251,7 +286,7 @@ public:
         mapSamplesCosHemisphere(nSamples, 1.0f, jittered_2d, ao_samples);
         alignHemisphereNormal(nSamples, ao_samples, normal);
 
-        float sampleWeight = 1.0f / (nSamples * nSamples);
+        float sampleWeight = 1.0f / (nSamples * nSamples); // TODO: Can do these at the end with one multiply
         float invMaxDist = 1.0f / settings.occlusionDistance; // tODO precalculate these kinds of things
 
         for (int i = 0; i < nSamples * nSamples; i++) {
@@ -294,8 +329,8 @@ public:
         return color;
     }*/
 
-    vec3 getGlossyReflection(util::stack<KDStackFrame> & kdStack, const vec3 & origin, const vec3 & normal,
-        const vec3 & refDirection, int depth)
+    vec3 getGlossyReflection(RayBuffer & rayBuff, const vec3 & origin, const vec3 & normal,
+        const vec3 & refDirection, const Ray & parent)
     {
         #define MAX_GLOSSY_SAMPLES 2 // TODO
 
@@ -303,7 +338,7 @@ public:
 
         vec3 reflDir = reflect(-refDirection, normal);
 
-        if (depth > 1) {
+        if (parent.depth > 1) {
             // TODO: Maybe precompute a convolved environment map to at least match the glossiness,
             // or do something else entirely.
             return getEnvironment(reflect(-refDirection, normal));
@@ -320,21 +355,16 @@ public:
 
         float sampleWeight = 1.0f / (float)(nSamples * nSamples);
 
-        vec3 env;
-
         for (int i = 0; i < nSamples * nSamples; i++) {
-            Ray ind_ray(origin + normal * .001f, glossy_samples[i]);
-            Collision ind_result;
+            Ray ind_ray(origin + normal * .001f, glossy_samples[i], parent.weight * sampleWeight,
+                parent.px, parent.py, parent.depth + 1);
+            rayBuff.enqueue(ind_ray);
 
-            if (tree->intersect(kdStack, ind_ray, ind_result, 0.0f, false))
-                env += shade(kdStack, ind_ray, &ind_result, depth + 1);
-            else
-                env += getEnvironment(glossy_samples[i]);
+            // TODO: Handle background color for miss rays. Might be handled automatically by
+            // fixing elsewhere.
         }
 
-        env *= sampleWeight;
-
-        return env;
+        return vec3(0, 0, 0); // Handled by child rays
     }
 
     /**
@@ -343,7 +373,7 @@ public:
      *
      * @param norm Direction to sample the environment
      */
-    vec3 getEnvironment(const vec3 & norm) {
+    inline vec3 getEnvironment(const vec3 & norm) {
         if (scene->environment != NULL) {
             vec4 sample = scene->environment_sampler->sample(scene->environment.get(), norm);
             return vec3(sample.x, sample.y, sample.z);
@@ -355,7 +385,7 @@ public:
     /**
      * @brief Get the environment reflection at a point across a normal
      */
-    vec3 getEnvironmentReflection(const vec3 & direction, const vec3 & normal) {
+    inline vec3 getEnvironmentReflection(const vec3 & direction, const vec3 & normal) {
         return getEnvironment(reflect(direction, normal));
     }
 
@@ -366,7 +396,7 @@ public:
      * @param result Collision information
      * @param ior    Index of refraction of shader
      */
-    vec3 getEnvironmentRefraction(const vec3 & direction, const vec3 & normal, float ior) {
+    inline vec3 getEnvironmentRefraction(const vec3 & direction, const vec3 & normal, float ior) {
         return getEnvironment(refract(direction, normal, 1.0f, ior));
     }
 };

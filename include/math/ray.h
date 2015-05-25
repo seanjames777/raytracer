@@ -14,10 +14,14 @@
 #include <smmintrin.h>
 
 struct Ray {
-	vec3 origin;        //!< Ray origin point
-	vec3 direction;     //!< Ray direction vector
-
-    // TODO: Derivatives for sampling
+	vec3  origin;        //!< 12 Ray origin point
+	vec3  direction;     //!< 12 Ray direction vector
+    vec3  weight;        //!< 12 Ray contribution weight/color
+    vec2  deriv;         //!<  8 Screen space derivative for texture sampling
+    short px;            //!<  2 Ray contribution pixel X
+    short py;            //!<  2 Ray contribution pixel Y
+    char  depth;         //!<  1 Ray recursion depth. TODO: 49 bytes is weird. Maybe russian roulette or something else.
+                         //   49
 
     /**
      * @brief Constructor
@@ -33,7 +37,26 @@ struct Ray {
      */
     Ray(const vec3 & origin, const vec3 & direction)
         : origin(origin),
-          direction(direction)
+          direction(direction),
+          weight(1.0f),
+          px(0),
+          py(0)
+    {
+    }
+
+    /**
+     * @brief Constructor
+     *
+     * @param[in] origin    Ray origin point
+     * @param[in] direction Ray direction vector
+     */
+    Ray(const vec3 & origin, const vec3 & direction, const vec3 & weight, short px, short py, char depth)
+        : origin(origin),
+          direction(direction),
+          weight(weight),
+          px(px),
+          py(py),
+          depth(depth)
     {
     }
 

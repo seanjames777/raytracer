@@ -41,7 +41,7 @@ void Image::setPixels(float *data) {
         }
 }
 
-void Image::getPixels(float *data) {
+void Image::getPixels(float *data) const {
     int i0_out = 0;
 
     for (int y = 0; y < height; y++)
@@ -88,7 +88,7 @@ Sampler::Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode border)
     // TODO make these functions cool
 }
 
-inline vec4 Sampler::sampleBorder(Image *image, int x, int y) {
+inline vec4 Sampler::sampleBorder(Image *image, int x, int y) const {
     int width = image->getWidth();
     int height = image->getHeight();
 
@@ -111,7 +111,7 @@ inline vec4 Sampler::sampleBorder(Image *image, int x, int y) {
     return image->getPixel(x, y);
 }
 
-vec4 Sampler::sample(Image *image, const vec2 & uv) {
+vec4 Sampler::sample(Image *image, const vec2 & uv) const {
     float x = uv.x * (image->getWidth() - 1);
     float y = uv.y * (image->getHeight() - 1);
 
@@ -144,7 +144,7 @@ vec4 Sampler::sample(Image *image, const vec2 & uv) {
     }
 }
 
-vec4 Sampler::sample(Image *image, const vec3 & norm) {
+vec4 Sampler::sample(Image *image, const vec3 & norm) const {
 	// TODO: This atan2 and acosf is super expensive
     vec2 uv = vec2(atan2f(norm.z, norm.x) + (float)M_PI, acosf(-norm.y));
     uv = uv / vec2(2.0f * (float)M_PI, (float)M_PI);

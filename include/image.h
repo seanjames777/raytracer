@@ -39,7 +39,7 @@ private:
 
     float *pixels;
 
-    inline int remap(int x, int y) {
+    inline int remap(int x, int y) const {
 #ifdef USE_TILING
         int tx = x >> LOG_TILEW;
         int ty = y >> LOG_TILEH;
@@ -75,7 +75,7 @@ public:
     /**
      * @brief Get a pointer to the array of pixels
      */
-    void getPixels(float *pixels);
+    void getPixels(float *pixels) const;
 
     /**
      * @brief Set all pixels
@@ -85,7 +85,7 @@ public:
     /**
      * @brief Get a pixel by integer coordinate
      */
-    inline vec4 getPixel(int x, int y) {
+    inline vec4 getPixel(int x, int y) const {
         int i = remap(x, y);
         return *(vec4 *)(&pixels[i]);
     }
@@ -101,14 +101,14 @@ public:
     /**
      * @brief Get the width of the image in pixels
      */
-    inline int getWidth() {
+    inline int getWidth() const {
         return width;
     }
 
     /**
      * @brief Get the height of the image in pixels
      */
-    inline int getHeight() {
+    inline int getHeight() const {
         return height;
     }
 
@@ -141,15 +141,15 @@ struct RT_EXPORT Sampler {
     FilterMode magFilter;
     BorderMode border;
 
-    vec4 sampleBorder(Image *image, int x, int y);
+    vec4 sampleBorder(Image *image, int x, int y) const;
 
 public:
 
     Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode border);
 
-    vec4 sample(Image *image, const vec2 & uv);
+    vec4 sample(Image *image, const vec2 & uv) const;
 
-    vec4 sample(Image *image, const vec3 & norm);
+    vec4 sample(Image *image, const vec3 & norm) const;
 
 };
 
