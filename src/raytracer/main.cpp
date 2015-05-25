@@ -14,7 +14,6 @@
 #include <sstream>
 #include <bmpimage.h>
 #include <string.h>
-#include <net/protocol.h>
 #include <math/matrix.h>
 #include <util/glimagedisplay.h>
 

@@ -46,10 +46,6 @@ add_library(rt SHARED
 	src/fbxloader.cpp
 	src/raytracersettings.cpp
     src/bmpimage.cpp
-	src/net/client.cpp
-	src/net/server.cpp
-    src/net/protocol.cpp
-    src/net/net.cpp
 
 	# Include files for visual studio navigation/search
 	include/kdtree/kdbuilder.h
@@ -76,24 +72,12 @@ add_library(rt SHARED
 	include/raytracersettings.h
 	include/scene.h
 	include/timer.h
-	include/net/protocol.h
-	include/net/client.h
-	include/net/server.h
-    include/net/net.h
     include/rt_defs.h
 )
 
-add_executable(worker src/worker/main.cpp)
-target_link_libraries(worker rt)
-install(TARGETS worker DESTINATION bin)
-
-add_executable(host src/host/main.cpp)
-target_link_libraries(host rt)
-install(TARGETS host DESTINATION bin)
-
-add_executable(standalone src/standalone/main.cpp)
-target_link_libraries(standalone rt)
-install(TARGETS standalone DESTINATION bin)
+add_executable(raytracer src/raytracer/main.cpp)
+target_link_libraries(raytracer rt)
+install(TARGETS raytracer DESTINATION bin)
 
 FIND_PACKAGE(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
