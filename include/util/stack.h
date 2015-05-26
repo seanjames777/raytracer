@@ -1,5 +1,5 @@
 /**
- * @file kdstack.h
+ * @file util/kdstack.h
  *
  * @brief Reusable KD tree traversal stack structure. KD trees are traversed recursively. For
  * performance, however, a stack data structure can be used instead of actual recursion to avoid
@@ -7,24 +7,22 @@
  * allowing clients to provide a reusable stack structure, instead of allocating memory for
  * a stack every traversal.
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
-#ifndef _UTIL_STACK_H
-#define _UTIL_STACK_H
+#ifndef __STACK_H
+#define __STACK_H
 
+#include <cassert>
 #include <stdlib.h>
 #include <string.h>
-#include <cassert>
 
 // Default initial stack capacity
 #define DEFAULT_INIT_STACK_CAPACITY 1024
 
 // TODO:
-//     - Align the stack
 //     - We actually need to call constructors and destructors
 //     - Use bigger sizes, i.e. size_t
-//     - Inlining decisions
 
 namespace util {
 

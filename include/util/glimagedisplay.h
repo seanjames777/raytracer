@@ -1,21 +1,21 @@
 /**
- * @file glimagedisplay.h
+ * @file util/glimagedisplay.h
  *
  * @brief Utility for displaying an image in a window using OpenGL. Used to visualize in-progress
  * render.
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
-#ifndef _GLIMAGEDISPLAY_H
-#define _GLIMAGEDISPLAY_H
+#ifndef __GLIMAGEDISPLAY_H
+#define __GLIMAGEDISPLAY_H
 
-#include <image.h>
-#include <memory>
-#include <thread>
 #include <GL/glew.h>
 #include <glfw/glfw3.h>
+#include <image/image.h>
+#include <memory>
 #include <rt_defs.h>
+#include <thread>
 
 /**
  * @brief Convert an OpenGL error code to a string
@@ -76,7 +76,7 @@ private:
     GLFWwindow *window;
 
     /** @brief Displayed image */
-    std::shared_ptr<Image> image;
+    Image *image;
 
     // TODO
     float *pixels;
@@ -90,7 +90,7 @@ public:
      * @param height Height of the display window
      * @param image  Image to display
      */
-    GLImageDisplay(int width, int height, std::shared_ptr<Image> image);
+    GLImageDisplay(int width, int height, Image *image);
 
     /**
      * @brief Destructor

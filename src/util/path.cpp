@@ -1,13 +1,14 @@
 /**
- * @file path.cpp
+ * @file util/path.cpp
  *
  * @author Sean James <seanjames777@gmail.com>
  */
 
 #include <util/path.h>
-#include <sstream>
-#include <cassert>
+
 #include <algorithm>
+#include <cassert>
+#include <sstream>
 
 #if defined(__APPLE__)
     #include <mach-o/dyld.h>
@@ -19,9 +20,7 @@
     #define PATH_MAX MAX_PATH
 #endif
 
-namespace util {
-
-std::string prependExecutableDirectory(std::string localPath) {
+std::string relToExeDir(std::string localPath) {
     char buff[PATH_MAX + 1];
 
 #if defined(__APPLE__)
@@ -51,6 +50,4 @@ std::string prependExecutableDirectory(std::string localPath) {
     std::string path = path_str.str();
 
     return path;
-}
-
 }

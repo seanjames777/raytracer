@@ -1,13 +1,14 @@
 /**
- * @file kdsahbuilder.cpp
+ * @file kdtree/kdsahbuilder.cpp
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
 #include <kdtree/kdsahbuilder.h>
+
 #include <algorithm>
-#include <math/macro.h>
 #include <iostream> // TODO
+#include <math/macro.h>
 
 KDSAHBuilder::KDSAHBuilder() {
 }
@@ -16,21 +17,21 @@ KDSAHBuilder::~KDSAHBuilder() {
 }
 
 void *KDSAHBuilder::prepareWorkerThread(int threadIdx) {
-	KDSAHBuilderThreadCtx *ctx = new KDSAHBuilderThreadCtx();
+    KDSAHBuilderThreadCtx *ctx = new KDSAHBuilderThreadCtx();
 
-	ctx->events = nullptr;
-	ctx->event_capacity = 0;
+    ctx->events = nullptr;
+    ctx->event_capacity = 0;
 
-	return ctx;
+    return ctx;
 }
 
 void KDSAHBuilder::destroyWorkerThread(void *threadCtx) {
-	KDSAHBuilderThreadCtx *ctx = (KDSAHBuilderThreadCtx *)threadCtx;
+    KDSAHBuilderThreadCtx *ctx = (KDSAHBuilderThreadCtx *)threadCtx;
 
-	if (ctx->events)
-		free(ctx->events);
+    if (ctx->events)
+        free(ctx->events);
 
-	delete ctx;
+    delete ctx;
 }
 
 bool compareEvent(const SAHEvent & e1, const SAHEvent & e2) {
@@ -44,7 +45,7 @@ bool compareEvent(const SAHEvent & e1, const SAHEvent & e2) {
 }
 
 bool KDSAHBuilder::splitNode(
-	void *threadCtx,
+    void *threadCtx,
     const AABB & bounds,
     const std::vector<Triangle *> & triangles,
     int depth,
@@ -52,7 +53,7 @@ bool KDSAHBuilder::splitNode(
     float & split,
     enum PlanarMode & planarMode)
 {
-	KDSAHBuilderThreadCtx *ctx = (KDSAHBuilderThreadCtx *)threadCtx;
+    KDSAHBuilderThreadCtx *ctx = (KDSAHBuilderThreadCtx *)threadCtx;
 
     // Assumptions:
     //     - There is at least one triangle in the node
@@ -85,32 +86,32 @@ bool KDSAHBuilder::splitNode(
         // prepareBuilde(number_of_triangles) or something to avoid this check.
 
         while (ctx->event_capacity < triangles.size() * 2) {
-			if (ctx->event_capacity == 0)
-				ctx->event_capacity = 128; // TODO arbitrary constant, branch
+            if (ctx->event_capacity == 0)
+                ctx->event_capacity = 128; // TODO arbitrary constant, branch
             else
-				ctx->event_capacity *= 2;
+                ctx->event_capacity *= 2;
         }
 
         if (ctx->events)
             free(ctx->events);
 
-		ctx->events = (SAHEvent *)malloc(sizeof(SAHEvent) * ctx->event_capacity);
-		assert(ctx->events != nullptr); // TODO
+        ctx->events = (SAHEvent *)malloc(sizeof(SAHEvent) * ctx->event_capacity);
+        assert(ctx->events != nullptr); // TODO
     }
 
-	SAHEvent *events = ctx->events;
+    SAHEvent *events = ctx->events;
 
     int num_events = 0;
 
     // We want to find the plane which minimizes the "surface area heuristic"
     int             min_dir        = -1;                                     // Split direction
     float           min_dist       = 0.0f;                                   // Split location
-	float           min_cost       = std::numeric_limits<float>::infinity(); // Split cost
+    float           min_cost       = std::numeric_limits<float>::infinity(); // Split cost
     enum PlanarMode min_planarMode = PLANAR_LEFT;                            // How to handle planar triangles
 
     // Heuristic constants
     static const float k_t = 1.0f; // Cost of traversing a KD node
-    static const float k_i = 1.0f; // Cost of intersecting a triangle
+    static const float k_i = 0.5f; // Cost of intersecting a triangle
 
     // Surface area of parent voxel
     float sa_v = bounds.surfaceArea();
@@ -120,19 +121,20 @@ bool KDSAHBuilder::splitNode(
         num_events = 0;
 
         // Min and max of parent node along this axis
-		float min = bounds.min.v[axis];
-		float max = bounds.max.v[axis];
+        float min = bounds.min.v[axis];
+        float max = bounds.max.v[axis];
 
         // Insert start/stop/planar locations of each triangle, clamped to the bounds of the parent
         // box. We assume we won't see triangles fully outside the parent node.
         for (auto tri : triangles) {
             // Triangle bounding box
-			float tri_min = tri->bbox.min.v[axis];
-			float tri_max = tri->bbox.max.v[axis];
+            float tri_min = fminf(fminf(tri->v0.position.v[axis], tri->v1.position.v[axis]), tri->v2.position.v[axis]);
+            float tri_max = fmaxf(fmaxf(tri->v0.position.v[axis], tri->v1.position.v[axis]), tri->v2.position.v[axis]);
 
             // Clip triangle bounding box to voxel bounding box
-            tri_min = tri_min < min ? min : tri_min;
-            tri_max = tri_max > max ? max : tri_max;
+            // TODO: This generates weirdness for triangles outside the box
+            tri_min = fmaxf(min, tri_min);
+            tri_max = fminf(max, tri_max);
 
             SAHEvent *event = &events[num_events];
 
@@ -144,13 +146,13 @@ bool KDSAHBuilder::splitNode(
             }
             // Otherwise, generate begin and end events
             else {
-                event->flag = SAH_END;
-                event->dist = tri_max;
+                event->flag = SAH_BEGIN;
+                event->dist = tri_min;
                 num_events++;
 
                 event = &events[num_events];
-                event->flag = SAH_BEGIN;
-                event->dist = tri_min;
+                event->flag = SAH_END;
+                event->dist = tri_max;
                 num_events++;
             }
         }

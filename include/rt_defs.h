@@ -1,5 +1,15 @@
-#ifndef __RT_DEFS_H
-#define __RT_DEFS_H
+/**
+ * @file rt_defs.h
+ *
+ * @brief Raytracer global definitions
+ *
+ * @author Sean James <seanjames777@gmail.com>
+ */
+
+#ifndef __RTDEFS_H
+#define __RTDEFS_H
+
+#include <cstddef>
 
 #ifdef WIN32
 #ifdef rt_EXPORTS

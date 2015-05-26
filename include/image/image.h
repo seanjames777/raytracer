@@ -1,0 +1,156 @@
+/**
+ * @file image/image.h
+ *
+ * @brief Image load/save/processing library
+ *
+ * @author Sean James <seanjames777@gmail.com>
+ */
+
+#ifndef __IMAGE_H
+#define __IMAGE_H
+
+#include <iostream> // TODO
+#include <math/vector.h>
+#include <rt_defs.h>
+#include <string>
+
+// TODO: inline functions
+
+//#define USE_TILING
+#define LOG_TILEW 5
+#define LOG_TILEH 5
+#define TILEW (1 << LOG_TILEW)
+#define TILEH (1 << LOG_TILEH)
+
+/**
+ * @brief Stores an array of integral pixels with between 1 and 4 components and can load and store
+ * bitmaps in the .bmp format
+ */
+class RT_EXPORT Image {
+private:
+
+    int width;
+    int height;
+
+#ifdef USE_TILING
+    int tilesW;
+    int tilesH;
+#endif
+
+    float *pixels;
+
+    inline int remap(int x, int y) const {
+#ifdef USE_TILING
+        int tx = x >> LOG_TILEW;
+        int ty = y >> LOG_TILEH;
+
+        int ox = x & (TILEW - 1);
+        int oy = y & (TILEH - 1);
+
+        int idx = (((ty * tilesW) + tx) << LOG_TILEW) << LOG_TILEH;
+        idx += (oy << LOG_TILEW) + ox;
+        idx <<= 2;
+
+        return idx;
+#else
+        return (y * width + x) << 2;
+#endif
+    }
+
+public:
+
+    /**
+     * @brief Constructor. All images are 32 bit floating point images for now. TODO.
+     *
+     * @param width    Image width
+     * @param height   Image height
+     */
+    Image(int width, int height);
+
+    /**
+     * @brief Destroy the image
+     */
+    ~Image();
+
+    /**
+     * @brief Get a pointer to the array of pixels
+     */
+    void getPixels(float *pixels) const;
+
+    /**
+     * @brief Set all pixels
+     */
+    void setPixels(float *data);
+
+    /**
+     * @brief Get a pixel by integer coordinate
+     */
+    inline vec4 getPixel(int x, int y) const {
+        int i = remap(x, y);
+        return *(vec4 *)(&pixels[i]);
+    }
+
+    /**
+     * @brief Set a pixel
+     */
+    inline void setPixel(int x, int y, const vec4 & color) {
+        int i = remap(x, y);
+        *(vec4 *)(&pixels[i]) = color;
+    }
+
+    /**
+     * @brief Get the width of the image in pixels
+     */
+    inline int getWidth() const {
+        return width;
+    }
+
+    /**
+     * @brief Get the height of the image in pixels
+     */
+    inline int getHeight() const {
+        return height;
+    }
+
+    /**
+     * @brief Apply a gamma correction to the image
+     */
+    //void applyGamma(float gamma);
+
+    /**
+     * @brief Apply tone mapping to the image
+     */
+    //void applyTonemapping(float exposure);
+
+};
+
+enum FilterMode {
+    Nearest,
+    Linear,
+    MipLinear
+};
+
+enum BorderMode {
+    Clamp,
+    Wrap
+};
+
+// TODO: Might be faster to use template filter settings for inlining
+struct RT_EXPORT Sampler {
+    FilterMode minFilter;
+    FilterMode magFilter;
+    BorderMode border;
+
+    vec4 sampleBorder(const Image *image, int x, int y) const;
+
+public:
+
+    Sampler(FilterMode minFilter, FilterMode magFilter, BorderMode border);
+
+    vec4 sample(const Image *image, const vec2 & uv) const;
+
+    vec4 sample(const Image *image, const vec3 & norm) const;
+
+};
+
+#endif

@@ -10,6 +10,8 @@
 #ifndef __SAMPLING_H
 #define __SAMPLING_H
 
+#include <random>
+
 // TODO: Maybe use a random table
 // TODO: Add an initialization function
 // TODO: Use shiny new C++ random
@@ -38,22 +40,25 @@ inline void rand1D(int count, float *samples) {
  */
 inline void rand2D(int count, vec2 *samples) {
     for (int i = 0; i < count * count; i++)
-        samples[i] = vec2((float)rand() / (float)RAND_MAX, (float)rand() / (float)RAND_MAX);
+        samples[i] = vec2(
+            (float)rand() / (float)RAND_MAX,
+            (float)rand() / (float)RAND_MAX
+        );
 }
 
 /**
- * @brief Generate random 3D samples between 0 and 1 inclusive on the unit sphere
+ * @brief Generate random 3D samples between 0 and 1 inclusive
  *
  * @param[in]  count   The number of samples to be generated
  * @param[out] samples 3D array of samples
  */
 inline void rand3D(int count, vec3 *samples) {
     for (int i = 0; i < count; i++)
-        samples[i] = normalize(vec3(
+        samples[i] = vec3(
             (float)rand() / (float)RAND_MAX,
             (float)rand() / (float)RAND_MAX,
             (float)rand() / (float)RAND_MAX
-        ));
+        );
 }
 
 // TODO: Jitter sphere samples
@@ -121,6 +126,8 @@ inline void mapSamplesDisk(int count, vec2 *samples) {
     }
 }
 
+// TODO: Map samples to volume of sphere
+
 /**
  * @brief Map 2D samples to a hemisphere, oriented along the Y axis. Sample density will follow
  * cos^{cos_pow}(theta).
@@ -136,6 +143,7 @@ inline void mapSamplesCosHemisphere(
     vec2 *samples_in,
     vec3 *samples_out)
 {
+    // From "Raytracing from the Ground Up", pg. 129
     for (int i = 0; i < count * count; i++) {
         float u1 = samples_in[i].x;
         float u2 = samples_in[i].y;
@@ -165,10 +173,11 @@ inline void mapSamplesCosHemisphere(
  */
 inline void mapSamplesHemisphere(
     int count,
-    float cos_pow,
     vec2 *samples_in,
     vec3 *samples_out)
 {
+    // Same as mapSamplesCosHemisphere, but cos_pow replaced with 0
+
     for (int i = 0; i < count * count; i++) {
         float u1 = samples_in[i].x;
         float u2 = samples_in[i].y;
@@ -178,7 +187,8 @@ inline void mapSamplesHemisphere(
         float cos_phi = cosf(phi);
         float sin_phi = sinf(phi);
 
-        float cos_theta = sqrtf(1.0f - u2);
+        // Can subsitute random variable for 1 - random variable
+        float cos_theta = u2;
         float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
 
         samples_out[i] = vec3(

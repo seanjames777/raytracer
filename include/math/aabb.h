@@ -9,8 +9,8 @@
 #ifndef __MATH_AABB_H
 #define __MATH_AABB_H
 
-#include <math/vector.h>
 #include <math/ray.h>
+#include <math/vector.h>
 
 struct AABB {
 private:
@@ -33,6 +33,15 @@ public:
      * @brief Constructor
      */
     AABB() {
+    }
+
+    /**
+     * @brief Constructor
+     */
+    AABB(const vec3 & pt)
+        : min(pt),
+          max(pt)
+    {
     }
 
     /**

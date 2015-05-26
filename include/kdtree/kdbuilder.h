@@ -1,19 +1,19 @@
 /**
- * @file kdbuilder.h
+ * @file kdtree/kdbuilder.h
  *
  * @brief KD-Tree builder base class
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
-#ifndef _KDBUILDER_H
-#define _KDBUILDER_H
+#ifndef __KDBUILDER_H
+#define __KDBUILDER_H
 
-#include <kdtree/kdtree.h>
-#include <util/queue.h>
-#include <mutex>
 #include <atomic>
+#include <kdtree/kdtree.h>
+#include <mutex>
 #include <thread>
+#include <util/queue.h>
 #include <vector>
 
 // How to handle triangles that lie in the plane
@@ -24,12 +24,12 @@ enum PlanarMode {
 };
 
 struct KDBuilderQueueNode {
-	KDNode *node;
+    KDNode *node;
     AABB bounds;
     std::vector<Triangle *> triangles; // TODO: memcpy/malloc instead
     int depth;
-	std::atomic_int refCount;
-	KDBuilderQueueNode *parent;
+    std::atomic_int refCount;
+    KDBuilderQueueNode *parent;
 
     // TODO: false sharing
 };
@@ -50,22 +50,22 @@ class KDBuilder {
 private:
 
     // TODO: Pool or something of queue nodes might be better than new/delete constantly.
-	// TODO: Check overhead of queue locking. Maybe use work stealing or something.
+    // TODO: Check overhead of queue locking. Maybe use work stealing or something.
     // Note: We need a dynamic queue here because we don't know how deep we're going
     // to go while building the tree, and we need more storage space closer to the
     // leaves.
     util::queue<KDBuilderQueueNode *> node_queue;
-	std::mutex                        queue_lock;
-	std::atomic_int                   outstanding_nodes;
+    std::mutex                        queue_lock;
+    std::atomic_int                   outstanding_nodes;
 
-	// TODO
-	void worker_thread();
+    // TODO
+    void worker_thread();
 
-	// TODO
-	virtual void *prepareWorkerThread(int idx);
+    // TODO
+    virtual void *prepareWorkerThread(int idx);
 
-	// TODO
-	virtual void destroyWorkerThread(void *threadCtx);
+    // TODO
+    virtual void destroyWorkerThread(void *threadCtx);
 
     /**
      * @brief Find the subset of triangles contained in a bounding box
@@ -85,17 +85,17 @@ private:
      */
     void buildLeafNode(KDBuilderQueueNode *q_node);
 
-	/**
-	 * @brief Build an inner node
-	 *
-	 * @param q_node     Queue node to process
-	 * @param dir        Split axis
-	 * @param split      Split distance
-	 * @param planarMode How to handle planar triangles
-	 * @param depth      Tree depth
-	 */
-	void buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int dir, float split,
-		enum PlanarMode planarMode, int depth);
+    /**
+     * @brief Build an inner node
+     *
+     * @param q_node     Queue node to process
+     * @param dir        Split axis
+     * @param split      Split distance
+     * @param planarMode How to handle planar triangles
+     * @param depth      Tree depth
+     */
+    void buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int dir, float split,
+        enum PlanarMode planarMode, int depth);
 
     /**
      * @brief Build a KD node
@@ -113,7 +113,7 @@ private:
 
 protected:
 
-	// TODO
+    // TODO
     virtual bool splitNode(void *threadCtx, const AABB & bounds, const std::vector<Triangle *> & triangles,
         int depth, int & dir, float & split, enum PlanarMode & planarMode) = 0;
 

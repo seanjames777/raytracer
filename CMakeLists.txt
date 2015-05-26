@@ -18,7 +18,7 @@ if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
         message("Debug build")
         add_definitions(-O0 -g)
     else()
-        message("Debug build")
+        message("Release build")
         add_definitions(-O3)
     endif()
 endif()
@@ -26,56 +26,66 @@ endif()
 include(prebuilt/CMakeLists.txt)
 
 add_library(rt SHARED
+    src/core/camera.cpp
+    src/core/camera.cpp
+    src/core/raytracer.cpp
+    src/core/raytracersettings.cpp
+    src/core/scene.cpp
+    src/core/triangle.cpp
+    src/image/bmpimage.cpp
+    src/image/image.cpp
     src/kdtree/kdbuilder.cpp
     src/kdtree/kdmedianbuilder.cpp
     src/kdtree/kdnode.cpp
     src/kdtree/kdsahbuilder.cpp
     src/kdtree/kdtree.cpp
-    src/util/path.cpp
+    src/light/directionallight.cpp
+    src/light/light.cpp
+    src/light/pointlight.cpp
+    src/shader/pbrshader.cpp
+    src/shader/phongshader.cpp
+    src/shader/shader.cpp
+    src/util/fbxloader.cpp
     src/util/glimagedisplay.cpp
-	src/camera.cpp
-	src/light.cpp
-	src/pointlight.cpp
-	src/directionallight.cpp
-	src/polygon.cpp
-	src/shader.cpp
-	src/scene.cpp
-	src/image.cpp
-	src/raytracer.cpp
-	src/timer.cpp
-	src/fbxloader.cpp
-	src/raytracersettings.cpp
-    src/bmpimage.cpp
+    src/util/path.cpp
+    src/util/timer.cpp
 
-	# Include files for visual studio navigation/search
-	include/kdtree/kdbuilder.h
-	include/kdtree/kdmedianbuilder.h
-	include/kdtree/kdnode.h
-	include/kdtree/kdsahbuilder.h
-	include/kdtree/kdtree.h
-	include/math/matrix.h
-	include/math/vector.h
+    include/core/camera.h
+    include/core/raybuffer.h
+    include/core/raytracer.h
+    include/core/raytracersettings.h
+    include/core/scene.h
+    include/core/triangle.h
+    include/image/bmpimage.h
+    include/image/image.h
+    include/kdtree/kdbuilder.h
+    include/kdtree/kdmedianbuilder.h
+    include/kdtree/kdnode.h
+    include/kdtree/kdsahbuilder.h
+    include/kdtree/kdtree.h
+    include/light/directionallight.h
+    include/light/light.h
+    include/light/pointlight.h
+    include/math/aabb.h
+    include/math/macro.h
+    include/math/matrix.h
+    include/math/ray.h
+    include/math/sampling.h
+    include/math/vector.h
+    include/rt_defs.h
+    include/shader/pbrshader.h
+    include/shader/phongshader.h
+    include/shader/shader.h
+    include/util/align.h
+    include/util/fbxloader.h
+    include/util/glimagedisplay.h
+    include/util/path.h
     include/util/queue.h
     include/util/stack.h
-    include/util/path.h
-    include/util/glimagedisplay.h
-	include/bmpimage.h
-	include/camera.h
-	include/directionallight.h
-	include/fbxloader.h
-	include/image.h
-	include/light.h
-	include/shader.h
-	include/pointlight.h
-	include/polygon.h
-	include/raytracer.h
-	include/raytracersettings.h
-	include/scene.h
-	include/timer.h
-    include/rt_defs.h
+    include/util/timer.h
 )
 
-add_executable(raytracer src/raytracer/main.cpp)
+add_executable(raytracer src/main.cpp)
 target_link_libraries(raytracer rt)
 install(TARGETS raytracer DESTINATION bin)
 
@@ -83,14 +93,14 @@ FIND_PACKAGE(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
 
 target_link_libraries(rt
-	glfw
-	glew
-	${OPENGL_LIBRARIES}
-	fbx
+    glfw
+    glew
+    ${OPENGL_LIBRARIES}
+    fbx
 )
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	target_link_libraries(rt wsock32 ws2_32)
+    target_link_libraries(rt wsock32 ws2_32)
 endif()
 
 install(TARGETS rt DESTINATION bin)
@@ -98,8 +108,8 @@ install(TARGETS rt DESTINATION bin)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/content/" DESTINATION bin/content)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	install(FILES ${PROJECT_BINARY_DIR}/Debug/host.pdb DESTINATION bin CONFIGURATIONS Debug)
-	install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/host.pdb DESTINATION bin CONFIGURATIONS RelWithDebInfo)
-	install(FILES ${PROJECT_BINARY_DIR}/Debug/worker.pdb DESTINATION bin CONFIGURATIONS Debug)
-	install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/worker.pdb DESTINATION bin CONFIGURATIONS RelWithDebInfo)
+    install(FILES ${PROJECT_BINARY_DIR}/Debug/host.pdb DESTINATION bin CONFIGURATIONS Debug)
+    install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/host.pdb DESTINATION bin CONFIGURATIONS RelWithDebInfo)
+    install(FILES ${PROJECT_BINARY_DIR}/Debug/worker.pdb DESTINATION bin CONFIGURATIONS Debug)
+    install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/worker.pdb DESTINATION bin CONFIGURATIONS RelWithDebInfo)
 endif ()

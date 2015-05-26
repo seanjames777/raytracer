@@ -1,12 +1,13 @@
 /**
- * @file glimagedisplay.cpp
+ * @file util/glimagedisplay.cpp
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
 #include <util/glimagedisplay.h>
-#include <iostream>
+
 #include <cassert>
+#include <iostream>
 #include <vector>
 
 const char *vs_source =
@@ -39,20 +40,20 @@ const char *ps_source =
 
 // TODO: shorthand for this type
 vec2 vertices[6] = {
-	vec2(-1, -1),
-	vec2(-1, 1),
-	vec2(1, 1),
+    vec2(-1, -1),
+    vec2(-1, 1),
+    vec2(1, 1),
 
-	vec2(-1, -1),
-	vec2(1, 1),
-	vec2(1, -1)
+    vec2(-1, -1),
+    vec2(1, 1),
+    vec2(1, -1)
 };
 
 void glfw_error_callback(int error, const char *msg) {
     printf("GLFW Error (%d): %s\n", error, msg);
 }
 
-GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> image)
+GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
     : width(width),
       height(height),
       image(image)

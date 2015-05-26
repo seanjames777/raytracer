@@ -1,17 +1,17 @@
 /**
- * @file queue.h
+ * @file util/queue.h
  *
  * @brief Queue/FIFO
  *
- * @author Sean James <seanjames777@mgmail.com>
+ * @author Sean James <seanjames777@gmail.com>
  */
 
-#ifndef __UTIL_QUEUE_H
-#define __UTIL_QUEUE_H
+#ifndef __QUEUE_H
+#define __QUEUE_H
 
+#include <cassert>
 #include <stdlib.h>
 #include <string.h>
-#include <cassert>
 
 // Default initial queue capacity
 #define DEFAULT_INIT_QUEUE_CAPACITY 16

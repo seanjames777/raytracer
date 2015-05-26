@@ -9,9 +9,6 @@
 #ifndef __MATH_MATRIX_H
 #define __MATH_MATRIX_H
 
-#define _USE_MATH_DEFINES
-#include <math.h>
-
 #include <math/vector.h>
 
 // M rows x N columns. TODO.

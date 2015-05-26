@@ -11,7 +11,6 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <array>
 
 template<typename T, unsigned int N>
 struct vector_data {
@@ -152,7 +151,15 @@ struct vector<T, 4> {
     {
     }
 
-    vector<T, 3> xyz() {
+    vector<T, 4>(vector<T, 3> v3)
+        : x(v3.x),
+          y(v3.y),
+          z(v3.z),
+          w(1.0f)
+    {
+    }
+
+    vector<T, 3> xyz() const {
         return vector<T, 3>(x, y, z);
     }
 };

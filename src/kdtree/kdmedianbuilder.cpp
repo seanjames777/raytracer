@@ -1,7 +1,7 @@
 /**
- * @file kdmedianbuilder.cpp
+ * @file kdtree/kdmedianbuilder.cpp
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
 #include <kdtree/kdmedianbuilder.h>
@@ -13,7 +13,7 @@ KDMedianBuilder::~KDMedianBuilder() {
 }
 
 bool KDMedianBuilder::splitNode(
-	void *threadCtx,
+    void *threadCtx,
     const AABB & bounds,
     const std::vector<Triangle *> & triangles,
     int depth,
@@ -26,7 +26,7 @@ bool KDMedianBuilder::splitNode(
 
 #if 1
     // Split along longest axis
-	vec3 axis_len = bounds.max - bounds.min;
+    vec3 axis_len = bounds.max - bounds.min;
 
     if (axis_len.x > axis_len.y)
         dir = axis_len.x > axis_len.z ? KD_INTERNAL_X : KD_INTERNAL_Z;
@@ -37,8 +37,8 @@ bool KDMedianBuilder::splitNode(
     dir = depth % 3;
 #endif
 
-	float min = bounds.min.v[dir];
-	float max = bounds.max.v[dir];
+    float min = bounds.min.v[dir];
+    float max = bounds.max.v[dir];
 
     split = (max - min) / 2.0f + min;
 

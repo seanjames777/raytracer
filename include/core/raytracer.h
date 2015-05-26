@@ -1,0 +1,134 @@
+/**
+ * @file core/raytracer.h
+ *
+ * @brief Main raytracer implementation
+ *
+ * @author Sean James <seanjames777@gmail.com>
+ */
+
+#ifndef __RAYTRACER_H
+#define __RAYTRACER_H
+
+#include <atomic>
+#include <core/raybuffer.h>
+#include <core/raytracersettings.h>
+#include <core/scene.h>
+#include <image/image.h>
+#include <kdtree/kdsahbuilder.h>
+#include <kdtree/kdtree.h>
+#include <math/macro.h>
+#include <math/sampling.h>
+#include <rt_defs.h>
+#include <thread>
+#include <util/timer.h>
+
+// TODO:
+//     - Tiled backbuffer
+//     - Lock-free indexing
+//     - Per-mesh shaders, sorted, instaed of poly -> naterial map
+
+/**
+ * @brief Main raytracer class, which starts worker threads and coordinates the rendering
+ * process.
+ */
+class RT_EXPORT Raytracer {
+private:
+
+    /** @brief Intersection test tree */
+    KDTree *tree; // TODO: Delete
+    KDTreeStatistics stats;
+
+    /** @brief Scene */
+    Scene *scene;
+
+    int nBlocks;
+    int nBlocksW;
+    int nBlocksH;
+    bool should_shutdown;
+    std::atomic_int numThreadsAlive;
+    std::atomic_int currBlockID;
+
+    /** @brief Worker threads */
+    std::vector<std::shared_ptr<std::thread>> workers;
+
+    /** @brief Raytracer settings */
+    RaytracerSettings settings;
+
+    /**
+     * @brief Entry point for a worker thread
+     */
+    void worker_thread(int idx, int numThreads);
+
+public:
+
+    /**
+     * @brief Constructor
+     *
+     * @param scene Scene to render
+     */
+    Raytracer(RaytracerSettings settings, Scene *scene);
+
+    /**
+     * @brief Destructor
+     */
+    ~Raytracer();
+
+    /**
+     * @brief Render the scene into the scene's output image
+     */
+    void render();
+
+    /**
+     * @brief Whether the raytracer has finished rendering
+     */
+    bool finished();
+
+    /**
+     * @brief Shutdown the raytracer
+     *
+     * @param[in] waitUntilFinished Whether to wait until the raytracer has finished rendering
+     *                              (true) or to abort immediately (false)
+     */
+    void shutdown(bool waitUntilFinished);
+};
+
+inline bool Raytracer::finished() {
+    return numThreadsAlive == 0;
+}
+
+#endif
+
+#if 0
+    /**
+     * @brief Sample the environment map, if there is one. Otherwise, returns the background
+     * color (TODO).
+     *
+     * @param norm Direction to sample the environment
+     */
+    inline vec3 getEnvironment(const vec3 & norm) {
+        if (scene->getEnvironment() != NULL) {
+            vec4 sample = scene->getEnvironmentSampler()->sample(scene->getEnvironment(), norm);
+            return vec3(sample.x, sample.y, sample.z);
+        }
+
+        return vec3(0, 0, 0);
+    }
+
+    /**
+     * @brief Get the environment reflection at a point across a normal
+     */
+    inline vec3 getEnvironmentReflection(const vec3 & direction, const vec3 & normal) {
+        return getEnvironment(reflect(direction, normal));
+    }
+
+    /**
+     * @brief Get the environment refraction at a point across a normal, assuming the environment
+     * is filled with air.
+     *
+     * @param result Collision information
+     * @param ior    Index of refraction of shader
+     */
+    inline vec3 getEnvironmentRefraction(const vec3 & direction, const vec3 & normal, float ior) {
+        return getEnvironment(refract(direction, normal, 1.0f, ior));
+    }
+#endif

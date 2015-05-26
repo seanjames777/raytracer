@@ -1,7 +1,7 @@
 /**
- * @file kdtree.cpp
+ * @file kdtree/kdtree.cpp
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
 #include <kdtree/kdtree.h>
@@ -39,9 +39,10 @@ KDTree::KDTree(KDNode *root, AABB bounds)
 //       in the SAH paper. Creating empty nodes or whatever.
 // TODO: Tweak heursitic constants
 
-bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result, float maxDepth,
-    bool anyCollision)
+bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result)
 {
+    // http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
+
     KDNode *currentNode;
     float entry, exit;
 
@@ -52,59 +53,61 @@ bool KDTree::intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Colli
 
     stack.push(KDStackFrame(root, entry, exit));
 
-	while (!stack.empty()) {
-		KDStackFrame curr_stack = stack.pop();
+    while (!stack.empty()) {
+        KDStackFrame curr_stack = stack.pop();
 
-		currentNode = curr_stack.node;
-		entry = curr_stack.enter;
-		exit = curr_stack.exit;
+        currentNode = curr_stack.node;
+        entry = curr_stack.enter;
+        exit = curr_stack.exit;
 
-		// Nothing will be closer, give up
-		if (maxDepth > 0.0f && entry > maxDepth) {
-			stack.clear();
-			return false;
-		}
+        // Nothing will be closer, give up
+        if (ray.max > 0.0f && entry > ray.max) {
+            stack.clear();
+            return false;
+        }
 
         int type = KDNODE_TYPE(currentNode);
 
-		while (type != KD_LEAF) {
-			float split = currentNode->split_dist;
-			float origin = ray.origin.v[type];
+        while (type != KD_LEAF) {
+            float split = currentNode->split_dist;
+            float origin = ray.origin.v[type];
 
-			float t = (split - origin) * inv_direction.v[type];
+            float t = (split - origin) * inv_direction.v[type];
 
-			KDNode *nearNode = KDNODE_LEFT(currentNode);
-			KDNode *farNode  = KDNODE_RIGHT(currentNode);
+            KDNode *nearNode = KDNODE_LEFT(currentNode);
+            KDNode *farNode  = KDNODE_RIGHT(currentNode);
 
-			if (split < origin) {
-				KDNode *temp = nearNode;
-				nearNode = farNode;
-				farNode = temp;
-			}
+            if (split < origin) {
+                KDNode *temp = nearNode;
+                nearNode = farNode;
+                farNode = temp;
+            }
 
             // TODO: Avoid doing all the work for empty leaves
-			if (t > exit || t < 0)
-				currentNode = nearNode;
-			else if (t < entry)
-				currentNode = farNode;
-			else {
+            if (t > exit || t < 0)
+                currentNode = nearNode;
+            else if (t < entry)
+                currentNode = farNode;
+            else {
                 stack.push(KDStackFrame(farNode, t, exit));
-				currentNode = nearNode;
-				exit = t;
-			}
+                currentNode = nearNode;
+                exit = t;
+            }
 
             type = KDNODE_TYPE(currentNode);
-		}
+        }
 
-		// TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
-		// TODO: Ignores max depth
+        // TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
+        // TODO: Ignores max depth
 
-		if (SetupTriangleBuffer::intersects(ray, KDNODE_TRIANGLES(currentNode),
-			currentNode->count, anyCollision, result))
-		{
-			stack.clear();
-			return true;
-		}
+        if (SetupTriangleBuffer::intersects(ray, KDNODE_TRIANGLES(currentNode),
+            currentNode->count, ray.mode != Shade, entry,
+            ray.max > 0.0f ? fminf(exit, ray.max) : exit,
+            result))
+        {
+            stack.clear();
+            return true;
+        }
     }
 
     return false;

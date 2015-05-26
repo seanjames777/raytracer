@@ -1,15 +1,16 @@
 /**
- * @file kdtree.h
+ * @file kdtree/kdtree.h
  *
  * @brief KD-Tree acceleration structure types and traversal code
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
 #ifndef __KDTREE_H
 #define __KDTREE_H
 
 #include <kdtree/kdnode.h>
+#include <math/aabb.h>
 #include <util/stack.h>
 
 // TODO:
@@ -59,8 +60,7 @@ private:
      * @param anyCollision Whether to accept any collision or to find the closest
      * TODO: anyCollision -> closestCollision. want false to be easy default probably
      */
-    bool intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit,
-        bool anyCollision);
+    bool intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit);
 
 public:
 
@@ -71,7 +71,7 @@ public:
      */
     KDTree(KDNode *root, AABB bounds);
 
-	// TODO: Destructor??!
+    // TODO: Destructor??!
 
     /**
      * @brief Intersect a ray against the KD-Tree
@@ -83,8 +83,7 @@ public:
      *
      * @return Whether a collision occured
      */
-    bool intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result, float maxDepth,
-        bool anyCollision);
+    bool intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result);
 
 };
 

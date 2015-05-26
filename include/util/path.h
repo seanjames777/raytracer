@@ -1,5 +1,5 @@
 /**
- * @file path.h
+ * @file util/path.h
  *
  * @brief Path utilities
  *
@@ -9,18 +9,16 @@
 #ifndef __PATH_H
 #define __PATH_H
 
-#include <string>
 #include <rt_defs.h>
-
-namespace util {
+#include <string>
 
 /**
  * @brief Inserts the full path to the directory containing the executable
- * before a 'local' path. This is useful for loading content distributed
+ * before localPath. This is useful for loading content distributed
  * alongside the executable.
+ *
+ * @param[in] localPath Path relative to executable directory
  */
-RT_EXPORT std::string prependExecutableDirectory(std::string localPath);
-
-}
+RT_EXPORT std::string relToExeDir(std::string localPath);
 
 #endif

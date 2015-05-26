@@ -1,7 +1,7 @@
 /**
- * @file kdnode.cpp
+ * @file kdtree/kdnode.cpp
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
 #include <kdtree/kdnode.h>

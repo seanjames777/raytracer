@@ -1,13 +1,13 @@
 /**
- * @file kdsahbuilder.h
+ * @file kdtree/kdsahbuilder.h
  *
  * @brief KD-Tree builder which splits voxels based on the "surface area heuristic"
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
-#ifndef _KDSAHBUILDER_H
-#define _KDSAHBUILDER_H
+#ifndef __KDSAHBUILDER_H
+#define __KDSAHBUILDER_H
 
 #include <kdtree/kdbuilder.h>
 
@@ -23,17 +23,17 @@ struct SAHEvent {
 };
 
 struct KDSAHBuilderThreadCtx {
-	// Because we process one node at a time, we can reuse one event list allocation
-	SAHEvent *events;
-	int       event_capacity;
+    // Because we process one node at a time, we can reuse one event list allocation
+    SAHEvent *events;
+    int       event_capacity;
 };
 
 class KDSAHBuilder : public KDBuilder {
 protected:
 
-	virtual void *prepareWorkerThread(int idx) override;
+    virtual void *prepareWorkerThread(int idx) override;
 
-	virtual void destroyWorkerThread(void *threadCtx) override;
+    virtual void destroyWorkerThread(void *threadCtx) override;
 
     virtual bool splitNode(void *threadCtx, const AABB & bounds, const std::vector<Triangle *> & triangles,
         int depth, int & dir, float & split, enum PlanarMode & planarMode) override;
