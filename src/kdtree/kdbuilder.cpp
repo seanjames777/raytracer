@@ -6,10 +6,11 @@
 
 #include <kdtree/kdbuilder.h>
 
-#include <iostream> // TODO
+#include <iostream>
 #include <unistd.h>
 #include <util/align.h>
 #include <util/timer.h>
+
 // TODO: the enqueue() function can fail
 
 inline KDNode *alloc_node() {
@@ -37,9 +38,13 @@ void *KDBuilder::prepareWorkerThread(int idx) {
 void KDBuilder::destroyWorkerThread(void *threadCtx) {
 }
 
-void KDBuilder::partition(void *threadCtx, float dist, int dir, const std::vector<Triangle *> & triangles,
-        std::vector<Triangle *> & left, std::vector<Triangle *> & right,
-        enum PlanarMode & planarMode)
+void KDBuilder::partition(
+    float                           split,
+    int                             dir,
+    enum KDBuilderPlanarMode      & planarMode,
+    const std::vector<Triangle *> & triangles,
+    std::vector<Triangle *>       & left,
+    std::vector<Triangle *>       & right)
 {
     // TODO: By keeping references to triangles in the SAH event list, we could
     // avoid this whole loop.
@@ -50,8 +55,7 @@ void KDBuilder::partition(void *threadCtx, float dist, int dir, const std::vecto
         float min = fminf(fminf(tri->v0.position.v[dir], tri->v1.position.v[dir]), tri->v2.position.v[dir]);
         float max = fmaxf(fmaxf(tri->v0.position.v[dir], tri->v1.position.v[dir]), tri->v2.position.v[dir]);
 
-        if (min == dist && max == dist) {
-            // TODO bitwise optimization?
+        if (min == split && max == split) {
             if (planarMode == PLANAR_LEFT)
                 left.push_back(tri);
             else if (planarMode == PLANAR_RIGHT)
@@ -62,10 +66,10 @@ void KDBuilder::partition(void *threadCtx, float dist, int dir, const std::vecto
             }
         }
         else {
-            if (min < dist)
+            if (min < split)
                 left.push_back(tri);
 
-            if (max > dist)
+            if (max > split)
                 right.push_back(tri);
         }
     }
@@ -75,15 +79,9 @@ void KDBuilder::buildLeafNode(KDBuilderQueueNode *q_node) {
     // Set up triangles, and pack them together for locality
     unsigned int num_triangles = (unsigned int)q_node->triangles.size();
 
-    //SetupTriangle *setup = (SetupTriangle *)malloc(sizeof(SetupTriangle) * num_triangles);
-    // TODO multiple constructor calls, etc.
-
     // TODO: We sometimes get empty leaves, which is a total waste
     SetupTriangle *triangleData = SetupTriangleBuffer::pack(
         q_node->triangles.size() > 0 ? &q_node->triangles[0] : nullptr, q_node->triangles.size());
-
-    // TODO: Might want to change constructor of KDNode to do this stuff,
-    // especially to not mix allocations
 
     // TODO: handle overflow of size?
 
@@ -93,8 +91,12 @@ void KDBuilder::buildLeafNode(KDBuilderQueueNode *q_node) {
     node->count = q_node->triangles.size();
 }
 
-void KDBuilder::buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int dir, float split,
-    enum PlanarMode planarMode, int depth)
+void KDBuilder::buildInnerNode(
+    KDBuilderQueueNode       *q_node,
+    float                     split,
+    int                       dir,
+    enum KDBuilderPlanarMode  planarMode,
+    int                       depth)
 {
     KDBuilderQueueNode *left = new KDBuilderQueueNode();
     KDBuilderQueueNode *right = new KDBuilderQueueNode();
@@ -112,7 +114,7 @@ void KDBuilder::buildInnerNode(void *threadCtx, KDBuilderQueueNode *q_node, int 
     q_node->bounds.split(split, dir, left->bounds, right->bounds);
 
     // TODO might want to reserve space to avoid allocations
-    partition(threadCtx, split, dir, q_node->triangles, left->triangles, right->triangles, planarMode);
+    partition(split, dir, planarMode, q_node->triangles, left->triangles, right->triangles);
 
     KDNode *node = q_node->node;
 
@@ -131,10 +133,10 @@ void KDBuilder::buildNode(void *threadCtx, KDBuilderQueueNode *q_node) {
 
     int dir;
     float split;
-    enum PlanarMode planarMode;
+    enum KDBuilderPlanarMode planarMode;
 
-    if (splitNode(threadCtx, q_node->bounds, q_node->triangles, q_node->depth, dir, split, planarMode))
-        buildInnerNode(threadCtx, q_node, dir, split, planarMode, q_node->depth);
+    if (splitNode(threadCtx, q_node->bounds, q_node->triangles, q_node->depth, split, dir, planarMode))
+        buildInnerNode(q_node, split, dir, planarMode, q_node->depth);
     else
         buildLeafNode(q_node);
 }
@@ -214,7 +216,7 @@ void KDBuilder::worker_thread() {
     }
 }
 
-void computeStats(KDNode *root, KDTreeStatistics *stats, int depth) {
+void computeStats(KDNode *root, KDBuilderTreeStatistics *stats, int depth) {
     // TODO: Pass that eliminates leaves that don't improve on their parents split
 
     stats->num_nodes++;
@@ -243,7 +245,7 @@ void computeStats(KDNode *root, KDTreeStatistics *stats, int depth) {
     }
 }
 
-KDTree *KDBuilder::build(const std::vector<Triangle> & triangles, KDTreeStatistics *stats) {
+KDTree *KDBuilder::build(const std::vector<Triangle> & triangles, KDBuilderTreeStatistics *stats) {
     Timer timer;
 
     std::cout << "Building KD tree" << std::endl;
@@ -285,7 +287,7 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles, KDTreeStatisti
     workers.clear();
 
     if (stats) {
-        memset(stats, 0, sizeof(KDTreeStatistics));
+        memset(stats, 0, sizeof(KDBuilderTreeStatistics));
         computeStats(q_node->node, stats, 1);
     }
 

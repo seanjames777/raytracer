@@ -21,8 +21,6 @@
 #define WALD_INTERSECTION
 //#define MOLLER_TRUMBORE_INTERSECTION
 
-#define BUFFER_ALIGN 64 // TODO does this actually help
-
 /**
  * @brief Vertex struct
  */
@@ -30,7 +28,6 @@ struct RT_EXPORT Vertex {
     vec3 position; //!< Vertex position
     vec3 normal;   //!< Vertex normal
     vec2 uv;       //!< Vertex UV coordinates
-    vec4 color;    //!< Vertex color
 
     /**
      * @brief Constructor
@@ -48,8 +45,7 @@ struct RT_EXPORT Vertex {
     Vertex(
         const vec3 & position,
         const vec3 & normal,
-        const vec2 & uv,
-        const vec4 & color);
+        const vec2 & uv);
 };
 
 /**
@@ -187,12 +183,10 @@ inline Vertex::Vertex() {
 inline Vertex::Vertex(
     const vec3 & position,
     const vec3 & normal,
-    const vec2 & uv,
-    const vec4 & color)
+    const vec2 & uv)
     : position(position),
       normal(normal),
-      uv(uv),
-      color(color)
+      uv(uv)
 {
 }
 
@@ -225,8 +219,7 @@ inline Vertex Triangle::interpolate(float beta, float gamma) const {
     return Vertex(
         v0.position * alpha + v1.position * beta + v2.position * gamma,
         v0.normal   * alpha + v1.normal   * beta + v2.normal   * gamma,
-        v0.uv       * alpha + v1.uv       * beta + v2.uv       * gamma,
-        v0.color    * alpha + v1.color    * beta + v2.color    * gamma);
+        v0.uv       * alpha + v1.uv       * beta + v2.uv       * gamma);
 }
 
 inline void SetupTriangleBuffer::destroy(SetupTriangle *data) {

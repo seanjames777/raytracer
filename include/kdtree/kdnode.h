@@ -34,6 +34,22 @@ struct KDNode {
         float          split_dist;
         unsigned int   count;
     };
+
+    /**
+     * @brief Destroy a KD-tree node's children. The root node of the tree
+     * should be destroyed with free().
+     */
+    static void destroyChildren(KDNode *node) {
+        if (KDNODE_TYPE(node) == KD_LEAF)
+            SetupTriangleBuffer::destroy(KDNODE_TRIANGLES(node));
+        else {
+            destroyChildren(KDNODE_LEFT(node));
+            destroyChildren(KDNODE_RIGHT(node));
+
+            // Left/right allocated together
+            free(KDNODE_LEFT(node));
+        }
+    }
 };
 
 #endif

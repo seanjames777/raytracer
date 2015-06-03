@@ -9,15 +9,15 @@
 #include <core/raytracer.h>
 
 PhongShader::PhongShader(
-    const vec3 &ambient,
-    const vec3 &diffuse,
-    const vec3 &specular,
-    float       specularPower,
-    float       reflection,
-    float       refraction,
-    float       ior,
-    Image      *diffuseTexture,
-    Sampler    *diffuseSampler)
+    const vec3      & ambient,
+    const vec3      & diffuse,
+    const vec3      & specular,
+    float             specularPower,
+    float             reflection,
+    float             refraction,
+    float             ior,
+    Image<float, 3> * diffuseTexture,
+    Sampler         * diffuseSampler)
     : ambient(ambient),
       diffuse(diffuse),
       specular(specular),

@@ -53,7 +53,7 @@ void glfw_error_callback(int error, const char *msg) {
     printf("GLFW Error (%d): %s\n", error, msg);
 }
 
-GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
+GLImageDisplay::GLImageDisplay(int width, int height, Image<float, 3> *image)
     : width(width),
       height(height),
       image(image)
@@ -80,7 +80,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
         return;
     }
 
-    pixels = new float[image->getWidth() * image->getHeight() * 4]; // TODO delete
+    pixels = new float[image->getWidth() * image->getHeight() * 3]; // TODO delete
 
     glfwMakeContextCurrent(window);
 
@@ -118,7 +118,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, Image *image)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image->getWidth(), image->getHeight(), 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, image->getWidth(), image->getHeight(), 0, GL_RGB,
         GL_FLOAT, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -199,7 +199,7 @@ void GLImageDisplay::refresh() {
 
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->getWidth(), image->getHeight(),
-        GL_RGBA, GL_FLOAT, pixels);
+        GL_RGB, GL_FLOAT, pixels);
 
     glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

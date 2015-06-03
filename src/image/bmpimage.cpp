@@ -10,36 +10,34 @@
 #include <iostream>
 #include <string.h>
 
-#define BI_RGB   0
-
 #pragma pack(push, 1)
 
 /**
- * @brief Stores the file header of a .bmp file
+ * @brief BMP file header
  */
 typedef struct {
-    unsigned short signature;             // 0x4D42
-    unsigned int   fileSize;              // Total size of the file
-    unsigned short reserved1;             // Unused
-    unsigned short reserved2;             // Unused
-    unsigned int   pixelArrayOffset;      // Offset to the pixel data (56 bytes)
+    unsigned short signature;        //!< 0x4D42
+    unsigned int   fileSize;         //!< Total size of the file
+    unsigned short reserved1;        //!< Unused
+    unsigned short reserved2;        //!< Unused
+    unsigned int   pixelArrayOffset; //!< Offset to the pixel data (56 bytes)
 } S_BITMAPFILEHEADER;
 
 /**
- * @brief Stores the bitmap header of a .bmp file
+ * @brief BMP bitmap header
  */
 typedef struct {
-    unsigned int   headerSize;            // Size of this header (40 bytes)
-    unsigned int   width;                 // Width of the image in pixels
-    unsigned int   height;                // Height of the image in pixels
-    unsigned short planes;                // Number of image planes (1)
-    unsigned short bitsPerPixel;          // # components * 8
-    unsigned int   compression;           // Compression (NONE=0)
-    unsigned int   imageSize;             // Size of the pixel array
-    unsigned int   hres;                  // Horizontal resolution (0 = automatic)
-    unsigned int   vres;                  // Vertical resolution (0 = automatic)
-    unsigned int   numColors;             // Number of colors (0)
-    unsigned int   numImportant;          // Number of important colors (0)
+    unsigned int   headerSize;       //!< Size of this header (40 bytes)
+    unsigned int   width;            //!< Width of the image in pixels
+    unsigned int   height;           //!< Height of the image in pixels
+    unsigned short planes;           //!< Number of image planes (1)
+    unsigned short bitsPerPixel;     //!< # components * 8
+    unsigned int   compression;      //!< Compression (NONE=0)
+    unsigned int   imageSize;        //!< Size of the pixel array
+    unsigned int   hres;             //!< Horizontal resolution (0 = automatic)
+    unsigned int   vres;             //!< Vertical resolution (0 = automatic)
+    unsigned int   numColors;        //!< Number of colors (0)
+    unsigned int   numImportant;     //!< Number of important colors (0)
 } S_BITMAPINFOHEADER;
 
 #pragma pack(pop)
@@ -72,7 +70,7 @@ S_BITMAPINFOHEADER createBitmapInfoHeader(int width, int height) {
     infoHeader.height = height;
     infoHeader.planes = 1;
     infoHeader.bitsPerPixel = (short)(3 * 8);
-    infoHeader.compression = BI_RGB;
+    infoHeader.compression = 0;
     infoHeader.imageSize = (pixelsPerRow * height);
     infoHeader.hres = 2834;
     infoHeader.vres = 2834;
@@ -82,7 +80,7 @@ S_BITMAPINFOHEADER createBitmapInfoHeader(int width, int height) {
     return infoHeader;
 }
 
-std::shared_ptr<Image> loadBMP(std::string filename) {
+std::shared_ptr<Image<float, 3>> loadBMP(std::string filename) {
     std::ifstream in;
     in.open(filename.c_str(), std::ios::binary | std::ios::in);
 
@@ -112,8 +110,7 @@ std::shared_ptr<Image> loadBMP(std::string filename) {
 
     in.close();
 
-    std::shared_ptr<Image> bmp = std::make_shared<Image>(width, height);
-    float *arr = new float[width * height * 4];
+    std::shared_ptr<Image<float, 3>> bmp = std::make_shared<Image<float, 3>>(width, height);
 
     for (int y = 0; y < height; y++) {
         int i0 = y * pixelsPerRow;
@@ -125,38 +122,31 @@ std::shared_ptr<Image> loadBMP(std::string filename) {
 
             switch (channels) {
             case 1:
-                arr[o + 0] = readPixels[i] / 255.0f;
-                arr[o + 1] = readPixels[i] / 255.0f;
-                arr[o + 2] = readPixels[i] / 255.0f;
-                arr[o + 3] = 1.0f;
+                bmp->setPixel(x, y, vec3(readPixels[i] / 255.0f));
                 break;
             case 3:
-                arr[o + 0] = readPixels[i + 2] / 255.0f;
-                arr[o + 1] = readPixels[i + 1] / 255.0f;
-                arr[o + 2] = readPixels[i + 0] / 255.0f;
-                arr[o + 3] = 1.0f;
+                bmp->setPixel(x, y, vec3(
+                    readPixels[i + 2] / 255.0f,
+                    readPixels[i + 1] / 255.0f,
+                    readPixels[i + 0] / 255.0f));
                 break;
             case 4:
-                arr[o + 0] = readPixels[i + 2] / 255.0f;
-                arr[o + 1] = readPixels[i + 1] / 255.0f;
-                arr[o + 2] = readPixels[i + 0] / 255.0f;
-                arr[o + 3] = readPixels[i + 3] / 255.0f;
-
+                bmp->setPixel(x, y, vec3(
+                    readPixels[i + 2] / 255.0f,
+                    readPixels[i + 1] / 255.0f,
+                    readPixels[i + 0] / 255.0f));
+                // Note: discards alpha
                 break;
             }
         }
     }
 
-    // TODO: makes a copy
-    bmp->setPixels(arr);
-
-    delete [] arr;
     delete [] readPixels;
 
     return bmp;
 }
 
-bool saveBMP(std::string filename, std::shared_ptr<Image> image) {
+bool saveBMP(std::string filename, std::shared_ptr<Image<float, 3>> image) {
     int width = image->getWidth();
     int height = image->getHeight();
 
@@ -175,18 +165,12 @@ bool saveBMP(std::string filename, std::shared_ptr<Image> image) {
     out.write((char *)&fileHeader, sizeof(S_BITMAPFILEHEADER));
     out.write((char *)&infoHeader, sizeof(S_BITMAPINFOHEADER));
 
-    float *pixels = new float[image->getWidth() * image->getHeight() * 4];
-    image->getPixels(pixels);
-
     for (int y = 0; y < height; y++) {
-        int i0 = (height - y - 1) * width * 4;
-
         for (int x = 0; x < width; x++) {
-            int i = i0 + x * 4;
-
-            unsigned char r = (unsigned char)((pixels[i + 0]) * 255.0f);
-            unsigned char g = (unsigned char)((pixels[i + 1]) * 255.0f);
-            unsigned char b = (unsigned char)((pixels[i + 2]) * 255.0f);
+            vec3 color = image->getPixel(x, y);
+            unsigned char r = (unsigned char)(color.x * 255.0f);
+            unsigned char g = (unsigned char)(color.y * 255.0f);
+            unsigned char b = (unsigned char)(color.z * 255.0f);
 
             out.write((char *)&b, 1);
             out.write((char *)&g, 1);
@@ -199,7 +183,6 @@ bool saveBMP(std::string filename, std::shared_ptr<Image> image) {
     out.close();
 
     delete [] padArr;
-    delete [] pixels;
 
     return true;
 }

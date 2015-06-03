@@ -1,7 +1,7 @@
 /**
- * @file image/image.h
+ * @file image/bmpimage.h
  *
- * @brief Image load/save/processing library
+ * @brief Utility for loading and saving images in BMP format
  *
  * @author Sean James <seanjames777@gmail.com>
  */
@@ -17,22 +17,22 @@
 namespace BMPImage {
 
     /**
-     * @brief Load a bitmap from a file
+     * @brief Load an image from a BMP file
      *
-     * @param filename BMP file to load
+     * @param[in] filename BMP file to load
      *
-     * @return A pointer to a new bitmap on success, or NULL on error
+     * @return Loaded bitmap, or null if there is an error
      */
-    RT_EXPORT std::shared_ptr<Image> loadBMP(std::string filename);
+    RT_EXPORT std::shared_ptr<Image<float, 3>> loadBMP(std::string filename);
 
     /**
-     * @brief Save the image to a .bmp file
+     * @brief Save an image to a BMP file
      *
-     * @param filename BMP file to save into
+     * @param[in] filename BMP file to save into
      *
      * @return True on success, or false on error
      */
-    RT_EXPORT bool saveBMP(std::string filename, std::shared_ptr<Image> image);
+    RT_EXPORT bool saveBMP(std::string filename, std::shared_ptr<Image<float, 3>> image);
 
 };
 

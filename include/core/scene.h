@@ -12,6 +12,7 @@
 #include <core/camera.h>
 #include <core/triangle.h>
 #include <image/image.h>
+#include <image/sampler.h>
 #include <light/light.h>
 #include <shader/shader.h>
 #include <vector>
@@ -39,10 +40,10 @@ private:
     Camera *camera;
 
     /** @brief Output image */
-    Image *output;
+    Image<float, 3> *output;
 
     /** @brief Environment image */
-    Image *environment;
+    Image<float, 3> *environment;
 
     /** @brief Environment image sampler */
     Sampler *environmentSampler;
@@ -56,10 +57,10 @@ public:
      * @param output Output image
      */
     Scene(
-        Camera  *camera,
-        Image   *output,
-        Sampler *environmentSampler,
-        Image   *environment);
+        Camera          *camera,
+        Image<float, 3> *output,
+        Sampler         *environmentSampler,
+        Image<float, 3> *environment);
 
     /**
      * @brief Add a light to the scene
@@ -91,12 +92,12 @@ public:
     /**
      * @brief Get output image
      */
-    Image *getOutput() const;
+    Image<float, 3> *getOutput() const;
 
     /**
      * @brief Get environment image
      */
-    const Image *getEnvironment() const;
+    const Image<float, 3> *getEnvironment() const;
 
     /**
      * @brief Get environment image sampler
@@ -116,10 +117,10 @@ public:
 };
 
 inline Scene::Scene(
-    Camera  *camera,
-    Image   *output,
-    Sampler *environmentSampler,
-    Image   *environment)
+    Camera          *camera,
+    Image<float, 3> *output,
+    Sampler         *environmentSampler,
+    Image<float, 3> *environment)
     : camera(camera),
       output(output),
       environmentSampler(environmentSampler),
@@ -149,11 +150,11 @@ inline const Triangle *Scene::getTriangle(unsigned int id) const {
     return &triangles[id];
 }
 
-inline Image *Scene::getOutput() const {
+inline Image<float, 3> *Scene::getOutput() const {
     return output;
 }
 
-inline const Image *Scene::getEnvironment() const {
+inline const Image<float, 3> *Scene::getEnvironment() const {
     return environment;
 }
 

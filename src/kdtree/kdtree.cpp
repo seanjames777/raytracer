@@ -12,6 +12,11 @@ KDTree::KDTree(KDNode *root, AABB bounds)
 {
 }
 
+KDTree::~KDTree() {
+    KDNode::destroyChildren(root);
+    free(root);
+}
+
 // TODO: Can do 2, 4, 8, etc. at a time with SSE. Need to transpose to SOA
 // TODO: SSE has a min and bit scan
 // TODO: Might want to inline triangle code

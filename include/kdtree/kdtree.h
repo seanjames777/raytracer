@@ -1,7 +1,7 @@
 /**
  * @file kdtree/kdtree.h
  *
- * @brief KD-Tree acceleration structure types and traversal code
+ * @brief KD-Tree acceleration structure
  *
  * @author Sean James <seanjames777@gmail.com>
  */
@@ -19,19 +19,20 @@
 //     - Handle size overflow in leaves
 
 /**
- * @brief KD-tree traversal stack item
+ * @brief KD-tree traversal stack frame
  */
-// TODO: Move this
 struct KDStackFrame {
-    /** @brief KD-Node to traverse */
-    KDNode *node;
+    KDNode *node; //!< KD-node to traverse
+    float enter;  //!< Distance from ray origin to bounding box entry point
+    float exit;   //!< Distance from ray origin to bounding box exit point
 
-    /** @brief Entry distance from ray origin */
-    float enter;
-
-    /** @brief Exit distance from ray origin */
-    float exit;
-
+    /**
+     * @brief Constructor
+     *
+     * @param[in] node  KD-node to traverse
+     * @param[in] enter Distance from ray origin to bounding box entry point
+     * @param[in] exit  Distance from ray origin to bounding box exit point
+     */
     KDStackFrame(KDNode *node, float enter, float exit)
         : node(node),
           enter(enter),
@@ -41,47 +42,37 @@ struct KDStackFrame {
 };
 
 /**
- * @brief KD-Tree
+ * @brief KD-Tree acceleration structure
  */
 class KDTree {
 private:
 
-    KDNode *root;
-    AABB    bounds;
-
-    /**
-     * @brief Check for collision with a leaf node
-     *
-     * @param leaf         Leaf node to check
-     * @param ray          Ray to check for collision against
-     * @param result       Output collision information
-     * @param entry        Minimum collision distance
-     * @param exit         Maximum collision distance
-     * @param anyCollision Whether to accept any collision or to find the closest
-     * TODO: anyCollision -> closestCollision. want false to be easy default probably
-     */
-    bool intersectLeaf(KDNode *leaf, const Ray & ray, Collision & result, float entry, float exit);
+    KDNode *root;   //!< Root node
+    AABB    bounds; //!< Bounding box for entire tree
 
 public:
 
     /**
      * @brief Constructor
      *
-     * @param triangles Items to contain in the tree
+     * @param[in] root   Root node
+     * @param[in] bounds Bounding box for entire tree
      */
     KDTree(KDNode *root, AABB bounds);
 
-    // TODO: Destructor??!
+    /**
+     * @brief Destructor
+     */
+    ~KDTree();
 
     /**
      * @brief Intersect a ray against the KD-Tree
      *
-     * @param ray          Ray to test against
-     * @param result       Will be filled with collision information
-     * @param maxDepth     Maximum intersection distance, or 0 for any distance
-     * @param anyCollision Whether to stop after any collision or to find the closest collision
+     * @param[in] stack  Reusable traversal stack
+     * @param[in] ray    Ray to test
+     * @param[in] result Information about collision, if there is one
      *
-     * @return Whether a collision occured
+     * @return True if there is a collision, or false if there is not
      */
     bool intersect(util::stack<KDStackFrame> & stack, const Ray & ray, Collision & result);
 

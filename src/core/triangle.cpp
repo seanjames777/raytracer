@@ -6,13 +6,12 @@
 
 #include <core/triangle.h>
 
-#include <iostream> // TODO
 #include <string.h>
 #include <util/align.h>
 
 SetupTriangle *SetupTriangleBuffer::pack(Triangle **triangles, int num_triangles) {
-    SetupTriangle *data = (SetupTriangle *)aligned_alloc(
-        sizeof(SetupTriangle) * num_triangles, BUFFER_ALIGN);
+    SetupTriangle *data = (SetupTriangle *)malloc(
+        sizeof(SetupTriangle) * num_triangles);
 
 #if defined(WALD_INTERSECTION)
     // TODO: should this be aligned (and possibly padded) to a cache line to

@@ -6,21 +6,28 @@
 
 #include <core/raytracer.h>
 
+#include <iostream>
+
 Raytracer::Raytracer(RaytracerSettings settings, Scene *scene)
     : settings(settings),
-      scene(scene)
+      scene(scene),
+      tree(nullptr)
 {
     srand((unsigned)time(0));
 }
 
 Raytracer::~Raytracer() {
+    if(tree)
+        delete tree;
 }
 
 void Raytracer::render() {
-    should_shutdown = false;
+    shouldShutdown = false;
 
-    KDSAHBuilder builder;
-    tree = builder.build(scene->getTriangles(), &stats);
+    if (!tree) {
+        KDSAHBuilder builder;
+        tree = builder.build(scene->getTriangles(), &stats);
+    }
 
     nBlocksW = (scene->getOutput()->getWidth() + settings.blockSize - 1) / settings.blockSize;
     nBlocksH = (scene->getOutput()->getHeight() + settings.blockSize - 1) / settings.blockSize;
@@ -44,7 +51,7 @@ void Raytracer::render() {
 
 void Raytracer::shutdown(bool waitUntilFinished) {
     if (!waitUntilFinished)
-        should_shutdown = true;
+        shouldShutdown = true;
 
     for (auto& worker : workers)
         worker->join();
@@ -67,7 +74,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
     int blockID = idx;
 
-    while(!should_shutdown) {
+    while(!shouldShutdown) {
         blockID = currBlockID++;
 
         if (blockID >= nBlocks)
@@ -91,7 +98,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
                 randJittered2D(settings.pixelSamples, samples);
 
                 // tODO: Is the pointer chasing through scene bad?
-                scene->getOutput()->setPixel(x, y, vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                scene->getOutput()->setPixel(x, y, vec3(0.0f, 0.0f, 0.0f));
 
                 // TODO: It's possible to do better sampling
 
@@ -132,16 +139,16 @@ void Raytracer::worker_thread(int idx, int numThreads) {
                     sampleColor = shader->shade(rayBuff, r, result, scene, this);
                 }
 
-                vec4 color = scene->getOutput()->getPixel(r.px, r.py);
-                color += vec4(sampleColor * r.weight, 1.0f); // TODO: Bogus alpha
+                vec3 color = scene->getOutput()->getPixel(r.px, r.py);
+                color += sampleColor * r.weight;
                 scene->getOutput()->setPixel(r.px, r.py, color);
             }
             else {
                 Collision result;
 
                 if (!tree->intersect(kdStack, r, result)) {
-                    vec4 color = scene->getOutput()->getPixel(r.px, r.py);
-                    color += vec4(r.weight, 1.0f); // TODO: Bogus alpha
+                    vec3 color = scene->getOutput()->getPixel(r.px, r.py);
+                    color += r.weight;
                     scene->getOutput()->setPixel(r.px, r.py, color);
                 }
             }

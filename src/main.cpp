@@ -23,7 +23,7 @@ Vertex transform_vertex(const Vertex & vertex, const mat4x4 & transform,
     vec4 position = transform * vec4(vertex.position, 1.0f);
     vec4 normal = transformInverseTranspose * vec4(vertex.normal, 0.0f);
 
-    return Vertex(position.xyz(), normalize(normal.xyz()), vertex.uv, vertex.color);
+    return Vertex(position.xyz(), normalize(normal.xyz()), vertex.uv);
 }
 
 void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & dst,
@@ -46,21 +46,13 @@ void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & d
     }
 }
 
-void color_mesh(std::vector<Triangle> & src, const vec3 & color) {
-    for (auto & tri : src) {
-        tri.v0.color = vec4(color);
-        tri.v1.color = vec4(color);
-        tri.v2.color = vec4(color);
-    }
-}
-
 int main(int argc, char *argv[]) {
     printf("Loading scene...\n");
 
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 2;
+    settings.pixelSamples = 1;
     settings.occlusionSamples = 5;
     settings.occlusionDistance = 4.0f;
     settings.shadowSamples = 4;
@@ -74,15 +66,15 @@ int main(int argc, char *argv[]) {
     auto camera = std::make_shared<Camera>(vec3(12.2f, 3.2f, -2.5f), vec3(1.3f, 0.0f, 0.0f),
         aspect, (float)M_PI / 2.0f, 19.25f, 0.0f);
 
-    auto output = std::make_shared<Image>(settings.width, settings.height);
+    auto output = std::make_shared<Image<float, 3>>(settings.width, settings.height);
 
     auto environment = BMPImage::loadBMP(relToExeDir("content/textures/cubemap.bmp"));
 
     auto checker = BMPImage::loadBMP(relToExeDir("content/textures/checker.bmp"));
 
-    auto check_sampler = std::make_shared<Sampler>(Linear, Linear, Wrap);
+    auto check_sampler = std::make_shared<Sampler>(Bilinear, Wrap);
 
-    auto env_sampler = std::make_shared<Sampler>(Nearest, Nearest, Wrap);
+    auto env_sampler = std::make_shared<Sampler>(Nearest, Wrap);
 
     auto scene = std::make_shared<Scene>(camera.get(), output.get(), env_sampler.get(),
         environment.get());
@@ -128,7 +120,6 @@ int main(int argc, char *argv[]) {
 
     FbxLoader::load(relToExeDir("content/models/plane.fbx"), polys);
     transform_mesh(polys, transformed, vec3(5, 1, -5), vec3((float)M_PI / 2.0f, 0, 0), vec3(0.25f, 1, 0.25f));
-    color_mesh(transformed, vec3(1, 0, 0));
 
     //for (auto & tri : transformed)
     //    scene->addPoly(tri, shader.get());

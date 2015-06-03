@@ -10,6 +10,7 @@
 #define __PHONGSHADER_H
 
 #include <image/image.h>
+#include <image/sampler.h>
 #include <shader/shader.h>
 
 /**
@@ -40,7 +41,7 @@ private:
     float ior;
 
     /** @brief Diffuse texture */
-    Image *diffuseTexture;
+    Image<float, 3> *diffuseTexture;
 
     /** @brief Diffuse texture sampler */
     Sampler *diffuseSampler;
@@ -59,15 +60,15 @@ public:
      * @param ior           Index of refraction
      */
     PhongShader(
-        const vec3 &ambient,
-        const vec3 &diffuse,
-        const vec3 &specular,
-        float       specularPower,
-        float       reflection,
-        float       refraction,
-        float       ior,
-        Image      *diffuseTexture,
-        Sampler    *diffuseSampler);
+        const vec3      & ambient,
+        const vec3      & diffuse,
+        const vec3      & specular,
+        float             specularPower,
+        float             reflection,
+        float             refraction,
+        float             ior,
+        Image<float, 3> * diffuseTexture,
+        Sampler         * diffuseSampler);
 
     virtual ~PhongShader();
 

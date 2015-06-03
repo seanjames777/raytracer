@@ -10,7 +10,10 @@
 #include <iostream> // TODO
 #include <math/macro.h>
 
-KDSAHBuilder::KDSAHBuilder() {
+KDSAHBuilder::KDSAHBuilder(float k_traversal, float k_intersect)
+    : k_traversal(k_traversal),
+      k_intersect(k_intersect)
+{
 }
 
 KDSAHBuilder::~KDSAHBuilder() {
@@ -45,13 +48,13 @@ bool compareEvent(const SAHEvent & e1, const SAHEvent & e2) {
 }
 
 bool KDSAHBuilder::splitNode(
-    void *threadCtx,
-    const AABB & bounds,
+    void                          * threadCtx,
+    const AABB                    & bounds,
     const std::vector<Triangle *> & triangles,
-    int depth,
-    int & dir,
-    float & split,
-    enum PlanarMode & planarMode)
+    int                             depth,
+    float                         & split,
+    int                           & dir,
+    enum KDBuilderPlanarMode      & planarMode)
 {
     KDSAHBuilderThreadCtx *ctx = (KDSAHBuilderThreadCtx *)threadCtx;
 
@@ -83,7 +86,7 @@ bool KDSAHBuilder::splitNode(
     if (ctx->event_capacity < triangles.size() * 2) {
         // TODO: It seems like it's nice to allocate powers of two, but it might not be necessary.
         // TODO: We're not going to ever resize after the first node. There should be a
-        // prepareBuilde(number_of_triangles) or something to avoid this check.
+        // prepareBuilder(number_of_triangles) or something to avoid this check.
 
         while (ctx->event_capacity < triangles.size() * 2) {
             if (ctx->event_capacity == 0)
@@ -104,14 +107,10 @@ bool KDSAHBuilder::splitNode(
     int num_events = 0;
 
     // We want to find the plane which minimizes the "surface area heuristic"
-    int             min_dir        = -1;                                     // Split direction
-    float           min_dist       = 0.0f;                                   // Split location
-    float           min_cost       = std::numeric_limits<float>::infinity(); // Split cost
-    enum PlanarMode min_planarMode = PLANAR_LEFT;                            // How to handle planar triangles
-
-    // Heuristic constants
-    static const float k_t = 1.0f; // Cost of traversing a KD node
-    static const float k_i = 0.5f; // Cost of intersecting a triangle
+    int min_dir = -1;
+    float min_dist = 0.0f;
+    float min_cost = std::numeric_limits<float>::infinity();
+    enum KDBuilderPlanarMode min_planarMode = PLANAR_LEFT;
 
     // Surface area of parent voxel
     float sa_v = bounds.surfaceArea();
@@ -218,10 +217,10 @@ bool KDSAHBuilder::splitNode(
             float sa_r = v2.surfaceArea();
 
             // Try placing planar triangles in the left and right sets and choose the lower cost
-            float costL = k_t + k_i * (sa_l / sa_v * (count_left + count_planar) + sa_r / sa_v * count_right);
-            float costR = k_t + k_i * (sa_l / sa_v * count_left + sa_r / sa_v * (count_right + count_planar));
+            float costL = k_traversal + k_intersect * (sa_l / sa_v * (count_left + count_planar) + sa_r / sa_v * count_right);
+            float costR = k_traversal + k_intersect * (sa_l / sa_v * count_left + sa_r / sa_v * (count_right + count_planar));
 
-            enum PlanarMode minMode;
+            enum KDBuilderPlanarMode minMode;
             float cost;
 
             if (costL < costR) {
@@ -253,7 +252,7 @@ bool KDSAHBuilder::splitNode(
         return false;
 
     // If the minimum split cost is greater than the cost of not splitting, don't split
-    if (min_cost > k_i * triangles.size())
+    if (min_cost > k_intersect * triangles.size())
         return false;
 
     // Otherwise, use this split

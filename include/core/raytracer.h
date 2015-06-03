@@ -26,6 +26,9 @@
 //     - Tiled backbuffer
 //     - Lock-free indexing
 //     - Per-mesh shaders, sorted, instaed of poly -> naterial map
+//     - Interleaving various things instead of using queues, or using queues with core
+//       affinity might be good since shared L1 cache or just L1 cache coherence in general
+//     - Decide if the raytracer is reusable or not
 
 /**
  * @brief Main raytracer class, which starts worker threads and coordinates the rendering
@@ -34,25 +37,19 @@
 class RT_EXPORT Raytracer {
 private:
 
-    /** @brief Intersection test tree */
-    KDTree *tree; // TODO: Delete
-    KDTreeStatistics stats;
+    typedef std::vector<std::shared_ptr<std::thread>> threadVector;
 
-    /** @brief Scene */
-    Scene *scene;
-
-    int nBlocks;
-    int nBlocksW;
-    int nBlocksH;
-    bool should_shutdown;
-    std::atomic_int numThreadsAlive;
-    std::atomic_int currBlockID;
-
-    /** @brief Worker threads */
-    std::vector<std::shared_ptr<std::thread>> workers;
-
-    /** @brief Raytracer settings */
-    RaytracerSettings settings;
+    KDTree                  *tree;            //!< Ray/triangle intersection acceleration tree
+    KDBuilderTreeStatistics  stats;           //!< Tree statistics
+    Scene                   *scene;           //!< Scene to render
+    int                      nBlocks;         //!< Total number of blocks to render
+    int                      nBlocksW;        //!< Number of blocks horizontally
+    int                      nBlocksH;        //!< Number of blocks vertically
+    bool                     shouldShutdown;  //!< Whether to stop rendering
+    std::atomic_int          numThreadsAlive; //!< Number of worker threads running
+    std::atomic_int          currBlockID;     //!< ID of next block to render
+    threadVector             workers;         //!< Worker threads
+    RaytracerSettings        settings;        //!< Raytracing settings
 
     /**
      * @brief Entry point for a worker thread

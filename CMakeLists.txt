@@ -16,10 +16,11 @@ if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
 
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
         message("Debug build")
-        add_definitions(-O0 -g)
+        add_definitions(-O0 -g -fno-omit-frame-pointer)
     else()
+        # TODO: -Ofast may be faster if it can be made to work correctly
         message("Release build")
-        add_definitions(-O3)
+        add_definitions(-O3 -fomit-frame-pointer)
     endif()
 endif()
 

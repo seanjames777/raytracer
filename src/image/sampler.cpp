@@ -1,7 +1,7 @@
 /**
- * @file image/image.cpp
+ * @file sampler.cpp
  *
  * @author Sean James <seanjames777@gmail.com>
  */
 
-#include <image/image.h>
+#include <image/sampler.h>

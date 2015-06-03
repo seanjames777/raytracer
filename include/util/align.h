@@ -9,7 +9,10 @@
 #ifndef __ALIGN_H
 #define __ALIGN_H
 
+#include <stdlib.h>
+
 #define ALIGN_PTR(ptr, align) (((unsigned long long)(ptr) + (align) - 1) & ~((align) - 1))
+#define CACHE_LINE 64 // TODO: Might be able to figure it out automatically
 
 /**
  * @brief Allocated aligned memory

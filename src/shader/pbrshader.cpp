@@ -8,6 +8,9 @@
 
 #include <core/raytracer.h>
 
+// TODO: preallocate upper bound for samples system wide or something
+// TODO: maybe interpolate less. there's a cheap way to get position
+
 PBRShader::PBRShader() {
 }
 
@@ -27,7 +30,7 @@ vec3 PBRShader::shade(
     vec3 lp = vec3(8.0f, 5.0f, 2.0f);
     vec2 ls = vec2(13.0f, 13.0f);
     vec3 ln = vec3(0.0f, -1.0f, 0.0f);
-    vec3 kd = 1.0f;// / (float)M_PI;
+    vec3 kd = 1.0f / (float)M_PI;
     vec3 ld = 16.0f * ls.x * ls.y;
     vec3 n = normalize(interp.normal);
 
@@ -155,8 +158,6 @@ vec3 PBRShader::shade(
         vec3 ao_samples[AO_SAMPLES * AO_SAMPLES];
 
         // TODO: Might want some kind of divide by maximum distance mode
-        // TODO: Do we or do we not need to multiply by the cosine
-        // TODO: There's also something about dividing by the pdf
 
         randJittered2D(AO_SAMPLES, jittered_2d);
         mapSamplesCosHemisphere(AO_SAMPLES, 1.0f, jittered_2d, ao_samples);
@@ -181,9 +182,4 @@ vec3 PBRShader::shade(
 
     //vec3 env = raytracer->getAmbientOcclusion(kdStack,
     //    interp.position + triangle->normal * .001f, triangle->normal);
-
-    // TODO: preallocate upper bound for samples system wide or something
-    // TODO: why cosine weighted. go do BRDF math.
-    // TODO: maybe interpolate less. there's a cheap way to get position
-    // TODO: move shading logic out of the core raytracer
 }
