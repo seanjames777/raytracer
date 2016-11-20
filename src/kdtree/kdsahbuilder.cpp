@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <iostream> // TODO
-#include <math/macro.h>
 
 KDSAHBuilder::KDSAHBuilder(float k_traversal, float k_intersect)
     : k_traversal(k_traversal),
@@ -120,20 +119,20 @@ bool KDSAHBuilder::splitNode(
         num_events = 0;
 
         // Min and max of parent node along this axis
-        float min = bounds.min.v[axis];
-        float max = bounds.max.v[axis];
+        float min = bounds.min[axis];
+        float max = bounds.max[axis];
 
         // Insert start/stop/planar locations of each triangle, clamped to the bounds of the parent
         // box. We assume we won't see triangles fully outside the parent node.
         for (auto tri : triangles) {
             // Triangle bounding box
-            float tri_min = fminf(fminf(tri->v0.position.v[axis], tri->v1.position.v[axis]), tri->v2.position.v[axis]);
-            float tri_max = fmaxf(fmaxf(tri->v0.position.v[axis], tri->v1.position.v[axis]), tri->v2.position.v[axis]);
+            float tri_min = fminf(fminf(tri->v0.position[axis], tri->v1.position[axis]), tri->v2.position[axis]);
+            float tri_max = fmaxf(fmaxf(tri->v0.position[axis], tri->v1.position[axis]), tri->v2.position[axis]);
 
             // Clip triangle bounding box to voxel bounding box
             // TODO: This generates weirdness for triangles outside the box
-            tri_min = fmaxf(min, tri_min);
-            tri_max = fminf(max, tri_max);
+            tri_min = fmax(min, tri_min);
+            tri_max = fmin(max, tri_max);
 
             SAHEvent *event = &events[num_events];
 

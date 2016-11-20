@@ -10,7 +10,9 @@
 #define __CAMERA_H
 
 #include <math/ray.h>
+#if 0
 #include <math/sampling.h>
+#endif
 #include <rt_defs.h>
 
 /*
@@ -20,19 +22,19 @@ class RT_EXPORT Camera {
 private:
 
     /** @brief Position */
-    vec3 position;
+    float3 position;
 
     /** @brief Forward direction */
-    vec3 forward;
+    float3 forward;
 
     /** @brief Right directiom */
-    vec3 right;
+    float3 right;
 
     /** @brief Up direction */
-    vec3 up;
+    float3 up;
 
     /** @brief Target position */
-    vec3 target;
+    float3 target;
 
     /** @brief Field of view */
     float fov;
@@ -68,8 +70,8 @@ public:
      * @param[in] aperture Aperture radius. 0 for pinhole camera
      */
     Camera(
-        const vec3 & position,
-        const vec3 & target,
+        const float3 & position,
+        const float3 & target,
         float        aspect,
         float        fov,
         float        focus,
@@ -89,7 +91,7 @@ public:
      * output sample at the center of the sample range. Otherwise, returns true and fills in
      * nSamples * nSamples output samples.
      */
-    bool getSamples(int nSamples, vec2 *samples, const vec2 & min, const vec2 & max);
+    bool getSamples(int nSamples, float2 *samples, const float2 & min, const float2 & max);
 #endif
 
     /**
@@ -102,37 +104,32 @@ public:
      * @param[in] py     Output image Y pixel coordinate
      * @param[in] depth  Raytracing recursion depth
      */
-    Ray getViewRay(
-        const vec2 &uv,
-        const vec3 &weight,
-        short       px,
-        short       py,
-        char        depth) const;
+    Ray getViewRay(const float2 &uv) const;
 
     /**
      * @brief Get the camera position
      */
-    vec3 getPosition();
+    float3 getPosition();
 
     /**
      * @brief Get the camera target position
      */
-    vec3 getTarget();
+    float3 getTarget();
 
     /**
      * @brief Get the forward vector of the camera
      */
-    vec3 getForward();
+    float3 getForward();
 
     /**
      * @brief Get the right vector of the camera
      */
-    vec3 getRight();
+    float3 getRight();
 
     /**
      * @brief Get the up vector of the camera
      */
-    vec3 getUp();
+    float3 getUp();
 
     /**
      * @brief Get the field of view of the camera
@@ -157,12 +154,12 @@ public:
     /**
      * @brief Set the camera position
      */
-    void setPosition(const vec3 & position);
+    void setPosition(const float3 & position);
 
     /**
      * @brief Set the camera target position
      */
-    void setTarget(const vec3 & target);
+    void setTarget(const float3 & target);
 
     /**
      * @brief Set the camera field of view
@@ -186,44 +183,39 @@ public:
 
 };
 
-inline Ray Camera::getViewRay(
-    const vec2 &uv,
-    const vec3 &weight,
-    short       px,
-    short       py,
-    char        depth) const
+inline Ray Camera::getViewRay(const float2 &uv) const
 {
     // TODO: Lens coordinates
 
     float x = uv.x * 2.0f - 1.0f;
     float y = uv.y * 2.0f - 1.0f;
 
-    vec3 rightAmt = right * halfWidth  * x; // TODO: Premultiply right/up
-    vec3 upAmt    = up    * halfHeight * y;
+    float3 rightAmt = right * halfWidth  * x; // TODO: Premultiply right/up
+    float3 upAmt    = up    * halfHeight * y;
 
-    vec3 targ = forward * focus + rightAmt + upAmt;
+    float3 targ = forward * focus + rightAmt + upAmt;
     targ = normalize(targ);
 
-    return Ray(position, targ, weight, 0.0f, px, py, depth, false);
+    return Ray(position, targ);
 }
 
-inline vec3 Camera::getPosition() {
+inline float3 Camera::getPosition() {
     return position;
 }
 
-inline vec3 Camera::getTarget() {
+inline float3 Camera::getTarget() {
     return target;
 }
 
-inline vec3 Camera::getForward() {
+inline float3 Camera::getForward() {
     return forward;
 }
 
-inline vec3 Camera::getRight() {
+inline float3 Camera::getRight() {
     return right;
 }
 
-inline vec3 Camera::getUp() {
+inline float3 Camera::getUp() {
     return up;
 }
 
@@ -243,12 +235,12 @@ inline float Camera::getAperture() {
     return aperture;
 }
 
-inline void Camera::setPosition(const vec3 & position) {
+inline void Camera::setPosition(const float3 & position) {
     this->position = position;
     refresh();
 }
 
-inline void Camera::setTarget(const vec3 & target) {
+inline void Camera::setTarget(const float3 & target) {
     this->target = target;
     refresh();
 }

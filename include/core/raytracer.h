@@ -16,8 +16,6 @@
 #include <image/image.h>
 #include <kdtree/kdsahbuilder.h>
 #include <kdtree/kdtree.h>
-#include <math/macro.h>
-#include <math/sampling.h>
 #include <rt_defs.h>
 #include <thread>
 #include <util/timer.h>

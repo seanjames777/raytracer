@@ -12,7 +12,6 @@
 #include <core/raybuffer.h>
 #include <core/triangle.h>
 #include <math/ray.h>
-#include <math/vector.h>
 
 class Scene;
 class Raytracer;
@@ -39,7 +38,7 @@ public:
     /**
      * @brief Shade at a ray/triangle intersection point
      */
-    virtual vec3 shade(
+    virtual float3 shade(
         RayBuffer       & rayBuff,
         const Ray       & ray,
         const Collision & result,

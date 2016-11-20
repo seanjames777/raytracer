@@ -9,108 +9,111 @@
 #ifndef __MATH_VECTOR_H
 #define __MATH_VECTOR_H
 
+#if !GPU
 #define _USE_MATH_DEFINES
 #include <math.h>
 
 template<typename T, unsigned int N>
-struct vector_data {
-    T v[N];
+struct vector {
+    T _v[N];
+    
+    vector<T, N>()
+        : _v()
+    {
+    }
+    
+    T & operator[](unsigned int i) {
+        return _v[i];
+    }
+    
+    const T& operator[](unsigned int i) const {
+        return _v[i];
+    }
 };
 
-template<typename T, unsigned int N>
-struct vector : public vector_data<T, N> {
-    vector<T, N>() {
-        for (unsigned int i = 0; i < N; i++)
-            vector_data<T, N>::v[i] = 0;
-    }
-
-    vector<T, N>(T fill) {
-        for (unsigned int i = 0; i < N; i++)
-            vector_data<T, N>::v[i] = fill;
-    }
-};
-
-//#define MATH_DEFAULT_SIMD
-
-typedef vector<float, 2> vec2;
-typedef vector<float, 3> vec3;
-typedef vector<float, 4> vec4;
-
-// TODO initialization list
+typedef vector<float, 2> float2;
+typedef vector<float, 3> float3;
+typedef vector<float, 4> float4;
 
 template<typename T>
 struct vector<T, 2> {
     union {
-        T v[2];
+        T _v[2];
         struct {
             T x;
             T y;
         };
     };
-
+    
     vector<T, 2>()
-        : x(0),
-          y(0)
+        : _v()
     {
     }
 
-    vector<T, 2>(T fill)
-        : x(fill),
-          y(fill)
+    vector<T, 2>(T v)
+        : x(v),
+          y(v)
     {
     }
-
+    
     vector<T, 2>(T x, T y)
         : x(x),
           y(y)
     {
+    }
+    
+    T & operator[](unsigned int i) {
+        return _v[i];
+    }
+    
+    const T& operator[](unsigned int i) const {
+        return _v[i];
     }
 };
 
 template<typename T>
 struct vector<T, 3> {
     union {
-        T v[3];
+        T _v[3];
         struct {
             T x;
             T y;
             T z;
         };
     };
-
+    
     vector<T, 3>()
-        : x(0),
-          y(0),
-          z(0)
+        : _v()
     {
     }
 
-    vector<T, 3>(T fill)
-        : x(fill),
-          y(fill),
-          z(fill)
+    vector<T, 2>(T v)
+        : x(v),
+          y(v),
+          z(v)
     {
     }
-
-    vector<T, 3>(T x, T y, T z)
+    
+    vector<T, 2>(T x, T y, T z)
         : x(x),
           y(y),
           z(z)
     {
     }
-
-    vector<T, 3>(const vector<T, 2> & xy, T z)
-        : x(xy.x),
-          y(xy.y),
-          z(z)
-    {
+    
+    T & operator[](unsigned int i) {
+        return _v[i];
+    }
+    
+    const T& operator[](unsigned int i) const {
+        return _v[i];
     }
 };
 
 template<typename T>
 struct vector<T, 4> {
     union {
-        T v[4];
+        T _v[4];
         struct {
             T x;
             T y;
@@ -118,56 +121,41 @@ struct vector<T, 4> {
             T w;
         };
     };
-
+    
     vector<T, 4>()
-        : x(0),
-          y(0),
-          z(0),
-          w(0)
+        : _v()
     {
     }
 
-    vector<T, 4>(T fill)
-        : x(fill),
-          y(fill),
-          z(fill),
-          w(fill)
+    vector<T, 2>(T v)
+        : x(v),
+          y(v),
+          z(v),
+          w(v)
     {
     }
-
-    vector<T, 4>(T x, T y, T z, T w)
+    
+    vector<T, 2>(T x, T y, T z, T w)
         : x(x),
           y(y),
           z(z),
           w(w)
     {
     }
-
-    vector<T, 4>(vector<T, 3> v3, T w)
-        : x(v3.x),
-          y(v3.y),
-          z(v3.z),
-          w(w)
-    {
+    
+    T & operator[](unsigned int i) {
+        return _v[i];
     }
-
-    vector<T, 4>(vector<T, 3> v3)
-        : x(v3.x),
-          y(v3.y),
-          z(v3.z),
-          w(1.0f)
-    {
-    }
-
-    vector<T, 3> xyz() const {
-        return vector<T, 3>(x, y, z);
+    
+    const T& operator[](unsigned int i) const {
+        return _v[i];
     }
 };
 
 template<typename T, unsigned int N>
 inline vector<T, N> & operator+=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
-        lhs.v[i] += rhs.v[i];
+        lhs[i] += rhs[i];
     return lhs;
 }
 
@@ -181,7 +169,7 @@ inline vector<T, N> operator+(const vector<T, N> & lhs, const vector<T, N> & rhs
 template<typename T, unsigned int N>
 inline vector<T, N> & operator-=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
-        lhs.v[i] -= rhs.v[i];
+        lhs[i] -= rhs[i];
     return lhs;
 }
 
@@ -195,7 +183,7 @@ inline vector<T, N> operator-(const vector<T, N> & lhs, const vector<T, N> & rhs
 template<typename T, unsigned int N>
 inline vector<T, N> & operator*=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
-        lhs.v[i] *= rhs.v[i];
+        lhs[i] *= rhs[i];
     return lhs;
 }
 
@@ -209,7 +197,7 @@ inline vector<T, N> operator*(const vector<T, N> & lhs, const vector<T, N> & rhs
 template<typename T, unsigned int N>
 inline vector<T, N> & operator/=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
-        lhs.v[i] /= rhs.v[i];
+        lhs[i] /= rhs[i];
     return lhs;
 }
 
@@ -223,7 +211,7 @@ inline vector<T, N> operator/(const vector<T, N> & lhs, const vector<T, N> & rhs
 template<typename T, unsigned int N>
 inline vector<T, N> & operator+=(vector<T, N> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
-        lhs.v[i] += rhs;
+        lhs[i] += rhs;
     return lhs;
 }
 
@@ -247,7 +235,7 @@ inline vector<T, N> operator+(T lhs, const vector<T, N> & rhs) {
 template<typename T, unsigned int N>
 inline vector<T, N> & operator-=(vector<T, N> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
-        lhs.v[i] -= rhs;
+        lhs[i] -= rhs;
     return lhs;
 }
 
@@ -268,7 +256,7 @@ inline vector<T, N> operator-(T lhs, const vector<T, N> & rhs) {
 template<typename T, unsigned int N>
 inline vector<T, N> & operator*=(vector<T, N> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
-        lhs.v[i] *= rhs;
+        lhs[i] *= rhs;
     return lhs;
 }
 
@@ -289,7 +277,7 @@ inline vector<T, N> operator*(T lhs, const vector<T, N> & rhs) {
 template<typename T, unsigned int N>
 inline vector<T, N> & operator/=(vector<T, N> & lhs, T rhs) {
     for (unsigned int i = 0; i < N; i++)
-        lhs.v[i] /= rhs;
+        lhs[i] /= rhs;
     return lhs;
 }
 
@@ -312,7 +300,7 @@ inline vector<T, N> operator-(const vector<T, N> & rhs) {
     vector<T, N> val;
 
     for (unsigned int i = 0; i < N; i++)
-        val.v[i] = -rhs.v[i];
+        val[i] = -rhs[i];
 
     return val;
 }
@@ -322,7 +310,7 @@ inline T dot(const vector<T, N> & lhs, const vector<T, N> & rhs) {
     T result = 0;
 
     for (unsigned int i = 0; i < N; i++)
-        result += lhs.v[i] * rhs.v[i];
+        result += lhs[i] * rhs[i];
 
     return result;
 }
@@ -343,9 +331,9 @@ inline float length(const vector<float, N> & vec) {
 }
 
 template<typename T, unsigned int N>
-inline vector<T, N> normalize(const vector<T, N> & vec) {
-    T len = length(vec);
-    return vec / len;
+inline vector<T, N> normalize(const vector<T, N> & v) {
+    T len = length(v);
+    return v / len;
 }
 
 template<typename T>
@@ -411,5 +399,6 @@ inline float schlick(const vector<T, 3> & n, const vector<T, 3> & v, float n1, f
 
     return r0 + (1.0f - r0) * pow(1.0f - cos_i, 5.0f);
 }
+#endif
 
 #endif

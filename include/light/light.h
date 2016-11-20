@@ -9,7 +9,6 @@
 #ifndef __LIGHT_H
 #define __LIGHT_H
 
-#include <math/vector.h>
 #include <rt_defs.h>
 
 /**
@@ -21,12 +20,12 @@ public:
     /**
      * @brief Get the direction of the light at a certain point
      */
-    virtual vec3 getDirection(const vec3 & pos)  = 0;
+    virtual float3 getDirection(const float3 & pos)  = 0;
 
     /**
      * @brief Get the color of the light at a certain point
      */
-    virtual vec3 getColor(const vec3 & pos) = 0;
+    virtual float3 getColor(const float3 & pos) = 0;
 
     /**
      * @brief Get whether this light casts shadows
@@ -44,7 +43,7 @@ public:
      * @param samples  Vector of samples to add to
      * @param nSamples Number of samples to compute
      */
-    virtual void getShadowDir(const vec3 & at, vec3 *samples, int nSamples) = 0;
+    virtual void getShadowDir(const float3 & at, float3 *samples, int nSamples) = 0;
 };
 
 #endif

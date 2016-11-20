@@ -14,6 +14,7 @@
 // M rows x N columns. TODO.
 template<typename T, unsigned int M, unsigned int N>
 struct matrix {
+    
     T m[M][N];
 
     // TODO initializer list, and zero()

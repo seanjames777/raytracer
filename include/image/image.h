@@ -9,7 +9,6 @@
 #ifndef __IMAGE_H
 #define __IMAGE_H
 
-#include <math/vector.h>
 #include <rt_defs.h>
 #include <util/align.h>
 

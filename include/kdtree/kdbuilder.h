@@ -59,6 +59,43 @@ struct KDBuilderTreeStatistics {
     int tree_mem;        //!< Approximate amount of memory used by the tree
 };
 
+class KDAllocator {
+private:
+    
+    void *_memory;
+    uint32_t _capacity;
+    std::atomic<uint32_t> _offset;
+
+public:
+    
+    KDAllocator(void *memory, uint32_t capacity)
+        : _memory(memory),
+          _capacity(capacity),
+          _offset(0)
+    {
+    }
+    
+    void *memory() {
+        return _memory;
+    }
+    
+    uint32_t alloc(uint32_t size, uint32_t align) {
+        uint32_t original = _offset;
+        uint32_t aligned = original;
+        uint32_t offset = original;
+        
+        do {
+            original = _offset;
+            aligned = (original + align - 1) & ~(align - 1);
+            offset = aligned + size;
+        } while (!_offset.compare_exchange_weak(original, offset));
+        
+        assert (_offset + size <= _capacity);
+        
+        return aligned;
+    }
+};
+
 class KDBuilder {
 private:
 
@@ -67,6 +104,8 @@ private:
     util::queue<KDBuilderQueueNode *> node_queue;        //!< Work queue
     std::mutex                        queue_lock;        //!< Work queue lock
     std::atomic_int                   outstanding_nodes; //!< Number of unfinished nodes
+    KDAllocator                      *_nodeAllocator;
+    KDAllocator                      *_triangleAllocator;
 
     /**
      * @brief KD-builder worker thread entrypoint
@@ -169,6 +208,8 @@ protected:
         float                         & split,
         int                           & dir,
         enum KDBuilderPlanarMode      & planarMode) = 0;
+    
+    void computeStats(KDNode *root, KDBuilderTreeStatistics *stats, int depth);
 
 public:
 
@@ -190,7 +231,7 @@ public:
      *
      * @return KD tree for input triangles
      */
-    KDTree *build(const std::vector<Triangle> & triangles, KDBuilderTreeStatistics *stats = nullptr);
+    KDTree *build(const Triangle *triangles, int num_triangles, KDAllocator *nodeAllocator, KDAllocator *triangleAllocator, KDBuilderTreeStatistics *stats = nullptr);
 
 };
 

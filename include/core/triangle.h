@@ -11,9 +11,6 @@
 #define __TRIANGLE_H
 
 #include <math/ray.h>
-#include <math/vector.h>
-#include <rt_defs.h>
-#include <stdlib.h>
 
 // TODO: Moller Trumbore 2D?
 // TOOD: Plucker
@@ -21,13 +18,15 @@
 #define WALD_INTERSECTION
 //#define MOLLER_TRUMBORE_INTERSECTION
 
+// TODO: Pack these types
+
 /**
  * @brief Vertex struct
  */
-struct RT_EXPORT Vertex {
-    vec3 position; //!< Vertex position
-    vec3 normal;   //!< Vertex normal
-    vec2 uv;       //!< Vertex UV coordinates
+struct Vertex {
+    float3 position; //!< Vertex position
+    float3 normal;   //!< Vertex normal
+    float2 uv;       //!< Vertex UV coordinates
 
     /**
      * @brief Constructor
@@ -40,23 +39,23 @@ struct RT_EXPORT Vertex {
      * @param[in] position Vertex position
      * @param[in] normal   Vertex normal
      * @param[in] uv       Vertex UV coordinates
-     * @param[in] color    Vertex color
      */
     Vertex(
-        const vec3 & position,
-        const vec3 & normal,
-        const vec2 & uv);
+        float3 position,
+        float3 normal,
+        float2 uv);
 };
 
 /**
  * @brief Full triangle struct, with data needed for shading
  */
-struct RT_EXPORT Triangle {
+struct Triangle {
     Vertex       v0;           //!< Vertex 0 // TODO: Figure out order
     Vertex       v1;           //!< Vertex 1
     Vertex       v2;           //!< Vertex 2
-    vec3         normal;       //!< Face normal
+    float3       normal;       //!< Face normal
     unsigned int triangle_id;  //!< Triangle ID
+    unsigned int material_id;
 
     /**
      * @brief Constructor
@@ -67,11 +66,12 @@ struct RT_EXPORT Triangle {
      * @brief Constructor
      */
     Triangle(
-        const Vertex & v1,
-        const Vertex & v2,
-        const Vertex & v3,
-        unsigned int   triangle_id);
+        Vertex v1,
+        Vertex v2,
+        Vertex v3,
+        unsigned int triangle_id);
 
+#if GPU
     /**
      * @brief Interpolate vertex data using barycentric coordinates
      *
@@ -80,7 +80,8 @@ struct RT_EXPORT Triangle {
      *
      * @return Interpolated vertex data
      */
-    Vertex interpolate(float beta, float gamma) const;
+    Vertex interpolate(float beta, float gamma) const device;
+#endif
 };
 
 /**
@@ -117,73 +118,21 @@ struct SetupTriangle {
     unsigned int triangle_id; //  4
                               // 44
 #elif defined(MOLLER_TRUMBORE_INTERSECTION)
-    vec3    v0;               // 12
-    vec3    e1;               // 12
-    vec3    e2;               // 12
+    float3    v0;               // 12
+    float3    e1;               // 12
+    float3    e2;               // 12
     unsigned int triangle_id; //  4
                               // 40
 #endif
-};
-
-/**
- * @brief Utility class for packing triangle data into format required by
- * ray/triangle intersection tests, and for performing ray/triangle
- * intersection tests.
- */
-class SetupTriangleBuffer {
-public:
-
-    /**
-     * @brief Pack triangle data into setup triangle data
-     *
-     * @param[in] triangles     An array of pointers to unpacked triangles
-     * @param[in] num_triangles Number of triangles to pack
-     *
-     * @return A pointer to an array of packed triangles
-     */
-    static SetupTriangle *pack(Triangle **triangles, int num_triangles);
-
-    /**
-     * @brief Free memory used by an array of packed triangles
-     *
-     * @param[in] data Triangle data to free
-     */
-    static void destroy(SetupTriangle *data);
-
-    /**
-     * @brief Check for collision between an array of packed triangles and a
-     * ray. Returns the closest collision, unless @ref anyCollision is true, in
-     * which case returns the first collision (useful for shadow rays).
-     *
-     * TODO: min and max distance
-     *
-     * @param[in]  ray          Ray to test against
-     * @param[in]  data         Array of packed triangles to test
-     * @param[in]  count        Number of triangles to test
-     * @param[in]  anyCollision Whether to return the first collision
-     * @param[in]  min          Minimum collision distance
-     * @param[in]  max          Maximum collision distance
-     * @param[out] result       Information about collision, if there was one
-     *
-     * @return True if there was a collision, or false otherwise
-     */
-    static bool intersects(
-        const Ray     &ray,
-        SetupTriangle *data,
-        int            count,
-        bool           anyCollision,
-        float          min,
-        float          max,
-        Collision     &result);
 };
 
 inline Vertex::Vertex() {
 }
 
 inline Vertex::Vertex(
-    const vec3 & position,
-    const vec3 & normal,
-    const vec2 & uv)
+    float3 position,
+    float3 normal,
+    float2 uv)
     : position(position),
       normal(normal),
       uv(uv)
@@ -194,22 +143,23 @@ inline Triangle::Triangle() {
 }
 
 inline Triangle::Triangle(
-    const Vertex & v0,
-    const Vertex & v1,
-    const Vertex & v2,
+    Vertex v0,
+    Vertex v1,
+    Vertex v2,
     unsigned int   triangle_id)
     : v0(v0),
       v1(v1),
       v2(v2),
       triangle_id(triangle_id)
 {
-    vec3 b = normalize(v2.position - v0.position);
-    vec3 c = normalize(v1.position - v0.position);
+    float3 b = normalize(v2.position - v0.position);
+    float3 c = normalize(v1.position - v0.position);
 
     normal = normalize(cross(c, b));
 }
 
-inline Vertex Triangle::interpolate(float beta, float gamma) const {
+#if GPU
+inline Vertex Triangle::interpolate(float beta, float gamma) const device {
     float alpha = 1.0f - beta - gamma;
 
     // TODO:
@@ -222,9 +172,139 @@ inline Vertex Triangle::interpolate(float beta, float gamma) const {
         v0.uv       * alpha + v1.uv       * beta + v2.uv       * gamma);
 }
 
-inline void SetupTriangleBuffer::destroy(SetupTriangle *data) {
-    if (data)
-        free(data);
+/**
+ * @brief Check for collision between an array of packed triangles and a
+ * ray. Returns the closest collision, unless @ref anyCollision is true, in
+ * which case returns the first collision (useful for shadow rays).
+ *
+ * TODO: min and max distance
+ *
+ * @param[in]  ray          Ray to test against
+ * @param[in]  data         Array of packed triangles to test
+ * @param[in]  count        Number of triangles to test
+ * @param[in]  anyCollision Whether to return the first collision
+ * @param[in]  min          Minimum collision distance
+ * @param[in]  max          Maximum collision distance
+ * @param[out] result       Information about collision, if there was one
+ *
+ * @return True if there was a collision, or false otherwise
+ */
+bool intersects(
+    Ray     ray,
+    device SetupTriangle *data,
+    int            count,
+    bool           anyCollision,
+    float          min,
+    float          max,
+    thread Collision     &result)
+{
+#if defined(WALD_INTERSECTION)
+    // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
+    bool found = false;
+    const int mod_table[5] = { 0, 1, 2, 0, 1 };
+    
+    for (int i = 0; i < count; i++) {
+        device const SetupTriangle & tri = data[i];
+        
+        int u = mod_table[tri.k + 1];
+        int v = mod_table[tri.k + 2];
+        
+        float dot = (ray.direction[tri.k] + tri.n_u * ray.direction[u] + tri.n_v *
+                     ray.direction[v]);
+        
+        // TODO: necessary?
+        if (dot == 0.0f)
+            continue;
+        
+        float nd = 1.0f / dot;
+        float t_plane = (tri.n_d - ray.origin[tri.k]
+                         - tri.n_u * ray.origin[u] - tri.n_v * ray.origin[v]) * nd;
+        
+        // Behind camera or further
+        if (t_plane <= 0.0f || (found && t_plane >= result.distance) || t_plane < min || t_plane > max)
+            continue;
+        
+        float hu = ray.origin[u] + t_plane * ray.direction[u];
+        float hv = ray.origin[v] + t_plane * ray.direction[v];
+        
+        float beta = (hu * tri.b_nu + hv * tri.b_nv + tri.b_d);
+        if (beta < 0.0f)
+            continue;
+        
+        float gamma = (hu * tri.c_nu + hv * tri.c_nv + tri.c_d);
+        if (gamma < 0.0f)
+            continue;
+        
+        if (beta + gamma > 1.0f)
+            continue;
+        
+        result.distance = t_plane;
+        result.beta = beta;
+        result.gamma = gamma;
+        result.triangle_id = tri.triangle_id;
+        found = true;
+        
+        if (anyCollision)
+            return true;
+    }
+    
+    return found;
+#elif defined(MOLLER_TRUMBORE_INTERSECTION)
+    bool found = false;
+    
+    for (int i = 0; i < count; i++) {
+        const SetupTriangle & tri = data[i];
+        float3 p = cross(ray.direction, tri.e2);
+        
+        float det = dot(tri.e1, p);
+        
+        // Backfacing or parallel to ray
+        if (det <= 0.000001f) // TODO
+            continue;
+        
+        float f = 1.0f / det;
+        
+        float3 s = ray.origin - tri.v0;
+        float beta = f * dot(s, p);
+        
+        if (beta < 0.0f || beta > 1.0f)
+            continue;
+        
+        float3 q = cross(s, tri.e1);
+        
+        float gamma = f * dot(ray.direction, q);
+        
+        if (gamma < 0.0f || beta + gamma > 1.0f)
+            continue;
+        
+        float t = f * dot(tri.e2, q);
+        
+        if (t < 0.0f || (found && t >= result.distance) || t < min || t > max)
+            continue;
+        
+        result.distance = t;
+        result.beta = beta;
+        result.gamma = gamma;
+        result.triangle_id = tri.triangle_id;
+        found = true;
+        
+        if (anyCollision)
+            return true;
+    }
+    
+    return found;
+#endif
 }
+#endif
+
+#if CPU
+/**
+ * @brief Pack triangle data into setup triangle data
+ *
+ * @param[in] triangles     An array of pointers to unpacked triangles
+ * @param[in] num_triangles Number of triangles to pack
+ */
+void setupTriangles(Triangle **triangles, SetupTriangle *data, int num_triangles);
+#endif
 
 #endif

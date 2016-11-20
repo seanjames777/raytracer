@@ -26,7 +26,8 @@ void Raytracer::render() {
 
     if (!tree) {
         KDSAHBuilder builder;
-        tree = builder.build(scene->getTriangles(), &stats);
+        // TODO
+        //tree = builder.build(scene->getTriangles(), &stats);
     }
 
     nBlocksW = (scene->getOutput()->getWidth() + settings.blockSize - 1) / settings.blockSize;
@@ -63,13 +64,13 @@ void Raytracer::worker_thread(int idx, int numThreads) {
     // Allocate a reusable KD traversal stack for each thread. Uses statistics computed
     // during tree construction to preallocate a stack with the worst case depth/size to avoid
     // bounds checks/dynamic resizing during rendering.
-    util::stack<KDStackFrame> kdStack(stats.max_depth);
+    //util::stack<KDStackFrame> kdStack(stats.max_depth);
     RayBuffer rayBuff;
 
     int width = scene->getOutput()->getWidth();
     int height = scene->getOutput()->getHeight();
 
-    vec2 invImageSize(1.0f / (float)width, 1.0f / (float)height);
+    float2 invImageSize = (float2){ 1.0f / (float)width, 1.0f / (float)height };
     float sampleContrib = 1.0f / (float)(settings.pixelSamples * settings.pixelSamples);
 
     int blockID = idx;
@@ -94,21 +95,21 @@ void Raytracer::worker_thread(int idx, int numThreads) {
                 // Take jittered sampled to reduce variance and move from stairstepping
                 // artifacts to noise
                 #define MAX_PIXEL_SAMPLES 16
-                vec2 samples[MAX_PIXEL_SAMPLES * MAX_PIXEL_SAMPLES];
+                float2 samples[MAX_PIXEL_SAMPLES * MAX_PIXEL_SAMPLES];
                 randJittered2D(settings.pixelSamples, samples);
 
                 // tODO: Is the pointer chasing through scene bad?
-                scene->getOutput()->setPixel(x, y, vec3(0.0f, 0.0f, 0.0f));
+                scene->getOutput()->setPixel(x, y, (float3){ 0.0f, 0.0f, 0.0f });
 
                 // TODO: It's possible to do better sampling
 
-                vec2 xy = vec2(x, y);
+                float2 xy = (float2){ (float)x, (float)y };
 
                 for (int p = 0; p < settings.pixelSamples; p++) {
                     for (int q = 0; q < settings.pixelSamples; q++) {
-                        vec2 uv = (xy + samples[p * settings.pixelSamples + q]) * invImageSize;
+                        float2 uv = (xy + samples[p * settings.pixelSamples + q]) * invImageSize;
 
-                        Ray r = scene->getCamera()->getViewRay(uv, vec3(sampleContrib), (short)x, (short)y, 1);
+                        Ray r = scene->getCamera()->getViewRay(uv, float3(sampleContrib), (short)x, (short)y, 1);
 
                         // TODO: Super slow possibly. Fixed size queue? Could preallocate enough
                         // rays for samples? Or, could alternate between filling and draining
@@ -129,8 +130,8 @@ void Raytracer::worker_thread(int idx, int numThreads) {
             // TODO: Might be worth skipping rays with really tiny contributions
 
             if (r.mode == Shade) {
-                // vec3 sampleColor = getEnvironment(r.direction); TODO
-                vec3 sampleColor;
+                // float3 sampleColor = getEnvironment(r.direction); TODO
+                float3 sampleColor;
 
                 Collision result;
 
@@ -139,7 +140,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
                     sampleColor = shader->shade(rayBuff, r, result, scene, this);
                 }
 
-                vec3 color = scene->getOutput()->getPixel(r.px, r.py);
+                float3 color = scene->getOutput()->getPixel(r.px, r.py);
                 color += sampleColor * r.weight;
                 scene->getOutput()->setPixel(r.px, r.py, color);
             }
@@ -147,7 +148,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
                 Collision result;
 
                 if (!tree->intersect(kdStack, r, result)) {
-                    vec3 color = scene->getOutput()->getPixel(r.px, r.py);
+                    float3 color = scene->getOutput()->getPixel(r.px, r.py);
                     color += r.weight;
                     scene->getOutput()->setPixel(r.px, r.py, color);
                 }

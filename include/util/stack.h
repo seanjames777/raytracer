@@ -13,17 +13,6 @@
 #ifndef __STACK_H
 #define __STACK_H
 
-#include <cassert>
-#include <stdlib.h>
-#include <string.h>
-
-// Default initial stack capacity
-#define DEFAULT_INIT_STACK_CAPACITY 1024
-
-// TODO:
-//     - We actually need to call constructors and destructors
-//     - Use bigger sizes, i.e. size_t
-
 namespace util {
 
 /**
@@ -33,51 +22,31 @@ template<typename T>
 class stack {
 private:
 
-    T   *_stack;
-    int  _capacity;
+#if GPU
+    thread T *_stack;
+#else
+    T *_stack;
+#endif
     int  _size;
 
 public:
 
-    stack(unsigned int capacity = DEFAULT_INIT_STACK_CAPACITY)
-        : _stack(nullptr),
-          _capacity(capacity),
+#if GPU
+    stack(thread T *stack)
+#else
+    stack(T *stack)
+#endif
+        : _stack(stack),
           _size(0)
     {
-        // TODO: handle failure
-
-        // Note: util::stack<KDStackFrame>Frame is POD, so we don't need to worry about constructors TODO
-        // _stack = (T *)malloc(sizeof(T) * _capacity);
-
-        posix_memalign((void **)&_stack, alignof(T), sizeof(T) * _capacity);
-    }
-
-    ~stack() {
-        if (_stack)
-            free(_stack);
     }
 
     /**
      * @brief Add a stack frame to the top of the stack, allocating more memory if needed. Returns
      * the newly allocated frame.
      */
-    inline void push(const T & elem) {
-#if 0
-        // TODO: Removing this branch improves performance by about 3%-4%, but we need to make sure
-        // to allocate for the worst case.
-        // Note: this rarely happens, so the branch predictor should be happy
-        if (_size == _capacity) {
-            // Double for amortized constant cost. In reality, we probably won't even need to
-            // double too often. The first few rays will hopefully set the stack size, and the
-            // default size may be enough for many scenes. TODO make sure that's true.
-            _capacity <<= 1;
-
-            // TODO: handle failure
-            _stack = (T *)realloc(_stack, sizeof(T) * _capacity);
-        }
-#endif
-
-        _stack[_size++] = elem; // TODO: Copy
+    inline void push(T elem) {
+        _stack[_size++] = elem;
     }
 
     /**

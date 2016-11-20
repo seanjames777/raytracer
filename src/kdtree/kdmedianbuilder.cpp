@@ -26,7 +26,7 @@ bool KDMedianBuilder::splitNode(
 
 #if 1
     // Split along longest axis
-    vec3 axis_len = bounds.max - bounds.min;
+    float3 axis_len = bounds.max - bounds.min;
 
     if (axis_len.x > axis_len.y)
         dir = axis_len.x > axis_len.z ? KD_INTERNAL_X : KD_INTERNAL_Z;
@@ -37,8 +37,8 @@ bool KDMedianBuilder::splitNode(
     dir = depth % 3;
 #endif
 
-    float min = bounds.min.v[dir];
-    float max = bounds.max.v[dir];
+    float min = bounds.min[dir];
+    float max = bounds.max[dir];
 
     split = (max - min) / 2.0f + min;
 

@@ -9,17 +9,18 @@
 #ifndef __KDNODE_H
 #define __KDNODE_H
 
-#include <core/triangle.h>
+#if !GPU
+#include <stdint.h>
+#endif
 
-#define KDNODE_LEFT(node)      (&((KDNode *)(node->ptr & 0xfffffffffffffffc))[0])
-#define KDNODE_RIGHT(node)     (&((KDNode *)(node->ptr & 0xfffffffffffffffc))[1])
-#define KDNODE_TYPE(node)      (node->ptr & 0x0000000000000003)
-#define KDNODE_TRIANGLES(node) ((SetupTriangle *)(node->ptr & 0xfffffffffffffffc))
+#include <core/triangle.h>
 
 #define KD_INTERNAL_X 0
 #define KD_INTERNAL_Y 1
 #define KD_INTERNAL_Z 2
-#define KD_LEAF       3 // TODO: if this was 0 comparisons could be faster
+#define KD_LEAF       3
+
+// TODO: pack node
 
 struct KDNode {
     // TODO: could get this down to 8 bytes. With proper alignment, it's actually
@@ -27,29 +28,54 @@ struct KDNode {
 
     // 8. Triangle pointer for leaves, children (adjacent) pointer for internal.
     // Bottom two bits store node type, nodes are at least 16 bit aligned.
-    unsigned long long ptr;
+    uint32_t offset;
 
     // 4/4. Split distance or triangle count
     union {
         float          split_dist;
         unsigned int   count;
     };
-
-    /**
-     * @brief Destroy a KD-tree node's children. The root node of the tree
-     * should be destroyed with free().
-     */
-    static void destroyChildren(KDNode *node) {
-        if (KDNODE_TYPE(node) == KD_LEAF)
-            SetupTriangleBuffer::destroy(KDNODE_TRIANGLES(node));
-        else {
-            destroyChildren(KDNODE_LEFT(node));
-            destroyChildren(KDNODE_RIGHT(node));
-
-            // Left/right allocated together
-            free(KDNODE_LEFT(node));
-        }
+    
+    uint32_t magic;
+    
+#if GPU
+    inline uint32_t type() const device {
+        return offset & 0x00000003;
     }
+    
+    inline device KDNode *left(device KDNode *nodes) const device {
+        device KDNode *children = (device KDNode *)((device char *)nodes + (offset & 0xFFFFFFFC));
+        return &children[0];
+    }
+    
+    inline device KDNode *right(device KDNode *nodes) const device {
+        device KDNode *children = (device KDNode *)((device char *)nodes + (offset & 0xFFFFFFFC));
+        return &children[1];
+    }
+    
+    inline device SetupTriangle *triangles(device SetupTriangle *triangles) const device {
+        return (device SetupTriangle *)((device char *)triangles + (offset & 0xFFFFFFFC));
+    }
+#else
+    inline uint32_t type() const {
+        return offset & 0x00000003;
+    }
+    
+    inline KDNode *left(KDNode *nodes) const {
+        KDNode *children = (KDNode *)((char *)nodes + (offset & 0xFFFFFFFC));
+        return &children[0];
+    }
+    
+    inline KDNode *right(KDNode *nodes) const {
+        KDNode *children = (KDNode *)((char *)nodes + (offset & 0xFFFFFFFC));
+        return &children[1];
+    }
+    
+    inline SetupTriangle *triangles(SetupTriangle *triangles) const {
+        return (SetupTriangle *)((char *)triangles + (offset & 0xFFFFFFFC));
+    }
+#endif
+
 };
 
 #endif

@@ -10,7 +10,7 @@
 #ifndef __SAMPLING_H
 #define __SAMPLING_H
 
-#include <random>
+//#include <random>
 
 // TODO: Maybe use a random table
 // TODO: Add an initialization function
@@ -21,6 +21,7 @@
 // TODO: Lots of pow/sqrt/sin/cos in the hemisphere code
 // TODO: Non-uniform distributions of samples, i.e. normal/poisson
 
+#if 0
 /**
  * @brief Generate a random sample between 0 and 1 inclusive
  *
@@ -107,6 +108,7 @@ inline void randJittered2D(int count, vec2 *samples) {
         }
     }
 }
+#endif
 
 /**
  * @brief Map 2D samples to a disk

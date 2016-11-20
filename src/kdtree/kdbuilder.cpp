@@ -13,18 +13,6 @@
 
 // TODO: the enqueue() function can fail
 
-inline KDNode *alloc_node() {
-    return (KDNode *)aligned_alloc(sizeof(KDNode), 32);
-}
-
-inline void alloc_nodes(KDNode **left, KDNode **right) {
-    // TODO: Could fail
-    KDNode *nodes = (KDNode *)aligned_alloc(sizeof(KDNode) * 2, 32);
-
-    *left = &nodes[0];
-    *right = &nodes[1];
-}
-
 KDBuilder::KDBuilder() {
 }
 
@@ -52,8 +40,8 @@ void KDBuilder::partition(
     for (auto it = triangles.begin(); it != triangles.end(); it++) {
         Triangle *tri = *it;
 
-        float min = fminf(fminf(tri->v0.position.v[dir], tri->v1.position.v[dir]), tri->v2.position.v[dir]);
-        float max = fmaxf(fmaxf(tri->v0.position.v[dir], tri->v1.position.v[dir]), tri->v2.position.v[dir]);
+        float min = fminf(fminf(tri->v0.position[dir], tri->v1.position[dir]), tri->v2.position[dir]);
+        float max = fmaxf(fmaxf(tri->v0.position[dir], tri->v1.position[dir]), tri->v2.position[dir]);
 
         if (min == split && max == split) {
             if (planarMode == PLANAR_LEFT)
@@ -78,17 +66,26 @@ void KDBuilder::partition(
 void KDBuilder::buildLeafNode(KDBuilderQueueNode *q_node) {
     // Set up triangles, and pack them together for locality
     unsigned int num_triangles = (unsigned int)q_node->triangles.size();
+    
+    uint32_t offset = 0;
 
-    // TODO: We sometimes get empty leaves, which is a total waste
-    SetupTriangle *triangleData = SetupTriangleBuffer::pack(
-        q_node->triangles.size() > 0 ? &q_node->triangles[0] : nullptr, q_node->triangles.size());
+    if (num_triangles > 0) {
+        uint32_t size = num_triangles * sizeof(SetupTriangle);
+        offset = _triangleAllocator->alloc(size, 8);
+        
+        // TODO: We sometimes get empty leaves, which is a total waste
+        SetupTriangle *triangleData = (SetupTriangle *)((char *)_triangleAllocator->memory() + offset);
+        
+        setupTriangles(&q_node->triangles[0], triangleData, q_node->triangles.size());
+    }
 
     // TODO: handle overflow of size?
 
     KDNode *node = q_node->node;
 
-    node->ptr = (unsigned long long)triangleData | KD_LEAF;
+    node->offset = (uint32_t)offset | KD_LEAF;
     node->count = q_node->triangles.size();
+    node->magic = 0xFF00FF00;
 }
 
 void KDBuilder::buildInnerNode(
@@ -100,16 +97,18 @@ void KDBuilder::buildInnerNode(
 {
     KDBuilderQueueNode *left = new KDBuilderQueueNode();
     KDBuilderQueueNode *right = new KDBuilderQueueNode();
-
-    alloc_nodes(&left->node, &right->node);
+    
+    uint32_t offset = _nodeAllocator->alloc(sizeof(KDNode) * 2, 4);
 
     left->depth = depth + 1;
     left->refCount = 2;
     left->parent = q_node;
+    left->node = (KDNode *)((char *)_nodeAllocator->memory() + offset);
 
     right->depth = depth + 1;
     right->refCount = 2;
     right->parent = q_node;
+    right->node = (KDNode *)((char *)_nodeAllocator->memory() + offset + sizeof(KDNode));
 
     q_node->bounds.split(split, dir, left->bounds, right->bounds);
 
@@ -118,8 +117,9 @@ void KDBuilder::buildInnerNode(
 
     KDNode *node = q_node->node;
 
-    node->ptr = (unsigned long long)left->node | dir;
+    node->offset = offset | dir;
     node->split_dist = split;
+    node->magic = 0xFF00FF00;
 
     queue_lock.lock();
     node_queue.enqueue(left);
@@ -216,13 +216,14 @@ void KDBuilder::worker_thread() {
     }
 }
 
-void computeStats(KDNode *root, KDBuilderTreeStatistics *stats, int depth) {
+void KDBuilder::computeStats(KDNode *root, KDBuilderTreeStatistics *stats, int depth) {
+    // TODO: Pass to eliminate empty leaves
     // TODO: Pass that eliminates leaves that don't improve on their parents split
 
     stats->num_nodes++;
     stats->tree_mem += sizeof(KDNode);
 
-    if (KDNODE_TYPE(root) == KD_LEAF) {
+    if (root->type() == KD_LEAF) {
         stats->num_leaves++;
         stats->num_triangles += root->count;
 
@@ -240,12 +241,16 @@ void computeStats(KDNode *root, KDBuilderTreeStatistics *stats, int depth) {
     else {
         stats->num_internal++;
 
-        computeStats(KDNODE_LEFT(root), stats, depth + 1);
-        computeStats(KDNODE_RIGHT(root), stats, depth + 1);
+        computeStats(root->left((KDNode *)_nodeAllocator->memory()), stats, depth + 1);
+        computeStats(root->right((KDNode *)_nodeAllocator->memory()), stats, depth + 1);
     }
 }
 
-KDTree *KDBuilder::build(const std::vector<Triangle> & triangles, KDBuilderTreeStatistics *stats) {
+KDTree *KDBuilder::build(const Triangle *triangles, int num_triangles, KDAllocator *nodeAllocator, KDAllocator *triangleAllocator, KDBuilderTreeStatistics *stats)
+{
+    _nodeAllocator = nodeAllocator;
+    _triangleAllocator = triangleAllocator;
+    
     Timer timer;
 
     std::cout << "Building KD tree" << std::endl;
@@ -255,14 +260,17 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles, KDBuilderTreeS
     // Use pointers while building the tree, because we need to be able to sort, etc.
     // Triangles are converted to "setup" triangles, so we don't actually need the
     // triangle data anyway.
-    q_node->triangles.reserve(triangles.size());
+    q_node->triangles.reserve(num_triangles);
 
-    for (auto & it : triangles)
-        q_node->triangles.push_back(const_cast<Triangle *>(&it));
+    for (int i = 0; i < num_triangles; i++)
+        q_node->triangles.push_back(const_cast<Triangle *>(&triangles[i]));
+    
+    uint32_t offset = nodeAllocator->alloc(sizeof(KDNode), 4);
+    KDNode *root = (KDNode *)((char *)nodeAllocator->memory() + offset);
 
     q_node->bounds = buildAABB(q_node->triangles);
     q_node->depth = 0;
-    q_node->node = alloc_node();
+    q_node->node = root;
     q_node->parent = nullptr;
 
     // Reference count of 3 so that we can access its members after construction has
@@ -303,7 +311,7 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles, KDBuilderTreeS
         printf("Nodes:            %d\n", stats->num_nodes);
         printf("Leaf Nodes:       %d (%.02f%%)\n", stats->num_leaves, (float)stats->num_leaves / (float)stats->num_nodes * 100.0f);
         printf("Internal Nodes:   %d (%.02f%%)\n", stats->num_internal, (float)stats->num_internal / (float)stats->num_nodes * 100.0f);
-        printf("Triangles:        %d (average %.02f, %.02fx input)\n", stats->num_triangles, (float)stats->num_triangles / (float)stats->num_leaves, (float)stats->num_triangles / (float)triangles.size());
+        printf("Triangles:        %d (average %.02f, %.02fx input)\n", stats->num_triangles, (float)stats->num_triangles / (float)stats->num_leaves, (float)stats->num_triangles / (float)num_triangles);
         printf("Max Node Depth:   %d\n", stats->max_depth);
         printf("Min Node Depth:   %d\n", stats->min_depth);
         printf("Avg Node Depth:   %.02f\n", (float)stats->sum_depth / (float)stats->num_leaves);

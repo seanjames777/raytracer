@@ -36,6 +36,8 @@ enum BorderMode {
  * them to produce a pixel value.
  */
 class RT_EXPORT Sampler {
+private:
+    
     FilterMode filter; //!< Sample filtering settings
     BorderMode border; //!< Border mode setting
 
@@ -101,7 +103,8 @@ public:
      * @return Color value
      */
     template<typename T, int C>
-    inline vector<T, C> sample(const Image<T, C> & image, const vec2 & uv) const {
+    inline vector<T, C> sample(const Image<T, C> & image, const float2 & uv) const
+    {
         // TODO: Might be worth doing a fancier filter
 
         float x = uv.x * (image->getWidth() - 1);
@@ -116,16 +119,16 @@ public:
             return sampleBorder(image, x0, y0);
         case Bilinear:
             // These should be nearby in the cache due to tiling
-            vec4 s0 = sampleBorder(image, x0,     y0);
-            vec4 s1 = sampleBorder(image, x0 + 1, y0);
-            vec4 s2 = sampleBorder(image, x0,     y0 + 1);
-            vec4 s3 = sampleBorder(image, x0 + 1, y0 + 1);
+            float4 s0 = sampleBorder(image, x0,     y0);
+            float4 s1 = sampleBorder(image, x0 + 1, y0);
+            float4 s2 = sampleBorder(image, x0,     y0 + 1);
+            float4 s3 = sampleBorder(image, x0 + 1, y0 + 1);
 
             float du = x - x0;
             float dv = y - y0;
 
-            vec4 t0 = du * s1 + (1.0f - du) * s0;
-            vec4 t1 = du * s3 + (1.0f - du) * s2;
+            float4 t0 = du * s1 + (1.0f - du) * s0;
+            float4 t1 = du * s3 + (1.0f - du) * s2;
 
             return dv * t1 + (1.0f - dv) * t0;
         }
@@ -140,10 +143,11 @@ public:
      * @return Color value
      */
     template<typename T, int C>
-    inline vector<T, C> sample(const Image<T, C> & image, const vec3 & norm) const {
+    inline vector<T, C> sample(const Image<T, C> & image, const float3 & norm) const
+    {
         // TODO: This atan2 and acosf is super expensive
-        vec2 uv = vec2(atan2f(norm.z, norm.x) + (float)M_PI, acosf(-norm.y));
-        uv = uv / vec2(2.0f * (float)M_PI, (float)M_PI);
+        float2 uv = (float2){ atan2f(norm.z, norm.x) + (float)M_PI, acosf(-norm.y) };
+        uv = uv / (float2){ 2.0f * (float)M_PI, (float)M_PI };
 
         return sample(image, uv);
     }
