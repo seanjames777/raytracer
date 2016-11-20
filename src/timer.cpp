@@ -12,7 +12,7 @@ Timer::Timer() {
 }
 
 void Timer::reset() {
-#ifndef _WINDOWS
+#ifndef _WIN32
 	gettimeofday(&startTime, nullptr);
 #else
 	LARGE_INTEGER time, frequency;
@@ -25,7 +25,7 @@ void Timer::reset() {
 }
 
 double Timer::getElapsedMilliseconds() {
-#ifndef _WINDOWS
+#ifndef _WIN32
     timeval now;
     gettimeofday(&now, nullptr);
     double diff = 0.0;
@@ -44,7 +44,7 @@ double Timer::getElapsedMilliseconds() {
 }
 
 double Timer::getCPUTime() {
-#ifndef _WINDOWS
+#ifndef _WIN32
     rusage usage;
 	// TODO: assert may not be included in release
     assert(getrusage(RUSAGE_SELF, &usage) == 0);

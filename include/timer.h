@@ -11,7 +11,7 @@
 
 #include <rt_defs.h>
 
-#ifndef _WINDOWS
+#ifndef _WIN32
 #include <sys/time.h>
 #include <sys/resource.h>
 #else
@@ -26,7 +26,7 @@ class RT_EXPORT Timer {
 private:
 
 	/** @brief Time the timer was started */
-#ifndef _WINDOWS    
+#ifndef _WIN32    
     timeval startTime;
 #else
 	double startTime;

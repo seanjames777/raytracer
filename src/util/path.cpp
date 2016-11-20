@@ -14,7 +14,7 @@
 #elif defined(__linux__)
     #include <linux/limits.h>
     #include <unistd.h>
-#elif defined (_WINDOWS)
+#elif defined (_WIN32)
     #include <Windows.h>
     #define PATH_MAX MAX_PATH
 #endif
@@ -31,7 +31,7 @@ std::string prependExecutableDirectory(std::string localPath) {
 #elif defined (__linux__)
     ssize_t size = readlink("/proc/self/exe", buff, PATH_MAX);
     assert(size >= 0);
-#elif defined(_WINDOWS)
+#elif defined(_WIN32)
     HMODULE module = GetModuleHandle(NULL);
     DWORD size = GetModuleFileNameA(module, buff, PATH_MAX);
     assert(size >= 0);
@@ -40,7 +40,7 @@ std::string prependExecutableDirectory(std::string localPath) {
     buff[size] = 0;
     std::string exe_path(buff);
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     std::replace(exe_path.begin(), exe_path.end(), '\\', '/');
 #endif
 

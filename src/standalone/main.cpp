@@ -52,14 +52,18 @@ void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & d
     }
 }
 
+#define WIDTH  (1920)
+#define HEIGHT (1080)
+
 int main(int argc, char *argv[]) {
     RaytracerSettings settings;
-    settings.width = 1920;
-    settings.height = 1080;
+    settings.width = WIDTH;
+    settings.height = HEIGHT;
     settings.pixelSamples = 4;
     settings.occlusionSamples = 5;
     settings.occlusionDistance = 4.0f;
     settings.shadowSamples = 4;
+	settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
 
     float aspect = (float)settings.width / (float)settings.height;
 
@@ -139,7 +143,7 @@ int main(int argc, char *argv[]) {
 
     rt = new Raytracer(settings, scene);
 
-    disp = std::make_shared<GLImageDisplay>(1920, 1080, output);
+    disp = std::make_shared<GLImageDisplay>(3840, 2160, output);
 
     printf("Rendering\n");
 

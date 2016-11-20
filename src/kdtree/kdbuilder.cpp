@@ -277,7 +277,12 @@ KDTree *KDBuilder::build(const std::vector<Triangle> & triangles) {
 	outstanding_nodes = 1;
     node_queue.enqueue(q_node);
 
+#ifndef NDEBUG
+	// TODO: reserving a core for the rest of the system
+	int num_threads = max(std::thread::hardware_concurrency() - 1, 1);
+#else
 	int num_threads = std::thread::hardware_concurrency();
+#endif
 
 	std::vector<std::thread> workers;
 
