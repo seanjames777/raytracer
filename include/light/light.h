@@ -18,20 +18,12 @@
 class RT_EXPORT Light {
 public:
 
-    /**
-     * @brief Get the direction of the light at a certain point
-     */
-    virtual float3 getDirection(const float3 & pos)  = 0;
-
-    /**
-     * @brief Get the color of the light at a certain point
-     */
-    virtual float3 getColor(const float3 & pos) = 0;
+	virtual void sample(const float3 & p, float3 & wo, float & r, float3 & Lo) const = 0;
 
     /**
      * @brief Get whether this light casts shadows
      */
-    virtual bool castsShadows() = 0;
+    virtual bool castsShadows() const = 0;
 
     /**
      * @brief Get the direction of a set of shadow testing rays. Samples are added to a vector to

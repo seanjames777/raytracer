@@ -1,7 +1,8 @@
 /**
- * @file shader/shader.cpp
+ * @file core/material.cpp
  *
  * @author Sean James <seanjames777@gmail.com>
  */
 
-#include <shader/shader.h>
+#include <core/material.h>
+

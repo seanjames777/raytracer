@@ -29,11 +29,11 @@ include(prebuilt/CMakeLists.txt)
 add_library(rt SHARED
     src/core/camera.cpp
     src/core/camera.cpp
+    src/core/material.cpp
     src/core/raytracer.cpp
     src/core/raytracersettings.cpp
     src/core/scene.cpp
     src/core/triangle.cpp
-    src/util/imageloader.cpp
     src/image/image.cpp
     src/kdtree/kdbuilder.cpp
     src/kdtree/kdmedianbuilder.cpp
@@ -43,20 +43,21 @@ add_library(rt SHARED
     src/light/directionallight.cpp
     src/light/light.cpp
     src/light/pointlight.cpp
-    src/shader/pbrshader.cpp
-    src/shader/shader.cpp
-    src/util/meshloader.cpp
+    src/materials/pbrmaterial.cpp
     src/util/imagedisplay.cpp
+    src/util/imageloader.cpp
+    src/util/meshloader.cpp
     src/util/path.cpp
     src/util/timer.cpp
 
+    include/core/brdf.h
     include/core/camera.h
+    include/core/material.h
     include/core/raytracer.h
     include/core/raytracersettings.h
     include/core/scene.h
     include/core/triangle.h
     include/core/triangle.inl
-    include/util/imageloader.h
     include/image/image.h
     include/kdtree/kdbuilder.h
     include/kdtree/kdmedianbuilder.h
@@ -73,11 +74,11 @@ add_library(rt SHARED
     include/math/sampling.h
     include/math/vector.h
     include/rt_defs.h
-    include/shader/pbrshader.h
-    include/shader/shader.h
+    include/materials/pbrmaterial.h
     include/util/align.h
-    include/util/meshloader.h
     include/util/imagedisplay.h
+    include/util/imageloader.h
+    include/util/meshloader.h
     include/util/path.h
     include/util/queue.h
     include/util/stack.h

@@ -13,9 +13,13 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+// TODO: Clean up after assimp?
+
 namespace MeshLoader {
 
-void processMesh(aiMesh *mesh, const aiScene *scene, std::vector<Triangle> & polys) {
+void processSubmesh(aiMesh *mesh, const aiScene *scene, std::shared_ptr<Mesh> loadMesh) {
+	std::shared_ptr<Submesh> submesh = std::make_shared<Submesh>(mesh->mMaterialIndex);
+
 	for (int i = 0; i < mesh->mNumFaces; i++) {
 		aiFace face = mesh->mFaces[i];
 
@@ -38,27 +42,60 @@ void processMesh(aiMesh *mesh, const aiScene *scene, std::vector<Triangle> & pol
 			tri.v[j] = v;
 		}
 
-		polys.push_back(tri);
+		submesh->addTriangle(tri);
 	}
+
+	loadMesh->addSubmesh(submesh);
 }
 
-void processNode(aiNode *node, const aiScene *scene, std::vector<Triangle> & polys) {
+void processNode(aiNode *node, const aiScene *scene, std::shared_ptr<Mesh> mesh) {
 	for (int i = 0; i < node->mNumMeshes; i++)
-		processMesh(scene->mMeshes[node->mMeshes[i]], scene, polys);
+		processSubmesh(scene->mMeshes[node->mMeshes[i]], scene, mesh);
 
 	for (int i = 0; i < node->mNumChildren; i++)
-		processNode(node->mChildren[i], scene, polys);
+		processNode(node->mChildren[i], scene, mesh);
 }
 
-void load(std::string filename, std::vector<Triangle> & polys) {
+void processMaterial(aiMaterial *material, std::shared_ptr<Mesh> mesh) {
+#if 0
+	for (int i = 0; i < material->mNumProperties; i++) {
+		std::cout << material->mProperties[i]->mKey.C_Str() << std::endl;
+	}
+#endif
+
+	MaterialProperties props;
+
+	aiColor3D diffuse;
+	material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
+	props.diffuseColor = float3(diffuse.r, diffuse.g, diffuse.b);
+
+	aiString path;
+
+	// TODO: Can have more than one layer
+	if (material->GetTextureCount(aiTextureType_DIFFUSE)) {
+		material->GetTexture(aiTextureType_DIFFUSE, 0, &path);
+		props.diffuseTexture = std::string(path.C_Str());
+	}
+
+	mesh->addMaterial(props);
+}
+
+std::shared_ptr<Mesh> load(std::string filename) {
 	Assimp::Importer importer;
 
 	const aiScene *scene = importer.ReadFile(filename, aiProcess_Triangulate);
 
-	// TODO
-	assert(scene && scene->mFlags != AI_SCENE_FLAGS_INCOMPLETE && scene->mRootNode);
+	if (scene && scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+		return nullptr;
 
-	processNode(scene->mRootNode, scene, polys);
+	std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+
+	processNode(scene->mRootNode, scene, mesh);
+
+	for (int i = 0; i < scene->mNumMaterials; i++)
+		processMaterial(scene->mMaterials[i], mesh);
+
+	return mesh;
 }
 
 };

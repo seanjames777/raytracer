@@ -88,7 +88,7 @@ public:
      *
      * @return True if there is a collision, or false if there is not
      */
-    bool intersect(THREAD KDStackFrame *stack, Ray ray, bool anyCollision, THREAD Collision & result);
+    bool intersect(THREAD KDStackFrame *stack, Ray ray, bool anyCollision, float max, THREAD Collision & result);
 
 };
 

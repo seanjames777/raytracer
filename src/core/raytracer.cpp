@@ -78,6 +78,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
     int blockID = idx;
 
+	assert(stats.max_depth < 64);
 	KDStackFrame stack[64]; // TODO
 
     while(!shouldShutdown) {
@@ -98,7 +99,6 @@ void Raytracer::worker_thread(int idx, int numThreads) {
                     continue;
 
 				float3 color(0.0f);
-				float3 weight(1.0f / (settings.pixelSamples * settings.pixelSamples));
 
                 // Take jittered sampled to reduce variance and move from stairstepping
                 // artifacts to noise
@@ -118,17 +118,53 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
                         Ray r = scene->getCamera()->getViewRay(uv);
 
-						// float3 sampleColor = getEnvironment(r.direction); TODO
-						float3 sampleColor;
-
 						Collision result;
 
-						if (tree->intersect(stack, r, false, result)) {
-							Shader *shader = scene->getShader(result.triangle_id);
-							sampleColor = shader->shade(stack, tree, 0, r, result, scene, this);
+						// float3 sampleColor = getEnvironment(r.direction); TODO
+						float3 sampleColor;
+						float3 weight(1.0f / (settings.pixelSamples * settings.pixelSamples));
+
+						for (int depth = 0; depth < settings.maxDepth; depth++) {
+							if (tree->intersect(stack, r, false, INFINITY, result)) {
+								const Triangle *triangle = scene->getTriangle(result.triangle_id);
+								Vertex interp = triangle->interpolate(result.beta, result.gamma);
+
+								const Material *material = scene->getMaterial(triangle->material_id);
+
+								float3 wo = -r.direction;
+
+								for (int l = 0; l < scene->getNumLights(); l++) {
+									const Light *light = scene->getLight(l);
+
+									float3 wi, Li;
+									float r;
+									light->sample(interp.position, wi, r, Li);
+
+									Ray shadow(interp.position + triangle->normal * 0.001f, wi);
+
+									if (!light->castsShadows() || !tree->intersect(stack, shadow, true, r, result)) {
+										float ndotl = saturate(dot(wi, interp.normal)); // TODO: normal mapping
+
+										sampleColor += weight * Li * material->f(interp, wo, wi) * ndotl;
+									}
+								}
+
+								float2 rand;
+								rand2D(1, &rand);
+
+								mapSamplesCosHemisphere(1, 1.0f, &rand, &r.direction);
+								alignHemisphereNormal(1, &r.direction, triangle->normal);
+
+								r.origin = interp.position + triangle->normal * 0.001f;
+
+								float ndotl = saturate(dot(r.direction, interp.normal));
+								weight *= material->f(interp, wo, r.direction) * ndotl * 1.5f;
+							}
+							else
+								break;
 						}
 
-						color += sampleColor * weight;
+						color += sampleColor;
                     }
                 }
 

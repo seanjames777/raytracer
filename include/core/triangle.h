@@ -68,7 +68,8 @@ struct Triangle {
         Vertex v0,
 		Vertex v1,
 		Vertex v2,
-        unsigned int triangle_id);
+        unsigned int triangle_id,
+		unsigned int material_id);
 
     /**
      * @brief Interpolate vertex data using barycentric coordinates
@@ -143,8 +144,10 @@ inline Triangle::Triangle(
     Vertex v0,
     Vertex v1,
     Vertex v2,
-    unsigned int   triangle_id)
-	: triangle_id(triangle_id)
+    unsigned int triangle_id,
+	unsigned int material_id)
+	: triangle_id(triangle_id),
+	  material_id(material_id)
 {
 	v[0] = v0;
 	v[1] = v1;

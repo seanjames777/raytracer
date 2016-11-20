@@ -7,38 +7,27 @@
 #include <light/pointlight.h>
 #include <math/sampling.h>
 
-PointLight::PointLight(float3 position, float3 color, float radius, float range, float power,
-    bool shadow)
+PointLight::PointLight(float3 position, float3 radiance, bool shadow)
     : position(position),
-      color(color),
-      radius(radius),
-      range2(range * range),
-      power(power),
+      radiance(radiance),
       shadow(shadow)
 {
 }
 
-float3 PointLight::getDirection(const float3 & pos) {
-    float3 dir = normalize(pos - position);
+void PointLight::sample(const float3 & p, float3 & wo, float & r, float3 & Lo) const {
+	wo = position - p;
+	r = length(wo);
+	wo /= r;
 
-    return dir;
+	Lo = radiance / (r * r);
 }
 
-float3 PointLight::getColor(const float3 & pos) {
-    float3 diff = pos - position;
-    float dist2 = length2(diff);
-
-    float falloff = 1.0f - saturate(dist2 / range2);
-    falloff = powf(falloff, power);
-
-    return color * falloff;
-}
-
-bool PointLight::castsShadows() {
+bool PointLight::castsShadows() const {
     return shadow;
 }
 
 void PointLight::getShadowDir(const float3 & at, float3 *samples, int nSamples) {
+#if 0
     if (radius == 0.0f || nSamples == 0) {
         float3 dir = this->position - at;
         samples[0] = dir;
@@ -49,4 +38,5 @@ void PointLight::getShadowDir(const float3 & at, float3 *samples, int nSamples) 
 
     for (int i = 0; i < nSamples; i++)
         samples[i] = radius * samples[i] + position - at;
+#endif
 }

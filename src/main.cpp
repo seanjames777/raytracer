@@ -14,10 +14,15 @@
 #include <util/meshloader.h>
 #include <util/imagedisplay.h>
 #include <util/path.h>
-#include <shader/pbrshader.h>
+#include <materials/pbrmaterial.h>
 #include <fstream>
+#include <map>
+#include <iostream>
 
-Vertex transform_vertex(const Vertex & vertex, const float4x4 & transform,
+// TODO: Might be better to compact textures to RGB8
+std::map<std::string, std::shared_ptr<Image<float, 3>>> textures;
+
+Vertex transformVertex(const Vertex & vertex, const float4x4 & transform,
     const float4x4 & transformInverseTranspose)
 {
     float4 position = transform * float4(vertex.position, 1.0f);
@@ -26,7 +31,17 @@ Vertex transform_vertex(const Vertex & vertex, const float4x4 & transform,
     return Vertex(position.xyz(), normalize(normal.xyz()), vertex.uv);
 }
 
-void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & dst,
+std::shared_ptr<Image<float, 3>> loadTexture(std::string filename) {
+	if (textures.find(filename) != textures.end())
+		return textures[filename];
+
+	auto image = ImageLoader::load(filename);
+	textures[filename] = image;
+
+	return image;
+}
+
+void loadMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<Scene> scene,
     const float3 & translation_v, const float3 & rotation_v, const float3 & scale_v)
 {
 	float4x4 transform =
@@ -36,14 +51,35 @@ void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & d
 
 	float4x4 transformInverseTranspose = transpose(inverse(transform));
 
-    for (auto & tri : src) {
-        dst.push_back(Triangle(
-            transform_vertex(tri.v[0], transform, transformInverseTranspose),
-            transform_vertex(tri.v[1], transform, transformInverseTranspose),
-            transform_vertex(tri.v[2], transform, transformInverseTranspose),
-            0 // Note: Invalid triangle ID
-        ));
-    }
+	unsigned int materialOffset = scene->getNumMaterials();
+
+	for (int i = 0; i < mesh->getNumSubmeshes(); i++) {
+		auto submesh = mesh->getSubmesh(i);
+
+		for (int j = 0; j < submesh->getNumTriangles(); j++) {
+			const Triangle & tri = submesh->getTriangle(j);
+
+			scene->addPoly(Triangle(
+				transformVertex(tri.v[0], transform, transformInverseTranspose),
+				transformVertex(tri.v[1], transform, transformInverseTranspose),
+				transformVertex(tri.v[2], transform, transformInverseTranspose),
+				0, // Note: Invalid triangle ID
+				submesh->getMaterialID() + materialOffset
+			));
+		}
+	}
+
+	for (int i = 0; i < mesh->getNumMaterials(); i++) {
+		const MaterialProperties & props = mesh->getMaterial(i);
+
+		auto material = new PBRMaterial(); // TODO: delete
+
+		if (props.diffuseTexture != "") {
+			std::cout << "Load " << props.diffuseTexture << std::endl;
+		}
+
+		scene->addMaterial(material);
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -52,11 +88,9 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 1;
-    settings.occlusionSamples = 5;
-    settings.occlusionDistance = 4.0f;
-    settings.shadowSamples = 4;
+    settings.pixelSamples = 2;
     settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
+	settings.maxDepth = 1;
 
     float aspect = (float)settings.width / (float)settings.height;
 
@@ -80,63 +114,20 @@ int main(int argc, char *argv[]) {
     auto scene = std::make_shared<Scene>(camera.get(), output.get(), env_sampler.get(),
         environment.get());
 
-    auto shader = std::make_shared<PBRShader>();
+    printf("Loading Mesh\n");
 
-    std::vector<Triangle> polys, transformed;
+	auto mesh = MeshLoader::load(relToExeDir("content/models/sponza.obj"));
 
-    std::ifstream cache("cache.bin", std::ios::in | std::ios::binary);
+    loadMesh(mesh, scene, float3(0.0f, 0.0f, 0.0f), float3(0.0f), float3(0.02f));
 
-    if (cache) {
-        size_t count;
-        cache.read((char *)&count, sizeof(size_t));
-        polys.resize(count);
-        cache.read((char *)&polys[0], sizeof(Triangle) * count);
-        cache.close();
-    }
-    else {
-        printf("Loading Mesh\n");
-        MeshLoader::load(relToExeDir("content/models/sponza.obj"), polys);
-
-        std::ofstream ocache("cache.bin", std::ios::out | std::ios::binary);
-
-        size_t size = polys.size();
-        ocache.write((char *)&size, sizeof(size_t));
-        ocache.write((char *)&polys[0], sizeof(Triangle) * size);
-
-        ocache.close();
-    }
-
-    for (int z = 0; z <= 0; z++) {
-        for (int x = 0; x <= 0; x++) {
-            transformed.clear();
-            transform_mesh(polys, transformed,
-                float3(x * 5.0f, 0.0f, z * 5.0f), float3(0.0f), float3(0.02f));
-            for (auto & tri : transformed)
-                scene->addPoly(tri, shader.get());
-        }
-    }
-
-    polys.clear();
-    transformed.clear();
-
-    MeshLoader::load(relToExeDir("content/models/plane.fbx"), polys);
-    transform_mesh(polys, transformed, float3(5, 1, -5), float3((float)M_PI / 2.0f, 0, 0), float3(0.25f, 1, 0.25f));
-
-    //for (auto & tri : transformed)
-    //    scene->addPoly(tri, shader.get());
-
-    auto light1 = std::make_shared<PointLight>(
-        float3(-20, 20, -20), float3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
+	auto light1 = std::make_shared<PointLight>(
+        float3(0, 30, 0), 400.0f, true);
     scene->addLight(light1.get());
 
-    auto light2 = std::make_shared<PointLight>(
-        float3(20, 20, 20), float3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
-    scene->addLight(light2.get());
-
-    printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getLights().size());
+    printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getNumLights());
 
     auto rt = std::make_shared<Raytracer>(settings, scene.get());
-	auto disp = std::make_shared<ImageDisplay>(1920, 1080, output.get());
+	auto disp = std::make_shared<ImageDisplay>(3840, 2160, output.get());
 
     printf("Rendering\n");
 

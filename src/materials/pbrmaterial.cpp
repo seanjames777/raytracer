@@ -1,33 +1,28 @@
 /**
- * @file shader/pbrshader.cpp
+ * @file materials/pbrmaterial.cpp
  *
  * @author Sean James <seanjames777@gmail.com>
  */
 
-#include <shader/pbrshader.h>
+#include <materials/pbrmaterial.h>
 
 #include <core/raytracer.h>
 
 // TODO: preallocate upper bound for samples system wide or something
 // TODO: maybe interpolate less. there's a cheap way to get position
 
-PBRShader::PBRShader() {
+PBRMaterial::PBRMaterial() {
 }
 
-PBRShader::~PBRShader() {
+PBRMaterial::~PBRMaterial() {
 }
 
-float3 PBRShader::shade(
-	KDStackFrame    * stack,
-	KDTree          * tree,
-	int               depth,
-    const Ray       & ray,
-    const Collision & result,
-    Scene           * scene,
-    Raytracer       * raytracer) const
+float3 PBRMaterial::f(
+    const Vertex & interp,
+    const float3 & wo,
+    const float3 & wi) const
 {
-	const Triangle *triangle = scene->getTriangle(result.triangle_id);
-    const Vertex & interp = triangle->interpolate(result.beta, result.gamma);
+	return 1.0f / (float)M_PI;
 
     float3 lp = float3(0.0f, 50.0f, 0.0f);
     float2 ls = float2(30.0f, 30.0f);

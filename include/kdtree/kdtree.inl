@@ -27,16 +27,18 @@
 // TODO: Maybe help the heuristic with creating big empty gaps? Something about this
 //       in the SAH paper. Creating empty nodes or whatever.
 // TODO: Tweak heursitic constants
-bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision, THREAD Collision & result)
+bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision, float max, THREAD Collision & result)
 {
     // http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
+
+	// TODO: use max to skip nodes, not just triangles
     
     util::stack<KDStackFrame> stack(stackMem);
     
     GLOBAL KDNode *currentNode;
     float entry, exit;
     
-    if (!_bounds.intersects(ray, entry, exit))
+    if (!_bounds.intersects(ray, entry, exit) || entry > max)
         return false;
     
     float3 inv_direction = ray.invDirection();
@@ -88,7 +90,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision
                        currentNode->count,
                        anyCollision,
                        entry,
-                       exit, // TODO
+                       min(exit, max), // TODO
                        result))
         {
             return true;

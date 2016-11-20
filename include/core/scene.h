@@ -14,7 +14,7 @@
 #include <image/image.h>
 #include <image/sampler.h>
 #include <light/light.h>
-#include <shader/shader.h>
+#include <core/material.h>
 #include <vector>
 
 // TODO: Might want to make some of the pointers not-pointers, i.e. just copy
@@ -27,13 +27,13 @@
 class RT_EXPORT Scene {
 private:
 
-    /** @brief Mapping from triangle indices to shaders */
-    std::vector<Shader *> shaderMap;
+    /** @brief Materials */
+    std::vector<Material *> materials;
 
     /** @brief Triangles */
     std::vector<Triangle> triangles;
 
-    /** @brief Set of lights */
+    /** @brief Lights */
     std::vector<Light *> lights;
 
     /** @brief Camera */
@@ -72,12 +72,19 @@ public:
     /**
      * @brief Add a polygon to the scene
      */
-    void addPoly(Triangle triangle, Shader *shader);
+    void addPoly(Triangle triangle);
+
+	/**
+	 * @brief Add a material to the scene
+	 */
+	void addMaterial(Material *material);
 
     /**
-     * @brief Get the shader to use for a triangle
+     * @brief Get a material by ID
      */
-    Shader *getShader(unsigned int triangleId) const;
+    Material *getMaterial(unsigned int id) const;
+
+	unsigned int getNumMaterials() const;
 
     /**
      * @brief Get vector of triangles
@@ -109,10 +116,12 @@ public:
      */
     const Camera *getCamera() const;
 
+	unsigned int getNumLights() const;
+
     /**
      * @brief Get lights
      */
-    const std::vector<Light *> & getLights() const;
+    const Light *getLight(unsigned int light) const;
 
 };
 
@@ -128,18 +137,25 @@ inline Scene::Scene(
 {
 }
 
-inline void Scene::addPoly(Triangle poly, Shader *shader) {
+inline void Scene::addPoly(Triangle poly) {
     poly.triangle_id = triangles.size();
     triangles.push_back(poly);
-    shaderMap.push_back(shader);
 }
 
 inline void Scene::addLight(Light *light) {
     lights.push_back(light);
 }
 
-inline Shader *Scene::getShader(unsigned int triangleId) const {
-    return shaderMap[triangleId];
+inline void Scene::addMaterial(Material *material) {
+	materials.push_back(material);
+}
+
+inline Material *Scene::getMaterial(unsigned int id) const {
+    return materials[id];
+}
+
+inline unsigned int Scene::getNumMaterials() const {
+	return materials.size();
 }
 
 inline const std::vector<Triangle> & Scene::getTriangles() const {
@@ -166,8 +182,12 @@ inline const Camera *Scene::getCamera() const {
     return camera;
 }
 
-inline const std::vector<Light *> & Scene::getLights() const {
-    return lights;
+inline unsigned int Scene::getNumLights() const {
+	return lights.size();
+}
+
+inline const Light *Scene::getLight(unsigned int light) const {
+    return lights[light];
 }
 
 #endif

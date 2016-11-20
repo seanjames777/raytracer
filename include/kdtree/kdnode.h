@@ -38,7 +38,6 @@ struct KDNode {
     
     uint32_t magic;
     
-#if GPU
     inline uint32_t type() const GLOBAL {
         return offset & 0x00000003;
     }
@@ -56,26 +55,6 @@ struct KDNode {
     inline GLOBAL SetupTriangle *triangles(GLOBAL SetupTriangle *triangles) const GLOBAL {
         return (GLOBAL SetupTriangle *)((GLOBAL char *)triangles + (offset & 0xFFFFFFFC));
     }
-#else
-    inline uint32_t type() const {
-        return offset & 0x00000003;
-    }
-    
-    inline KDNode *left(KDNode *nodes) const {
-        KDNode *children = (KDNode *)((char *)nodes + (offset & 0xFFFFFFFC));
-        return &children[0];
-    }
-    
-    inline KDNode *right(KDNode *nodes) const {
-        KDNode *children = (KDNode *)((char *)nodes + (offset & 0xFFFFFFFC));
-        return &children[1];
-    }
-    
-    inline SetupTriangle *triangles(SetupTriangle *triangles) const {
-        return (SetupTriangle *)((char *)triangles + (offset & 0xFFFFFFFC));
-    }
-#endif
-
 };
 
 #endif

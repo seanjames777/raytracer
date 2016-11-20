@@ -12,6 +12,85 @@
 #include <core/triangle.h>
 #include <string>
 #include <vector>
+#include <memory>
+
+class Submesh {
+private:
+
+	std::vector<Triangle> triangles;
+	unsigned int materialID;
+
+public:
+
+	Submesh(unsigned int materialID)
+		: materialID(materialID)
+	{
+	}
+
+	~Submesh() {
+	}
+
+	void addTriangle(Triangle tri) {
+		triangles.push_back(tri);
+	}
+
+	unsigned int getNumTriangles() const {
+		return triangles.size();
+	}
+
+	const Triangle & getTriangle(unsigned int i) const {
+		return triangles[i];
+	}
+
+	unsigned int getMaterialID() const {
+		return materialID;
+	}
+};
+
+struct MaterialProperties {
+	float3 diffuseColor;
+
+	std::string diffuseTexture;
+};
+
+class Mesh {
+private:
+
+	std::vector<std::shared_ptr<Submesh>> submeshes;
+	std::vector<MaterialProperties> materials;
+
+public:
+
+	Mesh() {
+	}
+
+	~Mesh() {
+	}
+
+	void addSubmesh(std::shared_ptr<Submesh> submesh) {
+		submeshes.push_back(submesh);
+	}
+
+	unsigned int getNumSubmeshes() const {
+		return submeshes.size();
+	}
+
+	std::shared_ptr<Submesh> getSubmesh(unsigned int i) const {
+		return submeshes[i];
+	}
+
+	void addMaterial(MaterialProperties material) {
+		materials.push_back(material);
+	}
+
+	unsigned int getNumMaterials() const {
+		return materials.size();
+	}
+
+	const MaterialProperties & getMaterial(unsigned int i) const {
+		return materials[i];
+	}
+};
 
 namespace MeshLoader {
 
@@ -22,7 +101,7 @@ namespace MeshLoader {
  * @param polys     Vector to which polygons will be added
  * @param transform Transformation matrix to apply to vertices
  */
-RT_EXPORT void load(std::string filename, std::vector<Triangle> & polys);
+RT_EXPORT std::shared_ptr<Mesh> load(std::string filename);
 
 };
 
