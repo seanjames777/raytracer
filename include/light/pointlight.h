@@ -18,10 +18,10 @@ class RT_EXPORT PointLight : public Light {
 private:
 
     /** @brief Position */
-    vec3  position;
+    float3  position;
 
     /** @brief Color */
-    vec3 color;
+    float3 color;
 
     /** @brief Radius */
     float radius;
@@ -47,17 +47,17 @@ public:
      * @param power    Exponent of the falloff curve
      * @param shadow   Whether this light casts shadows
      */
-    PointLight(vec3 position, vec3 color, float radius, float range, float power, bool shadow);
+    PointLight(float3 position, float3 color, float radius, float range, float power, bool shadow);
 
     /**
      * @brief Get the direction of the point light at a given point
      */
-    vec3 getDirection(const vec3 & pos);
+    float3 getDirection(const float3 & pos);
 
     /**
      * @brief Get the color of the point light at a given point
      */
-    vec3 getColor(const vec3 & pos);
+    float3 getColor(const float3 & pos);
 
     /**
      * @brief Whether this point light casts shadows
@@ -75,7 +75,7 @@ public:
      * @param samples  Vector of samples to add to
      * @param nSamples Number of samples to compute
      */
-    void getShadowDir(const vec3 & at, vec3 *samples, int nSamples);
+    void getShadowDir(const float3 & at, float3 *samples, int nSamples);
 
 };
 

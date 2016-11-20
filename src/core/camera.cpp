@@ -7,8 +7,8 @@
 #include <core/camera.h>
 
 Camera::Camera(
-    const vec3 & position,
-    const vec3 & target,
+    const float3 & position,
+    const float3 & target,
     float aspect,
     float fov,
     float focus,
@@ -26,7 +26,7 @@ Camera::Camera(
 void Camera::refresh() {
     forward = normalize(target - position);
 
-    vec3 gup = vec3(0, 1, 0);
+    float3 gup = float3(0, 1, 0);
 
     right = normalize(-cross(forward, gup));
     up = normalize(cross(right, forward));
@@ -39,7 +39,7 @@ void Camera::refresh() {
 
 // TODO
 #if 0
-bool Camera::getSamples(int nSamples, vec2 *samples, const vec2 & min, const vec2 & max) {
+bool Camera::getSamples(int nSamples, float2 *samples, const float2 & min, const float2 & max) {
     // TODO: Make sure samples align with pixel grid in a nice way
 
     if (aperture == 0.0f) {

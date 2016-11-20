@@ -12,6 +12,22 @@
 #if !GPU
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <algorithm>
+
+using std::min;
+using std::max;
+using std::swap;
+
+// TODO: move me
+template<typename T>
+inline T clamp(T val, T a, T b) {
+	return min(max(val, min), max);
+}
+
+template<typename T>
+inline T saturate(T val) {
+	return min(max(val, 0.0f), 1.0f);
+}
 
 template<typename T, unsigned int N>
 struct vector {
@@ -87,14 +103,14 @@ struct vector<T, 3> {
     {
     }
 
-    vector<T, 2>(T v)
+    vector<T, 3>(T v)
         : x(v),
           y(v),
           z(v)
     {
     }
     
-    vector<T, 2>(T x, T y, T z)
+    vector<T, 3>(T x, T y, T z)
         : x(x),
           y(y),
           z(z)
@@ -127,21 +143,33 @@ struct vector<T, 4> {
     {
     }
 
-    vector<T, 2>(T v)
+    vector<T, 4>(T v)
         : x(v),
           y(v),
           z(v),
           w(v)
     {
     }
+
+	vector<T, 4>(const vector<T, 3> & xyz, T w)
+		: x(xyz.x),
+	 	  y(xyz.y),
+          z(xyz.z),
+          w(w)
+	{
+	}
     
-    vector<T, 2>(T x, T y, T z, T w)
+    vector<T, 4>(T x, T y, T z, T w)
         : x(x),
           y(y),
           z(z),
           w(w)
     {
     }
+
+	vector<T, 3> xyz() {
+		return vector<T, 3>(x, y, z);
+	}
     
     T & operator[](unsigned int i) {
         return _v[i];

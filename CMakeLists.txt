@@ -44,7 +44,6 @@ add_library(rt SHARED
     src/light/light.cpp
     src/light/pointlight.cpp
     src/shader/pbrshader.cpp
-    src/shader/phongshader.cpp
     src/shader/shader.cpp
     src/util/fbxloader.cpp
     src/util/glimagedisplay.cpp
@@ -52,7 +51,6 @@ add_library(rt SHARED
     src/util/timer.cpp
 
     include/core/camera.h
-    include/core/raybuffer.h
     include/core/raytracer.h
     include/core/raytracersettings.h
     include/core/scene.h
@@ -68,14 +66,12 @@ add_library(rt SHARED
     include/light/light.h
     include/light/pointlight.h
     include/math/aabb.h
-    include/math/macro.h
     include/math/matrix.h
     include/math/ray.h
     include/math/sampling.h
     include/math/vector.h
     include/rt_defs.h
     include/shader/pbrshader.h
-    include/shader/phongshader.h
     include/shader/shader.h
     include/util/align.h
     include/util/fbxloader.h

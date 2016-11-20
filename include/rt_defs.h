@@ -22,4 +22,7 @@
 #define RT_EXPORT
 #endif
 
+#define GLOBAL
+#define THREAD
+
 #endif

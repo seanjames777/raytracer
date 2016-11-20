@@ -10,7 +10,9 @@
 #define __IMAGE_H
 
 #include <rt_defs.h>
+
 #include <util/align.h>
+#include <math/vector.h>
 
 // TODO: Per-image tiling
 // TODO: Swizzling vs tiling
@@ -32,7 +34,7 @@
  * @tparam T Component type
  * @tparam C Number of components
  */
-template<typename T, int C>
+template<typename T, unsigned int C>
 class RT_EXPORT Image {
 private:
 
@@ -86,7 +88,7 @@ public:
      * @brief Destructor
      */
     ~Image() {
-        free(data);
+        _aligned_free(data);
     }
 
     /**

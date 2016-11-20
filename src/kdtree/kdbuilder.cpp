@@ -7,7 +7,6 @@
 #include <kdtree/kdbuilder.h>
 
 #include <iostream>
-#include <unistd.h>
 #include <util/align.h>
 #include <util/timer.h>
 
@@ -177,7 +176,7 @@ void KDBuilder::worker_thread() {
         // If the queue is empty, sleep until it isn't. We wake up with the lock again.
         // TODO use condition variable to do this.
 
-        // The queue may now have work, but if another thread woke up first and consumed all of it,
+        // The queue may now have work, but if another THREAD woke up first and consumed all of it,
         // then we will just loop around and go back to sleep.
 
         // TODO: Arbitary constant
@@ -190,7 +189,7 @@ void KDBuilder::worker_thread() {
             local_count += (int)node->triangles.size(); // TODO int
         }
 
-        // TODO: Instead of waking up everybody, it may be better to wake up another thread if there
+        // TODO: Instead of waking up everybody, it may be better to wake up another THREAD if there
         // are more in the queue. We'd probably have to know how many threads are waiting.
 
         queue_lock.unlock();
@@ -325,7 +324,7 @@ KDTree *KDBuilder::build(const Triangle *triangles, int num_triangles, KDAllocat
         printf("Triangle Memory:  %.02fmb\n", stats->num_triangles * sizeof(SetupTriangle) / (1024.0f * 1024.0f));
     }
 
-    KDTree *tree = new KDTree(q_node->node, q_node->bounds);
+    KDTree *tree = new KDTree(q_node->node, (KDNode *)nodeAllocator->memory(), (SetupTriangle *)triangleAllocator->memory(), q_node->bounds);
 
     // TODO
     // assert(--q_node->refCount == 0 || (q_node->node->flags & KD_IS_LEAF));

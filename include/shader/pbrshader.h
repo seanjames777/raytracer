@@ -96,8 +96,10 @@ public:
      * @brief Shade the surface for a given collision and light source. Will be called for each
      * light source and mixed externally with shadows, reflections, etc.
      */
-    virtual vec3 shade(
-        RayBuffer       & rayBuff,
+    virtual float3 shade(
+		KDStackFrame    * stack,
+		KDTree          * tree,
+		int               depth,
         const Ray       & ray,
         const Collision & result,
         Scene           * scene,

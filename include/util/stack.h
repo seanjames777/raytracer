@@ -23,7 +23,7 @@ class stack {
 private:
 
 #if GPU
-    thread T *_stack;
+    THREAD T *_stack;
 #else
     T *_stack;
 #endif
@@ -32,7 +32,7 @@ private:
 public:
 
 #if GPU
-    stack(thread T *stack)
+    stack(THREAD T *stack)
 #else
     stack(T *stack)
 #endif

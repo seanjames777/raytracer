@@ -11,12 +11,8 @@
 
 #include <rt_defs.h>
 
-<<<<<<< HEAD:include/timer.h
 #ifndef _WIN32
 #include <sys/time.h>
-=======
-#ifndef _WINDOWS
->>>>>>> origin/master:include/util/timer.h
 #include <sys/resource.h>
 #include <sys/time.h>
 #else

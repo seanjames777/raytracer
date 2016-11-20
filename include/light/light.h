@@ -10,6 +10,7 @@
 #define __LIGHT_H
 
 #include <rt_defs.h>
+#include <math/vector.h>
 
 /**
  * @brief Base class for lights

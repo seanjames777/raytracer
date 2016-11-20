@@ -9,9 +9,9 @@
 #ifndef __SHADER_H
 #define __SHADER_H
 
-#include <core/raybuffer.h>
 #include <core/triangle.h>
 #include <math/ray.h>
+#include <kdtree/kdtree.h>
 
 class Scene;
 class Raytracer;
@@ -39,7 +39,9 @@ public:
      * @brief Shade at a ray/triangle intersection point
      */
     virtual float3 shade(
-        RayBuffer       & rayBuff,
+		KDStackFrame    * stack,
+		KDTree          * tree,
+		int               depth,
         const Ray       & ray,
         const Collision & result,
         Scene           * scene,

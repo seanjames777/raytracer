@@ -44,6 +44,7 @@ inline const char *getErrorString(GLenum error) {
         std::cout << "GL Error check failed:" << std::endl;                   \
         std::cout << "    At: " << __FILE__ << ":" << __LINE__ << std::endl;  \
         std::cout << " Error: " << getErrorString(error) << std::endl;        \
+        getchar();                                                            \
         exit(-1);                                                             \
     }                                                                         \
 }

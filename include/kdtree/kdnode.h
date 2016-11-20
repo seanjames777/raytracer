@@ -39,22 +39,22 @@ struct KDNode {
     uint32_t magic;
     
 #if GPU
-    inline uint32_t type() const device {
+    inline uint32_t type() const GLOBAL {
         return offset & 0x00000003;
     }
     
-    inline device KDNode *left(device KDNode *nodes) const device {
-        device KDNode *children = (device KDNode *)((device char *)nodes + (offset & 0xFFFFFFFC));
+    inline GLOBAL KDNode *left(GLOBAL KDNode *nodes) const GLOBAL {
+        GLOBAL KDNode *children = (GLOBAL KDNode *)((GLOBAL char *)nodes + (offset & 0xFFFFFFFC));
         return &children[0];
     }
     
-    inline device KDNode *right(device KDNode *nodes) const device {
-        device KDNode *children = (device KDNode *)((device char *)nodes + (offset & 0xFFFFFFFC));
+    inline GLOBAL KDNode *right(GLOBAL KDNode *nodes) const GLOBAL {
+        GLOBAL KDNode *children = (GLOBAL KDNode *)((GLOBAL char *)nodes + (offset & 0xFFFFFFFC));
         return &children[1];
     }
     
-    inline device SetupTriangle *triangles(device SetupTriangle *triangles) const device {
-        return (device SetupTriangle *)((device char *)triangles + (offset & 0xFFFFFFFC));
+    inline GLOBAL SetupTriangle *triangles(GLOBAL SetupTriangle *triangles) const GLOBAL {
+        return (GLOBAL SetupTriangle *)((GLOBAL char *)triangles + (offset & 0xFFFFFFFC));
     }
 #else
     inline uint32_t type() const {

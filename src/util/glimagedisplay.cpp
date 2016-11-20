@@ -39,14 +39,14 @@ const char *ps_source =
     "}\n";
 
 // TODO: shorthand for this type
-vec2 vertices[6] = {
-    vec2(-1, -1),
-    vec2(-1, 1),
-    vec2(1, 1),
+float2 vertices[6] = {
+    float2(-1, -1),
+    float2(-1, 1),
+    float2(1, 1),
 
-    vec2(-1, -1),
-    vec2(1, 1),
-    vec2(1, -1)
+    float2(-1, -1),
+    float2(1, 1),
+    float2(1, -1)
 };
 
 void glfw_error_callback(int error, const char *msg) {
@@ -105,7 +105,7 @@ GLImageDisplay::GLImageDisplay(int width, int height, Image<float, 3> *image)
 
     glGenBuffers(1, &vb);
     glBindBuffer(GL_ARRAY_BUFFER, vb);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * 6, vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float2) * 6, vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindVertexArray(0);

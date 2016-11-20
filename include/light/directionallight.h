@@ -18,10 +18,10 @@ class DirectionalLight : public Light {
 private:
 
     /** @brief Light direction */
-    vec3 direction;
+    float3 direction;
 
     /** @brief Color */
-    vec3 color;
+    float3 color;
 
     /** @brief Whether this light casts shadows */
     bool shadow;
@@ -35,17 +35,17 @@ public:
      * @param color     Color
      * @param shadow    Whether this light casts shadows
      */
-    DirectionalLight(vec3 direction, vec3 color, bool shadow);
+    DirectionalLight(float3 direction, float3 color, bool shadow);
 
     /**
      * @brief Get the direction of the light
      */
-    vec3 getDirection(const vec3 & pos);
+    float3 getDirection(const float3 & pos);
 
     /**
      * @brief Get the color of the light
      */
-    vec3 getColor(const vec3 & pos);
+    float3 getColor(const float3 & pos);
 
     /**
      * @brief Get whether this light casts shadows
@@ -55,7 +55,7 @@ public:
     /**
      * Get the direction of a shadow-testing ray from a given position
      */
-    vec3 getShadowDir(const vec3 & at);
+    float3 getShadowDir(const float3 & at);
 };
 
 #endif

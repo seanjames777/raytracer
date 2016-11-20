@@ -19,7 +19,7 @@ private:
      * @brief Swap the contents of two float pointers
      */
     template<typename T>
-    inline static void swap(thread T & a, thread T & b) {
+    inline static void swap(THREAD T & a, THREAD T & b) {
         T temp(a);
         a = b;
         b = temp;
@@ -76,7 +76,6 @@ public:
         join(box.max);
     }
 
-#if GPU
     /**
      * @brief Check whether a ray intersects the box
      *
@@ -87,7 +86,7 @@ public:
      * @return Whether the ray intersected the box
      */
     // TODO test inline
-    inline bool intersects(Ray r, thread float & tmin_out, thread float & tmax_out) const
+    inline bool intersects(Ray r, THREAD float & tmin_out, THREAD float & tmax_out) const
     {
         // http://people.csail.mit.edu/amy/papers/box-jgt.pdf
 
@@ -123,7 +122,6 @@ public:
 
         return true;
     }
-#endif
 
     /**
      * @brief Check whether a point is within the bounds of the box
@@ -161,7 +159,6 @@ public:
         return 2 * (ext.x * ext.y + ext.x * ext.z + ext.y * ext.z);
     }
 
-#if !GPU
     /**
      * @brief Split the box along a specific axis
      *
@@ -173,22 +170,21 @@ public:
     AABB split(float dist, int axis, AABB & left, AABB & right) const {
         switch(axis) {
         case 0:
-            left = AABB(min, (float3){ dist, max.y, max.z });
-            right = AABB((float3){ dist, min.y, min.z }, max);
+            left = AABB(min, float3(dist, max.y, max.z));
+            right = AABB(float3(dist, min.y, min.z), max);
             break;
         case 1:
-            left = AABB(min, (float3){ max.x, dist, max.z });
-            right = AABB((float3){ min.x, dist, min.z }, max);
+            left = AABB(min, float3(max.x, dist, max.z));
+            right = AABB(float3(min.x, dist, min.z), max);
             break;
         case 2:
-            left = AABB(min, (float3){ max.x, max.y, dist });
-            right = AABB((float3){ min.x, min.y, dist }, max);
+            left = AABB(min, float3(max.x, max.y, dist));
+            right = AABB(float3(min.x, min.y, dist), max);
             break;
         }
 
         return AABB(); // Shouldn't happen
     }
-#endif
 
 };
 

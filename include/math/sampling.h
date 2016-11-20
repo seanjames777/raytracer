@@ -10,7 +10,7 @@
 #ifndef __SAMPLING_H
 #define __SAMPLING_H
 
-//#include <random>
+#include <random>
 
 // TODO: Maybe use a random table
 // TODO: Add an initialization function
@@ -21,7 +21,6 @@
 // TODO: Lots of pow/sqrt/sin/cos in the hemisphere code
 // TODO: Non-uniform distributions of samples, i.e. normal/poisson
 
-#if 0
 /**
  * @brief Generate a random sample between 0 and 1 inclusive
  *
@@ -39,9 +38,9 @@ inline void rand1D(int count, float *samples) {
  * @param[in]  count   The square root of the number of samples to be generated
  * @param[out] samples 2D array of samples
  */
-inline void rand2D(int count, vec2 *samples) {
+inline void rand2D(int count, float2 *samples) {
     for (int i = 0; i < count * count; i++)
-        samples[i] = vec2(
+        samples[i] = float2(
             (float)rand() / (float)RAND_MAX,
             (float)rand() / (float)RAND_MAX
         );
@@ -53,9 +52,9 @@ inline void rand2D(int count, vec2 *samples) {
  * @param[in]  count   The number of samples to be generated
  * @param[out] samples 3D array of samples
  */
-inline void rand3D(int count, vec3 *samples) {
+inline void rand3D(int count, float3 *samples) {
     for (int i = 0; i < count; i++)
-        samples[i] = vec3(
+        samples[i] = float3(
             (float)rand() / (float)RAND_MAX,
             (float)rand() / (float)RAND_MAX,
             (float)rand() / (float)RAND_MAX
@@ -88,7 +87,7 @@ inline void randJittered1D(int count, float *samples) {
  * @param[in]  count   The square root of the number of samples to be generated
  * @param[out] samples 2D array of samples
  */
-inline void randJittered2D(int count, vec2 *samples) {
+inline void randJittered2D(int count, float2 *samples) {
     float step = 1.0f / (count + 1);
 
     for (int i = 0; i < count; i++) {
@@ -101,14 +100,13 @@ inline void randJittered2D(int count, vec2 *samples) {
             float min_v = j * step;
             float max_v = min_v + step;
 
-            samples[i * count + j]= vec2(
+            samples[i * count + j]= float2(
                 min_u * (1.0f - u1) + max_u * u1,
                 min_v * (1.0f - u2) + max_v * u2
             );
         }
     }
 }
-#endif
 
 /**
  * @brief Map 2D samples to a disk
@@ -116,12 +114,12 @@ inline void randJittered2D(int count, vec2 *samples) {
  * @param[in]    count   Square root of number of samples
  * @param[inout] samples Samples which will be remapped to a disk
  */
-inline void mapSamplesDisk(int count, vec2 *samples) {
+inline void mapSamplesDisk(int count, float2 *samples) {
     for (int i = 0; i < count * count; i++) {
         float r = sqrtf(samples[i].x);
         float theta = 2.0f * (float)M_PI * samples[i].y;
 
-        samples[i] = vec2(
+        samples[i] = float2(
             r * cosf(theta),
             r * sinf(theta)
         );
@@ -142,8 +140,8 @@ inline void mapSamplesDisk(int count, vec2 *samples) {
 inline void mapSamplesCosHemisphere(
     int count,
     float cos_pow,
-    vec2 *samples_in,
-    vec3 *samples_out)
+    float2 *samples_in,
+    float3 *samples_out)
 {
     // From "Raytracing from the Ground Up", pg. 129
     for (int i = 0; i < count * count; i++) {
@@ -158,7 +156,7 @@ inline void mapSamplesCosHemisphere(
         float cos_theta = powf(1.0f - u2, 1.0f / (cos_pow + 1.0f));
         float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
 
-        samples_out[i] = vec3(
+        samples_out[i] = float3(
             sin_theta * cos_phi,
             cos_theta,
             sin_theta * sin_phi
@@ -175,8 +173,8 @@ inline void mapSamplesCosHemisphere(
  */
 inline void mapSamplesHemisphere(
     int count,
-    vec2 *samples_in,
-    vec3 *samples_out)
+    float2 *samples_in,
+    float3 *samples_out)
 {
     // Same as mapSamplesCosHemisphere, but cos_pow replaced with 0
 
@@ -193,7 +191,7 @@ inline void mapSamplesHemisphere(
         float cos_theta = u2;
         float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
 
-        samples_out[i] = vec3(
+        samples_out[i] = float3(
             sin_theta * cos_phi,
             cos_theta,
             sin_theta * sin_phi
@@ -208,13 +206,13 @@ inline void mapSamplesHemisphere(
  * @param[inout] samples Samples to be reoriented
  * @param[in]    normal  Normal vector to align with
  */
-inline void alignHemisphereNormal(int count, vec3 *samples, const vec3 & normal) {
+inline void alignHemisphereNormal(int count, float3 *samples, const float3 & normal) {
     // TODO: Make the below makes sense, normalizes
 
     // Up vector is slightly offset from normal in case the normal is vertical
-    vec3 v = normal;
-    vec3 u = normalize(cross(normal, vec3(0.0072f, 1.0f, 0.0034f)));
-    vec3 w = cross(u, v);
+    float3 v = normal;
+    float3 u = normalize(cross(normal, float3(0.0072f, 1.0f, 0.0034f)));
+    float3 w = cross(u, v);
 
     for (int i = 0; i < count * count; i++)
         samples[i] = samples[i].x * u + samples[i].y * v + samples[i].z * w;

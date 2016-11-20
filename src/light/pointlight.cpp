@@ -5,11 +5,9 @@
  */
 
 #include <light/pointlight.h>
-
-#include <math/macro.h>
 #include <math/sampling.h>
 
-PointLight::PointLight(vec3 position, vec3 color, float radius, float range, float power,
+PointLight::PointLight(float3 position, float3 color, float radius, float range, float power,
     bool shadow)
     : position(position),
       color(color),
@@ -20,14 +18,14 @@ PointLight::PointLight(vec3 position, vec3 color, float radius, float range, flo
 {
 }
 
-vec3 PointLight::getDirection(const vec3 & pos) {
-    vec3 dir = normalize(pos - position);
+float3 PointLight::getDirection(const float3 & pos) {
+    float3 dir = normalize(pos - position);
 
     return dir;
 }
 
-vec3 PointLight::getColor(const vec3 & pos) {
-    vec3 diff = pos - position;
+float3 PointLight::getColor(const float3 & pos) {
+    float3 diff = pos - position;
     float dist2 = length2(diff);
 
     float falloff = 1.0f - saturate(dist2 / range2);
@@ -40,9 +38,9 @@ bool PointLight::castsShadows() {
     return shadow;
 }
 
-void PointLight::getShadowDir(const vec3 & at, vec3 *samples, int nSamples) {
+void PointLight::getShadowDir(const float3 & at, float3 *samples, int nSamples) {
     if (radius == 0.0f || nSamples == 0) {
-        vec3 dir = this->position - at;
+        float3 dir = this->position - at;
         samples[0] = dir;
         return;
     }

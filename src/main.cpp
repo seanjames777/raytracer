@@ -20,14 +20,14 @@
 Vertex transform_vertex(const Vertex & vertex, const mat4x4 & transform,
     const mat4x4 & transformInverseTranspose)
 {
-    vec4 position = transform * vec4(vertex.position, 1.0f);
-    vec4 normal = transformInverseTranspose * vec4(vertex.normal, 0.0f);
+    float4 position = transform * float4(vertex.position, 1.0f);
+    float4 normal = transformInverseTranspose * float4(vertex.normal, 0.0f);
 
     return Vertex(position.xyz(), normalize(normal.xyz()), vertex.uv);
 }
 
 void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & dst,
-    const vec3 & translation_v, const vec3 & rotation_v, const vec3 & scale_v)
+    const float3 & translation_v, const float3 & rotation_v, const float3 & scale_v)
 {
     mat4x4 transform =
         translation(translation_v.x, translation_v.y, translation_v.z) *
@@ -52,11 +52,11 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 1;
+    settings.pixelSamples = 16;
     settings.occlusionSamples = 5;
     settings.occlusionDistance = 4.0f;
     settings.shadowSamples = 4;
-    settings.nThreads = std::thread::max_hardware_concurrency() - 1;
+    settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
 
     float aspect = (float)settings.width / (float)settings.height;
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     // cleaned up at the end of the program. The raytracing code uses raw
     // pointers to minimize overhead.
 
-    auto camera = std::make_shared<Camera>(vec3(12.2f, 3.2f, -2.5f), vec3(1.3f, 0.0f, 0.0f),
+    auto camera = std::make_shared<Camera>(float3(12.2f, 3.2f, -2.5f), float3(1.3f, 0.0f, 0.0f),
         aspect, (float)M_PI / 2.0f, 19.25f, 0.0f);
 
     auto output = std::make_shared<Image<float, 3>>(settings.width, settings.height);
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
         for (int x = 0; x <= 0; x++) {
             transformed.clear();
             transform_mesh(polys, transformed,
-                vec3(x * 5.0f, 0.0f, z * 5.0f), vec3(0.0f), vec3(1.0f));
+                float3(x * 5.0f, 0.0f, z * 5.0f), float3(0.0f), float3(1.0f));
             for (auto & tri : transformed)
                 scene->addPoly(tri, shader.get());
         }
@@ -120,23 +120,23 @@ int main(int argc, char *argv[]) {
     transformed.clear();
 
     FbxLoader::load(relToExeDir("content/models/plane.fbx"), polys);
-    transform_mesh(polys, transformed, vec3(5, 1, -5), vec3((float)M_PI / 2.0f, 0, 0), vec3(0.25f, 1, 0.25f));
+    transform_mesh(polys, transformed, float3(5, 1, -5), float3((float)M_PI / 2.0f, 0, 0), float3(0.25f, 1, 0.25f));
 
     //for (auto & tri : transformed)
     //    scene->addPoly(tri, shader.get());
 
     auto light1 = std::make_shared<PointLight>(
-        vec3(-20, 20, -20), vec3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
+        float3(-20, 20, -20), float3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light1.get());
 
     auto light2 = std::make_shared<PointLight>(
-        vec3(20, 20, 20), vec3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
+        float3(20, 20, 20), float3(0.5f, 0.5f, 0.5f), 0.25f, 50.0f, 0.15f, true);
     scene->addLight(light2.get());
 
     printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getLights().size());
 
     auto rt = std::make_shared<Raytracer>(settings, scene.get());
-    auto disp = std::make_shared<GLImageDisplay>(3840, 2160, output.get());
+    auto disp = std::make_shared<GLImageDisplay>(1920, 1080, output.get());
 
     printf("Rendering\n");
 

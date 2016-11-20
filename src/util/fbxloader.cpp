@@ -68,13 +68,13 @@ void addAttribute(std::vector<Vertex> & vertices, FbxNodeAttribute *attribute) {
                 }
             }
 
-            vec3 position((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
-            vec3 normal((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
+            float3 position((float)vertexPos[0], (float)vertexPos[1], (float)vertexPos[2]);
+            float3 normal((float)vertexNorm[0], (float)vertexNorm[1], (float)vertexNorm[2]);
 
             Vertex vertex;
             vertex.position = position;
             vertex.normal = normalize(normal); // TODO necessary?
-            vertex.uv = vec2((float)vertexUV[0], (float)vertexUV[1]);
+            vertex.uv = float2((float)vertexUV[0], (float)vertexUV[1]);
 
             vertices.push_back(vertex);
         }

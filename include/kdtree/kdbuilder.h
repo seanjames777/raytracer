@@ -108,7 +108,7 @@ private:
     KDAllocator                      *_triangleAllocator;
 
     /**
-     * @brief KD-builder worker thread entrypoint
+     * @brief KD-builder worker THREAD entrypoint
      */
     void worker_thread();
 
@@ -156,7 +156,7 @@ private:
     /**
      * @brief Build a KD node
      *
-     * @param[in] threadCtx Worker thread context
+     * @param[in] threadCtx Worker THREAD context
      * @param[in] q_node    Queue node to process
      */
     void buildNode(void *threadCtx, KDBuilderQueueNode *q_node);
@@ -169,20 +169,20 @@ private:
 protected:
 
     /**
-     * @brief Should be overriden by builder implementations to construct a thread context
+     * @brief Should be overriden by builder implementations to construct a THREAD context
      * storing whatever information they would like to maintain during construction.
      *
-     * @param[in] idx Thread index
+     * @param[in] idx THREAD index
      *
-     * @return Thread context object
+     * @return THREAD context object
      */
     virtual void *prepareWorkerThread(int idx);
 
     /**
-     * @brief Should be overriden by builder implementations to destroy the thread context
+     * @brief Should be overriden by builder implementations to destroy the THREAD context
      * object for a worker thread.
      *
-     * @param[in] threadCtx Worker thread context object
+     * @param[in] threadCtx Worker THREAD context object
      */
     virtual void destroyWorkerThread(void *threadCtx);
 
@@ -190,7 +190,7 @@ protected:
      * @brief Should be overriden by builder implementations to decide how split a KD-tree
      * node
      *
-     * @param[in]  threadCtx  Worker thread context
+     * @param[in]  threadCtx  Worker THREAD context
      * @param[in]  bounds     Bounding box for input triangles
      * @param[in]  triangles  Triangle list to partition
      * @param[in]  depth      KD-tree node depth

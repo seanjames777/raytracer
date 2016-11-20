@@ -10,7 +10,6 @@
 #define __RAYTRACER_H
 
 #include <atomic>
-#include <core/raybuffer.h>
 #include <core/raytracersettings.h>
 #include <core/scene.h>
 #include <image/image.h>
@@ -19,6 +18,7 @@
 #include <rt_defs.h>
 #include <thread>
 #include <util/timer.h>
+#include <math/sampling.h>
 
 // TODO:
 //     - Tiled backbuffer
@@ -100,19 +100,19 @@ inline bool Raytracer::finished() {
      *
      * @param norm Direction to sample the environment
      */
-    inline vec3 getEnvironment(const vec3 & norm) {
+    inline float3 getEnvironment(const float3 & norm) {
         if (scene->getEnvironment() != NULL) {
-            vec4 sample = scene->getEnvironmentSampler()->sample(scene->getEnvironment(), norm);
-            return vec3(sample.x, sample.y, sample.z);
+            float4 sample = scene->getEnvironmentSampler()->sample(scene->getEnvironment(), norm);
+            return float3(sample.x, sample.y, sample.z);
         }
 
-        return vec3(0, 0, 0);
+        return float3(0, 0, 0);
     }
 
     /**
      * @brief Get the environment reflection at a point across a normal
      */
-    inline vec3 getEnvironmentReflection(const vec3 & direction, const vec3 & normal) {
+    inline float3 getEnvironmentReflection(const float3 & direction, const float3 & normal) {
         return getEnvironment(reflect(direction, normal));
     }
 
@@ -123,7 +123,7 @@ inline bool Raytracer::finished() {
      * @param result Collision information
      * @param ior    Index of refraction of shader
      */
-    inline vec3 getEnvironmentRefraction(const vec3 & direction, const vec3 & normal, float ior) {
+    inline float3 getEnvironmentRefraction(const float3 & direction, const float3 & normal, float ior) {
         return getEnvironment(refract(direction, normal, 1.0f, ior));
     }
 #endif

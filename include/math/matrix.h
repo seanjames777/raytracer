@@ -46,7 +46,7 @@ vector<T, N> operator*(const vector<T, N> & v, const matrix<T, N, N> & m) {
 
     for (unsigned int i = 0; i < N; i++)
         for (unsigned int j = 0; j < N; j++)
-            result.v[i] += v.v[i] * m.m[j][i];
+            result[i] += v[i] * m.m[j][i];
 
     return result;
 }
@@ -57,7 +57,7 @@ vector<T, N> operator*(const matrix<T, N, N> & m, const vector<T, N> & v) {
 
     for (unsigned int i = 0; i < N; i++)
         for (unsigned int j = 0; j < N; j++)
-            result.v[i] += m.m[i][j] * v.v[j];
+            result[i] += m.m[i][j] * v[j];
 
     return result;
 }
@@ -136,10 +136,10 @@ static mat4x4 orthographicRH(float width, float height, float depth) {
 /**
  * Create a left handed look-at matrix
  */
-static mat4x4 lookAtLH(const vec3 & position, const vec3 & target, const vec3 & up) {
-    vec3 zAxis = normalize(target - position);
-    vec3 xAxis = normalize(cross(up, zAxis));
-    vec3 yAxis = normalize(cross(zAxis, xAxis));
+static mat4x4 lookAtLH(const float3 & position, const float3 & target, const float3 & up) {
+    float3 zAxis = normalize(target - position);
+    float3 xAxis = normalize(cross(up, zAxis));
+    float3 yAxis = normalize(cross(zAxis, xAxis));
 
     mat4x4 out;
 
@@ -169,10 +169,10 @@ static mat4x4 lookAtLH(const vec3 & position, const vec3 & target, const vec3 & 
 /**
  * Create a right handed look-at matrix
  */
-static mat4x4 lookAtRH(const vec3 & position, const vec3 & target, const vec3 & up) {
-    vec3 zAxis = normalize(target - position);
-    vec3 xAxis = normalize(cross(up, zAxis));
-    vec3 yAxis = cross(zAxis, xAxis);
+static mat4x4 lookAtRH(const float3 & position, const float3 & target, const float3 & up) {
+    float3 zAxis = normalize(target - position);
+    float3 xAxis = normalize(cross(up, zAxis));
+    float3 yAxis = cross(zAxis, xAxis);
 
     mat4x4 out;
 

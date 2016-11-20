@@ -49,7 +49,7 @@ struct Ray {
      * @brief Get inverse ray direction
      */
     inline float3 invDirection() const {
-        return (float3){ 1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z };
+        return float3(1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z);
     }
 };
 

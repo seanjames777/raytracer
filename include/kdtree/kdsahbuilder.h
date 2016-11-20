@@ -29,10 +29,10 @@ struct SAHEvent {
 };
 
 /**
- * @brief KD-tree SAH builder thread context object
+ * @brief KD-tree SAH builder THREAD context object
  */
 struct KDSAHBuilderThreadCtx {
-    SAHEvent *events;         //!< Reuseable event list. One thread processes one list at a time.
+    SAHEvent *events;         //!< Reuseable event list. One THREAD processes one list at a time.
     int       event_capacity; //!< Capacity of event list
 };
 

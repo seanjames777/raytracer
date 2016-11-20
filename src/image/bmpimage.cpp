@@ -122,16 +122,16 @@ std::shared_ptr<Image<float, 3>> loadBMP(std::string filename) {
 
             switch (channels) {
             case 1:
-                bmp->setPixel(x, y, vec3(readPixels[i] / 255.0f));
+                bmp->setPixel(x, y, float3(readPixels[i] / 255.0f));
                 break;
             case 3:
-                bmp->setPixel(x, y, vec3(
+                bmp->setPixel(x, y, float3(
                     readPixels[i + 2] / 255.0f,
                     readPixels[i + 1] / 255.0f,
                     readPixels[i + 0] / 255.0f));
                 break;
             case 4:
-                bmp->setPixel(x, y, vec3(
+                bmp->setPixel(x, y, float3(
                     readPixels[i + 2] / 255.0f,
                     readPixels[i + 1] / 255.0f,
                     readPixels[i + 0] / 255.0f));
@@ -167,7 +167,7 @@ bool saveBMP(std::string filename, std::shared_ptr<Image<float, 3>> image) {
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            vec3 color = image->getPixel(x, y);
+            float3 color = image->getPixel(x, y);
             unsigned char r = (unsigned char)(color.x * 255.0f);
             unsigned char g = (unsigned char)(color.y * 255.0f);
             unsigned char b = (unsigned char)(color.z * 255.0f);
