@@ -29,11 +29,11 @@ float3 PBRShader::shade(
 	const Triangle *triangle = scene->getTriangle(result.triangle_id);
     const Vertex & interp = triangle->interpolate(result.beta, result.gamma);
 
-    float3 lp = float3(8.0f, 5.0f, 2.0f);
-    float2 ls = float2(13.0f, 13.0f);
+    float3 lp = float3(0.0f, 50.0f, 0.0f);
+    float2 ls = float2(30.0f, 30.0f);
     float3 ln = float3(0.0f, -1.0f, 0.0f);
     float3 kd = 1.0f / (float)M_PI;
-    float3 ld = 16.0f * ls.x * ls.y;
+    float3 ld = 1000.0f * ls.x * ls.y;
     float3 n = normalize(interp.normal);
 
     float3 output;
@@ -56,7 +56,7 @@ float3 PBRShader::shade(
         dir /= dist;
 
         float d1 = saturate(dot(-dir, ln));
-        float d2 = abs(dot(dir, n)); // TODO: saturate
+        float d2 = saturate(dot(dir, n));
 
         float3 light = kd * ld * d1 * d2 * pdf * (1.0f / (dist * dist));
 

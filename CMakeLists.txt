@@ -33,7 +33,7 @@ add_library(rt SHARED
     src/core/raytracersettings.cpp
     src/core/scene.cpp
     src/core/triangle.cpp
-    src/image/bmpimage.cpp
+    src/util/imageloader.cpp
     src/image/image.cpp
     src/kdtree/kdbuilder.cpp
     src/kdtree/kdmedianbuilder.cpp
@@ -45,8 +45,8 @@ add_library(rt SHARED
     src/light/pointlight.cpp
     src/shader/pbrshader.cpp
     src/shader/shader.cpp
-    src/util/fbxloader.cpp
-    src/util/glimagedisplay.cpp
+    src/util/meshloader.cpp
+    src/util/imagedisplay.cpp
     src/util/path.cpp
     src/util/timer.cpp
 
@@ -55,13 +55,15 @@ add_library(rt SHARED
     include/core/raytracersettings.h
     include/core/scene.h
     include/core/triangle.h
-    include/image/bmpimage.h
+    include/core/triangle.inl
+    include/util/imageloader.h
     include/image/image.h
     include/kdtree/kdbuilder.h
     include/kdtree/kdmedianbuilder.h
     include/kdtree/kdnode.h
     include/kdtree/kdsahbuilder.h
     include/kdtree/kdtree.h
+    include/kdtree/kdtree.inl
     include/light/directionallight.h
     include/light/light.h
     include/light/pointlight.h
@@ -74,8 +76,8 @@ add_library(rt SHARED
     include/shader/pbrshader.h
     include/shader/shader.h
     include/util/align.h
-    include/util/fbxloader.h
-    include/util/glimagedisplay.h
+    include/util/meshloader.h
+    include/util/imagedisplay.h
     include/util/path.h
     include/util/queue.h
     include/util/stack.h
@@ -93,12 +95,8 @@ target_link_libraries(rt
     glfw
     glew
     ${OPENGL_LIBRARIES}
-    fbx
+    assimp
 )
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    target_link_libraries(rt wsock32 ws2_32)
-endif()
 
 install(TARGETS rt DESTINATION bin)
 

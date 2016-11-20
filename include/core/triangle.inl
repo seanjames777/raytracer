@@ -93,7 +93,7 @@ bool intersects(
         
         float f = 1.0f / det;
         
-        float3 s = ray.origin - tri.v0;
+        float3 s = ray.origin - tri.v[0];
         float beta = f * dot(s, p);
         
         if (beta < 0.0f || beta > 1.0f)

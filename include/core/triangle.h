@@ -51,9 +51,7 @@ struct Vertex {
  * @brief Full triangle struct, with data needed for shading
  */
 struct Triangle {
-    Vertex       v0;           //!< Vertex 0 // TODO: Figure out order
-    Vertex       v1;           //!< Vertex 1
-    Vertex       v2;           //!< Vertex 2
+    Vertex       v[3];
     float3       normal;       //!< Face normal
     unsigned int triangle_id;  //!< Triangle ID
     unsigned int material_id;
@@ -67,9 +65,9 @@ struct Triangle {
      * @brief Constructor
      */
     Triangle(
-        Vertex v1,
-        Vertex v2,
-        Vertex v3,
+        Vertex v0,
+		Vertex v1,
+		Vertex v2,
         unsigned int triangle_id);
 
     /**
@@ -117,7 +115,7 @@ struct SetupTriangle {
     unsigned int triangle_id; //  4
                               // 44
 #elif defined(MOLLER_TRUMBORE_INTERSECTION)
-    float3    v0;               // 12
+    float3    v[0];               // 12
     float3    e1;               // 12
     float3    e2;               // 12
     unsigned int triangle_id; //  4
@@ -146,13 +144,14 @@ inline Triangle::Triangle(
     Vertex v1,
     Vertex v2,
     unsigned int   triangle_id)
-    : v0(v0),
-      v1(v1),
-      v2(v2),
-      triangle_id(triangle_id)
+	: triangle_id(triangle_id)
 {
-    float3 b = normalize(v2.position - v0.position);
-    float3 c = normalize(v1.position - v0.position);
+	v[0] = v0;
+	v[1] = v1;
+	v[2] = v2;
+
+    float3 b = normalize(v[2].position - v[0].position);
+    float3 c = normalize(v[1].position - v[0].position);
 
     normal = normalize(cross(c, b));
 }
@@ -165,9 +164,9 @@ inline Vertex Triangle::interpolate(float beta, float gamma) const GLOBAL {
     //    - Position could be retrieved from ray origin + direction * distance instead
 
     return Vertex(
-        v0.position * alpha + v1.position * beta + v2.position * gamma,
-        v0.normal   * alpha + v1.normal   * beta + v2.normal   * gamma,
-        v0.uv       * alpha + v1.uv       * beta + v2.uv       * gamma);
+        v[0].position * alpha + v[1].position * beta + v[2].position * gamma,
+        v[0].normal   * alpha + v[1].normal   * beta + v[2].normal   * gamma,
+        v[0].uv       * alpha + v[1].uv       * beta + v[2].uv       * gamma);
 }
 
 /**

@@ -39,8 +39,8 @@ void KDBuilder::partition(
     for (auto it = triangles.begin(); it != triangles.end(); it++) {
         Triangle *tri = *it;
 
-        float min = fminf(fminf(tri->v0.position[dir], tri->v1.position[dir]), tri->v2.position[dir]);
-        float max = fmaxf(fmaxf(tri->v0.position[dir], tri->v1.position[dir]), tri->v2.position[dir]);
+        float min = fminf(fminf(tri->v[0].position[dir], tri->v[1].position[dir]), tri->v[2].position[dir]);
+        float max = fmaxf(fmaxf(tri->v[0].position[dir], tri->v[1].position[dir]), tri->v[2].position[dir]);
 
         if (min == split && max == split) {
             if (planarMode == PLANAR_LEFT)
@@ -144,13 +144,13 @@ AABB KDBuilder::buildAABB(const std::vector<Triangle *> & triangles) {
     if (triangles.size() == 0)
         return AABB();
 
-    AABB box = AABB(triangles[0]->v0.position);
+    AABB box = AABB(triangles[0]->v[0].position);
 
     for (auto it = triangles.begin(); it != triangles.end(); it++) {
         const Triangle & tri = **it;
-        box.join(tri.v0.position);
-        box.join(tri.v1.position);
-        box.join(tri.v2.position);
+        box.join(tri.v[0].position);
+        box.join(tri.v[1].position);
+        box.join(tri.v[2].position);
     }
 
     return box;

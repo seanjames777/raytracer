@@ -8,17 +8,17 @@
 
 #include <core/raytracer.h>
 #include <core/scene.h>
-#include <image/bmpimage.h>
 #include <light/pointlight.h>
 #include <math/matrix.h>
-#include <util/fbxloader.h>
-#include <util/glimagedisplay.h>
+#include <util/imageloader.h>
+#include <util/meshloader.h>
+#include <util/imagedisplay.h>
 #include <util/path.h>
 #include <shader/pbrshader.h>
 #include <fstream>
 
-Vertex transform_vertex(const Vertex & vertex, const mat4x4 & transform,
-    const mat4x4 & transformInverseTranspose)
+Vertex transform_vertex(const Vertex & vertex, const float4x4 & transform,
+    const float4x4 & transformInverseTranspose)
 {
     float4 position = transform * float4(vertex.position, 1.0f);
     float4 normal = transformInverseTranspose * float4(vertex.normal, 0.0f);
@@ -29,18 +29,18 @@ Vertex transform_vertex(const Vertex & vertex, const mat4x4 & transform,
 void transform_mesh(const std::vector<Triangle> & src, std::vector<Triangle> & dst,
     const float3 & translation_v, const float3 & rotation_v, const float3 & scale_v)
 {
-    mat4x4 transform =
+	float4x4 transform =
         translation(translation_v.x, translation_v.y, translation_v.z) *
         yawPitchRoll(rotation_v.y, rotation_v.x, rotation_v.z) *
         scale(scale_v.x, scale_v.y, scale_v.z);
 
-    mat4x4 transformInverseTranspose = transpose(inverse(transform));
+	float4x4 transformInverseTranspose = transpose(inverse(transform));
 
     for (auto & tri : src) {
         dst.push_back(Triangle(
-            transform_vertex(tri.v0, transform, transformInverseTranspose),
-            transform_vertex(tri.v1, transform, transformInverseTranspose),
-            transform_vertex(tri.v2, transform, transformInverseTranspose),
+            transform_vertex(tri.v[0], transform, transformInverseTranspose),
+            transform_vertex(tri.v[1], transform, transformInverseTranspose),
+            transform_vertex(tri.v[2], transform, transformInverseTranspose),
             0 // Note: Invalid triangle ID
         ));
     }
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 16;
+    settings.pixelSamples = 1;
     settings.occlusionSamples = 5;
     settings.occlusionDistance = 4.0f;
     settings.shadowSamples = 4;
@@ -64,14 +64,14 @@ int main(int argc, char *argv[]) {
     // cleaned up at the end of the program. The raytracing code uses raw
     // pointers to minimize overhead.
 
-    auto camera = std::make_shared<Camera>(float3(12.2f, 3.2f, -2.5f), float3(1.3f, 0.0f, 0.0f),
+    auto camera = std::make_shared<Camera>(float3(10.0f, 3.0f, 0.0f), float3(0.0f, 3.0f, 0.0f),
         aspect, (float)M_PI / 2.0f, 19.25f, 0.0f);
 
     auto output = std::make_shared<Image<float, 3>>(settings.width, settings.height);
 
-    auto environment = BMPImage::loadBMP(relToExeDir("content/textures/cubemap.bmp"));
+    auto environment = ImageLoader::load(relToExeDir("content/textures/cubemap.bmp"));
 
-    auto checker = BMPImage::loadBMP(relToExeDir("content/textures/checker.bmp"));
+    auto checker = ImageLoader::load(relToExeDir("content/textures/checker.bmp"));
 
     auto check_sampler = std::make_shared<Sampler>(Bilinear, Wrap);
 
@@ -94,8 +94,8 @@ int main(int argc, char *argv[]) {
         cache.close();
     }
     else {
-        printf("Loading FBX\n");
-        FbxLoader::load(relToExeDir("content/models/conference.fbx"), polys);
+        printf("Loading Mesh\n");
+        MeshLoader::load(relToExeDir("content/models/sponza.obj"), polys);
 
         std::ofstream ocache("cache.bin", std::ios::out | std::ios::binary);
 
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
         for (int x = 0; x <= 0; x++) {
             transformed.clear();
             transform_mesh(polys, transformed,
-                float3(x * 5.0f, 0.0f, z * 5.0f), float3(0.0f), float3(1.0f));
+                float3(x * 5.0f, 0.0f, z * 5.0f), float3(0.0f), float3(0.02f));
             for (auto & tri : transformed)
                 scene->addPoly(tri, shader.get());
         }
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     polys.clear();
     transformed.clear();
 
-    FbxLoader::load(relToExeDir("content/models/plane.fbx"), polys);
+    MeshLoader::load(relToExeDir("content/models/plane.fbx"), polys);
     transform_mesh(polys, transformed, float3(5, 1, -5), float3((float)M_PI / 2.0f, 0, 0), float3(0.25f, 1, 0.25f));
 
     //for (auto & tri : transformed)
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
     printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getLights().size());
 
     auto rt = std::make_shared<Raytracer>(settings, scene.get());
-    auto disp = std::make_shared<GLImageDisplay>(1920, 1080, output.get());
+	auto disp = std::make_shared<ImageDisplay>(1920, 1080, output.get());
 
     printf("Rendering\n");
 

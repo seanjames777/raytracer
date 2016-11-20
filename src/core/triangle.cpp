@@ -27,9 +27,9 @@ void setupTriangles(Triangle **triangles, SetupTriangle *data, int num_triangles
         const Triangle & tri = *(triangles[i]);
         SetupTriangle & setup = data[i];
         
-        const float3 & v0 = tri.v0.position;
-        const float3 & v1 = tri.v1.position;
-        const float3 & v2 = tri.v2.position;
+        const float3 & v0 = tri.v[0].position;
+        const float3 & v1 = tri.v[1].position;
+        const float3 & v2 = tri.v[2].position;
         
         // Edges and normal
         float3 b = v2 - v0;
@@ -69,9 +69,9 @@ void setupTriangles(Triangle **triangles, SetupTriangle *data, int num_triangles
         const Triangle & tri = *(triangles[i]);
         SetupTriangle & setup = data[i];
         
-        setup.v0 = tri.v0.position;
-        setup.e1 = tri.v1.position - tri.v0.position;
-        setup.e2 = tri.v2.position - tri.v0.position;
+        setup.v[0] = tri.v[0].position;
+        setup.e1 = tri.v[1].position - tri.v[0].position;
+        setup.e2 = tri.v[2].position - tri.v[0].position;
         setup.triangle_id = tri.triangle_id;
     }
 #endif
