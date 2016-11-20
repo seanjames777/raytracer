@@ -1,47 +1,87 @@
 /**
- * @file kdsahbuilder.h
+ * @file kdtree/kdsahbuilder.h
  *
- * @brief KD-Tree builder which splits voxels based on the "surface area heuristic"
+ * @brief KD-Tree "surface area heuristic" builder
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
-#ifndef _KDSAHBUILDER_H
-#define _KDSAHBUILDER_H
+#ifndef __KDSAHBUILDER_H
+#define __KDSAHBUILDER_H
 
 #include <kdtree/kdbuilder.h>
 
+/**
+ * @brief SAH builder triangle event type enumeration
+ */
 enum SAHEventType {
-    SAH_END    = 0, // Triangle end
-    SAH_PLANAR = 1, // Trianlge lying in plane
-    SAH_BEGIN  = 2  // Triangle start
+    SAH_END    = 0, //!< Triangle end
+    SAH_PLANAR = 1, //!< Trianlge lying in plane
+    SAH_BEGIN  = 2  //!< Triangle start
 };
 
+/**
+ * @brief SAH builder triangle event
+ */
 struct SAHEvent {
-    enum SAHEventType flag; // Event type
-    float dist;             // Split location
+    enum SAHEventType flag; //!< Event type
+    float dist;             //!< Location along split axis
 };
 
+/**
+ * @brief KD-tree SAH builder thread context object
+ */
 struct KDSAHBuilderThreadCtx {
-	// Because we process one node at a time, we can reuse one event list allocation
-	SAHEvent *events;
-	int       event_capacity;
+    SAHEvent *events;         //!< Reuseable event list. One thread processes one list at a time.
+    int       event_capacity; //!< Capacity of event list
 };
 
+/**
+ * @brief KD-tree builder which splits nodes according to the Surface Area Heuristic
+ */
 class KDSAHBuilder : public KDBuilder {
+private:
+
+    float k_traversal; //!< Cost of traversing a KD-tree node
+    float k_intersect; //!< Cost of intersecting a triangle
+
 protected:
 
-	virtual void *prepareWorkerThread(int idx) override;
+    /**
+     * @copydoc KDBuilder::prepareWorkerThread
+     */
+    virtual void *prepareWorkerThread(int idx) override;
 
-	virtual void destroyWorkerThread(void *threadCtx) override;
+    /**
+     * @copydoc KDBuilder::destroyWorkerThread
+     */
+    virtual void destroyWorkerThread(void *threadCtx) override;
 
-    virtual bool splitNode(void *threadCtx, const AABB & bounds, const std::vector<Triangle *> & triangles,
-        int depth, int & dir, float & split, enum PlanarMode & planarMode) override;
+    /**
+     * @copydoc KDBuilder::splitNode
+     */
+    virtual bool splitNode(
+        void                          * threadCtx,
+        const AABB                    & bounds,
+        const std::vector<Triangle *> & triangles,
+        int                             depth,
+        float                         & split,
+        int                           & dir,
+        enum KDBuilderPlanarMode      & planarMode) override;
 
 public:
 
-    KDSAHBuilder();
+    /**
+     * @brief Constructor
+     *
+     * @param[in] k_traversal Cost of traversing a KD-tree node
+     * @param[in] k_intersect Cost of intersecting a KD-tree node
+     */
+    KDSAHBuilder(float k_traversal = 1.0f, float k_intersect = 0.5f);
 
+    /**
+     * @brief Destructor
+     */
     virtual ~KDSAHBuilder();
 
 };

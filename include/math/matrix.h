@@ -9,14 +9,12 @@
 #ifndef __MATH_MATRIX_H
 #define __MATH_MATRIX_H
 
-#define _USE_MATH_DEFINES
-#include <math.h>
-
 #include <math/vector.h>
 
 // M rows x N columns. TODO.
 template<typename T, unsigned int M, unsigned int N>
 struct matrix {
+    
     T m[M][N];
 
     // TODO initializer list, and zero()

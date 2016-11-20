@@ -11,16 +11,14 @@
 
 #include <math/vector.h>
 
+enum RayMode {
+    Shade     = 0,
+    Shadow    = 1
+};
+
 struct Ray {
-	// TODO decide how to handle aligns and the W component
-	vec3 origin;        //!< Ray origin point
-	vec3 direction;     //!< Ray direction vector
-	vec3 inv_direction; //!< 1 / ray direction components
-
-	__m128 ox, oy, oz;
-	__m128 dx, dy, dz;
-
-    // TODO: Derivatives for sampling
+    float3  origin;        //!< 12 Ray origin point
+    float3  direction;     //!< 12 Ray direction vector
 
     /**
      * @brief Constructor
@@ -34,25 +32,24 @@ struct Ray {
      * @param[in] origin    Ray origin point
      * @param[in] direction Ray direction vector
      */
-    Ray(const vec3 & origin, const vec3 & direction)
+    Ray(float3 origin, float3 direction)
         : origin(origin),
-          direction(direction),
-          inv_direction(1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z) // TODO SSE
+          direction(direction)
     {
-		ox = _mm_set1_ps(origin.x);
-		oy = _mm_set1_ps(origin.y);
-		oz = _mm_set1_ps(origin.z);
-
-		dx = _mm_set1_ps(direction.x);
-		dy = _mm_set1_ps(direction.y);
-		dz = _mm_set1_ps(direction.z);
     }
 
     /**
      * @brief Get the point a distance 't' along the direction vector from the origin
      */
-    inline vec3 at(float t) const {
+    inline float3 at(float t) const {
         return origin + direction * t;
+    }
+
+    /**
+     * @brief Get inverse ray direction
+     */
+    inline float3 invDirection() const {
+        return (float3){ 1.0f / direction.x, 1.0f / direction.y, 1.0f / direction.z };
     }
 };
 

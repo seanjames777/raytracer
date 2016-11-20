@@ -38,6 +38,12 @@ if ("${CMAKE_SYSTEM}" MATCHES "Windows")
     set_target_properties(json PROPERTIES IMPORTED_IMPLIB_DEBUG          ${CMAKE_SOURCE_DIR}/prebuilt/windows/lib/lib_json.lib)
     set_target_properties(json PROPERTIES IMPORTED_IMPLIB_RELEASE        ${CMAKE_SOURCE_DIR}/prebuilt/windows/lib/lib_json.lib)
     set_target_properties(json PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO ${CMAKE_SOURCE_DIR}/prebuilt/windows/lib/lib_json.lib)
+elseif ("${CMAKE_SYSTEM}" MATCHES "Darwin")
+    include_directories(${CMAKE_SOURCE_DIR}/prebuilt/OSX/include)
+
+    set_target_properties(fbx  PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libfbxsdk.dylib)
+    set_target_properties(glfw PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libglfw.dylib)
+    set_target_properties(glew PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libGLEW.dylib)
 else()
 # TODO
 endif()
@@ -48,5 +54,10 @@ if ("${CMAKE_SYSTEM}" MATCHES "Windows")
         CODE "file(GLOB    _DLLS_ \"${CMAKE_SOURCE_DIR}/prebuilt/windows/bin/*.dll\")"
         CODE "file(INSTALL \${_DLLS_} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)"
         CONFIGURATIONS Debug Release RelWithDebInfo MinSizeRel
+    )
+elseif ("${CMAKE_SYSTEM}" MATCHES "Darwin")
+    install(
+        CODE "file(GLOB    _LIBS_ \"${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/*.dylib\")"
+        CODE "file(INSTALL \${_LIBS_} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)"
     )
 endif()

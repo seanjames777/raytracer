@@ -1,28 +1,45 @@
 /**
- * @file kdmedianbuilder.h
+ * @file kdtree/kdmedianbuilder.h
  *
- * @brief KD-Tree builder which simply splits each voxel along its spatial median
- * along some dimension. The dimension is chosen either by round-robin or by
- * choosing the longest dimension.
+ * @brief KD-tree "spatial median" builder
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
-#ifndef _KDMEDIANBUILDER_H
-#define _KDMEDIANBUILDER_H
+#ifndef __KDMEDIANBUILDER_H
+#define __KDMEDIANBUILDER_H
 
 #include <kdtree/kdbuilder.h>
 
+/**
+ * @brief KD-tree builder which splits nodes along their spatial median. The split
+ * axis is chosen by round-robin or by choosing the longest dimension.
+ */
 class KDMedianBuilder : public KDBuilder {
 protected:
 
-    virtual bool splitNode(void *threadCtx, const AABB & bounds, const std::vector<Triangle *> & triangles,
-        int depth, int & dir, float & split, enum PlanarMode & planarMode) override;
+    /**
+     * @copydoc KDBuilder::splitNode
+     */
+    virtual bool splitNode(
+        void                          * threadCtx,
+        const AABB                    & bounds,
+        const std::vector<Triangle *> & triangles,
+        int                             depth,
+        float                         & split,
+        int                           & dir,
+        enum KDBuilderPlanarMode      & planarMode) override;
 
 public:
 
+    /**
+     * @brief Constructor
+     */
     KDMedianBuilder();
 
+    /**
+     * @brief Destructor
+     */
     virtual ~KDMedianBuilder();
 
 };

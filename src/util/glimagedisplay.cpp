@@ -1,12 +1,13 @@
 /**
- * @file glimagedisplay.cpp
+ * @file util/glimagedisplay.cpp
  *
- * @author Sean James
+ * @author Sean James <seanjames777@gmail.com>
  */
 
 #include <util/glimagedisplay.h>
-#include <iostream>
+
 #include <cassert>
+#include <iostream>
 #include <vector>
 
 const char *vs_source =
@@ -28,31 +29,35 @@ const char *ps_source =
     "uniform vec2 imageSize;\n"
     "void main() {\n"
     "    vec4 image = texture(textureSampler, var_uv);\n"
-    "    vec2 pixel = var_uv * imageSize;\n"
-    "    ivec2 check = ivec2(int(pixel.x / 16) %2, int(pixel.y / 16) % 2);\n"
-    "    vec3 check_rgb = vec3(check.x ^ check.y) * .2 + .7;\n"
-    "    out_color.rgb = image.rgb * image.a + check_rgb * (1.0 - image.a);\n"
+    "    // vec2 pixel = var_uv * imageSize;\n"
+    "    // ivec2 check = ivec2(int(pixel.x / 16) %2, int(pixel.y / 16) % 2);\n"
+    "    // vec3 check_rgb = vec3(check.x ^ check.y) * .2 + .7;\n"
+    "    out_color.rgb = image.rgb; /* * image.a + check_rgb * (1.0 - image.a); */\n"
     "    // out_color.rgb *= 2.0;\n"
     "    // out_color.rgb = out_color.rgb / (1.0 + out_color.rgb);\n"
-    "    out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
+    "    // out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
     "}\n";
 
 // TODO: shorthand for this type
 vec2 vertices[6] = {
-	vec2(-1, -1),
-	vec2(-1, 1),
-	vec2(1, 1),
+    vec2(-1, -1),
+    vec2(-1, 1),
+    vec2(1, 1),
 
-	vec2(-1, -1),
-	vec2(1, 1),
-	vec2(1, -1)
+    vec2(-1, -1),
+    vec2(1, 1),
+    vec2(1, -1)
 };
 
 void glfw_error_callback(int error, const char *msg) {
     printf("GLFW Error (%d): %s\n", error, msg);
 }
 
-void GLImageDisplay::worker_thread() {
+GLImageDisplay::GLImageDisplay(int width, int height, Image<float, 3> *image)
+    : width(width),
+      height(height),
+      image(image)
+{
     // TODO: may be initialized alread
     if (!glfwInit()) {
         std::cout << "Error initializing glfw" << std::endl;
@@ -66,13 +71,16 @@ void GLImageDisplay::worker_thread() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_DEPTH_BITS, 0);
+    glfwWindowHint(GLFW_STENCIL_BITS, 0);
+    glfwWindowHint(GLFW_SRGB_CAPABLE, true);
 
     if (!(window = glfwCreateWindow(width, height, "Window", NULL, NULL))) {
         printf("Error opening glfw window\n");
         return;
     }
 
-    pixels = new float[image->getWidth() * image->getHeight() * 4]; // TODO delete
+    pixels = new float[image->getWidth() * image->getHeight() * 3]; // TODO delete
 
     glfwMakeContextCurrent(window);
 
@@ -89,6 +97,8 @@ void GLImageDisplay::worker_thread() {
 
     // GLEW sometimes produces a spurious error
     glGetError();
+
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     glGenVertexArrays(1, &va);
     glBindVertexArray(va);
@@ -108,7 +118,7 @@ void GLImageDisplay::worker_thread() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image->getWidth(), image->getHeight(), 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, image->getWidth(), image->getHeight(), 0, GL_RGB,
         GL_FLOAT, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -172,30 +182,12 @@ void GLImageDisplay::worker_thread() {
 
     glfwSwapBuffers(window);
     glfwPollEvents();
-
-    while (display && !glfwWindowShouldClose(window)) {
-        refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-    glfwDestroyWindow(window);
-
-    glfwTerminate();
-}
-
-GLImageDisplay::GLImageDisplay(int width, int height, std::shared_ptr<Image> image)
-    : width(width),
-      height(height),
-      image(image),
-      display(true)
-{
-    thread = std::thread(&GLImageDisplay::worker_thread, this);
 }
 
 GLImageDisplay::~GLImageDisplay() {
-    display = false;
+    glfwDestroyWindow(window);
 
-    thread.join();
+    glfwTerminate();
 }
 
 /*
@@ -207,7 +199,7 @@ void GLImageDisplay::refresh() {
 
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->getWidth(), image->getHeight(),
-        GL_RGBA, GL_FLOAT, pixels);
+        GL_RGB, GL_FLOAT, pixels);
 
     glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
