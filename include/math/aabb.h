@@ -167,7 +167,7 @@ public:
      * @param[out] left  Box to the "left" of the split plane
      * @param[out] right Box to the "right" of the split plane
      */
-    AABB split(float dist, int axis, AABB & left, AABB & right) const {
+    AABB split(float dist, int axis, THREAD AABB & left, THREAD AABB & right) const {
         switch(axis) {
         case 0:
             left = AABB(min, float3(dist, max.y, max.z));

@@ -26,8 +26,8 @@ struct matrix {
     }
 };
 
-typedef matrix<float, 3, 3> mat3x3;
-typedef matrix<float, 4, 4> mat4x4;
+typedef matrix<float, 3, 3> float3x3;
+typedef matrix<float, 4, 4> float4x4;
 
 template<typename T, unsigned int M, unsigned int N>
 matrix<T, M, N> zero() {
@@ -88,8 +88,8 @@ matrix<T, N, N> transpose(const matrix<T, N, N> & mat) {
 /**
  * Get a left handed orthographic projection matrix. TODO linline/static
  */
-static mat4x4 orthographicLH(float left, float right, float bottom, float top, float nearz, float farz) {
-    mat4x4 out;
+static float4x4 orthographicLH(float left, float right, float bottom, float top, float nearz, float farz) {
+    float4x4 out;
 
     out.m[0][0]  = 2.0f / (right - left);
     out.m[1][1]  = 2.0f / (top - bottom);
@@ -105,15 +105,15 @@ static mat4x4 orthographicLH(float left, float right, float bottom, float top, f
 /**
  * Get a left handed orthographic projection matrix centered around the origin
  */
-static mat4x4 orthographicLH(float width, float height, float depth) {
+static float4x4 orthographicLH(float width, float height, float depth) {
     return orthographicLH(-width / 2.0f, width / 2.0f, -height / 2.0f, height / 2.0f, 0.01f, depth);
 }
 
 /**
  * Get a right handed orthographic projection matrix
  */
-static mat4x4 orthographicRH(float left, float right, float bottom, float top, float nearz, float farz) {
-    mat4x4 out;
+static float4x4 orthographicRH(float left, float right, float bottom, float top, float nearz, float farz) {
+    float4x4 out;
 
     out.m[0][0]  = 2.0f / (right - left);
     out.m[1][1]  = 2.0f / (top - bottom);
@@ -129,19 +129,19 @@ static mat4x4 orthographicRH(float left, float right, float bottom, float top, f
 /**
  * Get a right handed orthographic projection matrix centered around the origin
  */
-static mat4x4 orthographicRH(float width, float height, float depth) {
+static float4x4 orthographicRH(float width, float height, float depth) {
     return orthographicRH(-width / 2.0f, width / 2.0f, -height / 2.0f, height / 2.0f, -depth / 2.0f, depth / 2.0f);
 }
 
 /**
  * Create a left handed look-at matrix
  */
-static mat4x4 lookAtLH(const float3 & position, const float3 & target, const float3 & up) {
+static float4x4 lookAtLH(const float3 & position, const float3 & target, const float3 & up) {
     float3 zAxis = normalize(target - position);
     float3 xAxis = normalize(cross(up, zAxis));
     float3 yAxis = normalize(cross(zAxis, xAxis));
 
-    mat4x4 out;
+    float4x4 out;
 
     out.m[0][0] = xAxis.x;
     out.m[0][1] = yAxis.x;
@@ -169,12 +169,12 @@ static mat4x4 lookAtLH(const float3 & position, const float3 & target, const flo
 /**
  * Create a right handed look-at matrix
  */
-static mat4x4 lookAtRH(const float3 & position, const float3 & target, const float3 & up) {
+static float4x4 lookAtRH(const float3 & position, const float3 & target, const float3 & up) {
     float3 zAxis = normalize(target - position);
     float3 xAxis = normalize(cross(up, zAxis));
     float3 yAxis = cross(zAxis, xAxis);
 
-    mat4x4 out;
+    float4x4 out;
 
     out.m[0][0] = xAxis.x;
     out.m[1][0] = yAxis.x;
@@ -202,11 +202,11 @@ static mat4x4 lookAtRH(const float3 & position, const float3 & target, const flo
 /**
  * Create a left handed perspective projection matrix
  */
-static mat4x4 perspectiveLH(float fov, float aspect, float znear, float zfar) {
+static float4x4 perspectiveLH(float fov, float aspect, float znear, float zfar) {
     float h = cos(fov / 2.0f) / sin(fov / 2.0f);
     float w = h / aspect;
 
-    mat4x4 out;
+    float4x4 out;
 
     out.m[0][0] = w;
     out.m[1][1] = h;
@@ -220,11 +220,11 @@ static mat4x4 perspectiveLH(float fov, float aspect, float znear, float zfar) {
 /**
  * Create a right handed perspective projection matrix
  */
-static mat4x4 perspectiveRH(float fov, float aspect, float znear, float zfar) {
+static float4x4 perspectiveRH(float fov, float aspect, float znear, float zfar) {
     float h = cos(fov / 2.0f) / sin(fov / 2.0f);
     float w = h / aspect;
 
-    mat4x4 out;
+    float4x4 out;
 
     out.m[0][0] = w;
     out.m[1][1] = h;
@@ -238,11 +238,11 @@ static mat4x4 perspectiveRH(float fov, float aspect, float znear, float zfar) {
 /**
  * Get a rotation matrix around the X axis
  */
-static mat4x4 rotationX(float radians) {
+static float4x4 rotationX(float radians) {
     float cost = cosf(radians);
     float sint = sinf(radians);
 
-    mat4x4 out;
+    float4x4 out;
 
     out.m[0][0] = 1.0f;
     out.m[1][1] = cost;
@@ -257,11 +257,11 @@ static mat4x4 rotationX(float radians) {
 /**
  * Get a rotation matrix around the Y axis
  */
-static mat4x4 rotationY(float radians) {
+static float4x4 rotationY(float radians) {
     float cost = cosf(radians);
     float sint = sinf(radians);
 
-    mat4x4 out;
+    float4x4 out;
 
     out.m[0][0] = cost;
     out.m[0][2] = sint;
@@ -276,11 +276,11 @@ static mat4x4 rotationY(float radians) {
 /**
  * Get a rotation matrix around the Z axis
  */
-static mat4x4 rotationZ(float radians) {
+static float4x4 rotationZ(float radians) {
     float cost = cosf(radians);
     float sint = sinf(radians);
 
-    mat4x4 out;
+    float4x4 out;
 
     out.m[0][0] = cost;
     out.m[0][1] = -sint;
@@ -293,13 +293,36 @@ static mat4x4 rotationZ(float radians) {
 }
 
 /**
+ * Get a rotation matrix around an aritrary
+ */
+static float4x4 rotation(float3 axis, float radians) {
+    float cost = cosf(radians);
+    float sint = sinf(radians);
+
+    float4x4 out;
+
+    out.m[0][0] = cost + axis.x * axis.x * (1 - cost);
+    out.m[0][1] = (1 - cost) - axis.x * sint;
+    out.m[0][2] = axis.x * axis.z * (1 - cost) + axis.y * sint;
+    out.m[1][0] = axis.y * axis.x * (1 - cost) + axis.x * sint;
+    out.m[1][1] = cost + axis.y * axis.y * (1 - cost);
+    out.m[1][2] = axis.y * axis.z * (1 - cost) - axis.x * sint;
+    out.m[2][0] = axis.z * axis.x * (1 - cost) - axis.y * sint;
+    out.m[2][1] = axis.z * axis.y * (1 - cost) + axis.x * sint;
+    out.m[2][2] = cost + axis.z * axis.z * (1 - cost);
+    out.m[2][3] = 1.0f;
+
+    return out;
+}
+
+/**
  * Create a yaw, pitch, roll rotation matrix. The operations are applied
  * in the order: roll, then pitch, then yaw, around the origin
  */
-static mat4x4 yawPitchRoll(float yaw, float pitch, float roll) {
+static float4x4 yawPitchRoll(float yaw, float pitch, float roll) {
     // return rotationY(yaw) * rotationX(pitch) * rotationZ(roll);
 
-    mat4x4 out;
+    float4x4 out;
 
     float cy = cosf(yaw);
     float sy = sinf(yaw);
@@ -332,8 +355,8 @@ static mat4x4 yawPitchRoll(float yaw, float pitch, float roll) {
 /**
  * Get a scaling matrix
  */
-static mat4x4 scale(float x, float y, float z) {
-    mat4x4 out;
+static float4x4 scale(float x, float y, float z) {
+    float4x4 out;
 
     out.m[0][0] = x;
     out.m[1][1] = y;
@@ -346,8 +369,8 @@ static mat4x4 scale(float x, float y, float z) {
 /**
  * Get a translation matrix
  */
-static mat4x4 translation(float x, float y, float z) {
-    mat4x4 out;
+static float4x4 translation(float x, float y, float z) {
+    float4x4 out;
 
     out.m[0][0] = 1.0f;
     out.m[0][3] = x;
@@ -363,7 +386,20 @@ static mat4x4 translation(float x, float y, float z) {
 /**
  * Get the determinant of a matrix
  */
-static float determinant(const mat4x4 & mat) {
+static float determinant(const float3x3 & mat) {
+    // Generated by mathematica
+    return -mat.m[0][2] * mat.m[1][1] * mat.m[2][0] +
+            mat.m[0][1] * mat.m[1][2] * mat.m[2][0] +
+            mat.m[0][2] * mat.m[1][0] * mat.m[2][1] -
+            mat.m[0][0] * mat.m[1][2] * mat.m[2][1] -
+            mat.m[0][1] * mat.m[1][0] * mat.m[2][2] +
+            mat.m[0][0] * mat.m[1][1] * mat.m[2][2];
+}
+
+/**
+ * Get the determinant of a matrix
+ */
+static float determinant(const float4x4 & mat) {
     // Generated by mathematica
     return mat.m[0][3] * mat.m[1][2] * mat.m[2][1] * mat.m[3][0] - mat.m[0][2] * mat.m[1][3] * mat.m[2][1] * mat.m[3][0] - mat.m[0][3] * mat.m[1][1] * mat.m[2][2] * mat.m[3][0] +
            mat.m[0][1] * mat.m[1][3] * mat.m[2][2] * mat.m[3][0] + mat.m[0][2] * mat.m[1][1] * mat.m[2][3] * mat.m[3][0] - mat.m[0][1] * mat.m[1][2] * mat.m[2][3] * mat.m[3][0] -
@@ -378,8 +414,30 @@ static float determinant(const mat4x4 & mat) {
 /**
  * Get the inverse of a matrix
  */
-static mat4x4 inverse(const mat4x4 & mat) {
-    mat4x4 out;
+static float3x3 inverse(const float3x3 & mat) {
+    float3x3 out;
+
+    float det = determinant(mat);
+
+    // Generated by mathematica
+    out.m[0][0] = -mat.m[1][2] * mat.m[2][1] + mat.m[1][1] * mat.m[2][2];
+    out.m[0][1] =  mat.m[0][2] * mat.m[2][1] - mat.m[0][1] * mat.m[2][2];
+    out.m[0][2] = -mat.m[0][2] * mat.m[1][1] + mat.m[0][1] * mat.m[1][2];
+    out.m[1][0] =  mat.m[1][2] * mat.m[2][0] - mat.m[1][0] * mat.m[2][2];
+    out.m[1][1] = -mat.m[0][2] * mat.m[2][0] + mat.m[0][0] * mat.m[2][2];
+    out.m[1][2] =  mat.m[0][2] * mat.m[1][0] - mat.m[0][0] * mat.m[1][2];
+    out.m[2][0] = -mat.m[1][1] * mat.m[2][0] + mat.m[1][0] * mat.m[2][1];
+    out.m[2][1] =  mat.m[0][1] * mat.m[2][0] - mat.m[0][0] * mat.m[2][1];
+    out.m[2][2] = -mat.m[0][1] * mat.m[1][0] + mat.m[0][0] * mat.m[1][1];
+
+    return out;
+}
+
+/**
+ * Get the inverse of a matrix
+ */
+static float4x4 inverse(const float4x4 & mat) {
+    float4x4 out;
 
     float det = determinant(mat);
 
@@ -400,6 +458,19 @@ static mat4x4 inverse(const mat4x4 & mat) {
     out.m[3][1] = (-mat.m[0][2] * mat.m[2][1] * mat.m[3][0] + mat.m[0][1] * mat.m[2][2] * mat.m[3][0] + mat.m[0][2] * mat.m[2][0] * mat.m[3][1] - mat.m[0][0] * mat.m[2][2] * mat.m[3][1] - mat.m[0][1] * mat.m[2][0] * mat.m[3][2] + mat.m[0][0] * mat.m[2][1] * mat.m[3][2]) / det;
     out.m[3][2] = ( mat.m[0][2] * mat.m[1][1] * mat.m[3][0] - mat.m[0][1] * mat.m[1][2] * mat.m[3][0] - mat.m[0][2] * mat.m[1][0] * mat.m[3][1] + mat.m[0][0] * mat.m[1][2] * mat.m[3][1] + mat.m[0][1] * mat.m[1][0] * mat.m[3][2] - mat.m[0][0] * mat.m[1][1] * mat.m[3][2]) / det;
     out.m[3][3] = (-mat.m[0][2] * mat.m[1][1] * mat.m[2][0] + mat.m[0][1] * mat.m[1][2] * mat.m[2][0] + mat.m[0][2] * mat.m[1][0] * mat.m[2][1] - mat.m[0][0] * mat.m[1][2] * mat.m[2][1] - mat.m[0][1] * mat.m[1][0] * mat.m[2][2] + mat.m[0][0] * mat.m[1][1] * mat.m[2][2]) / det;
+
+    return out;
+}
+
+/**
+ * Get the upper 3x3 matrix of a 4x4 matrix
+ */
+static float3x3 upper3x3(const float4x4 & mat) {
+    float3x3 out;
+
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            out.m[i][j] = mat.m[i][j];
 
     return out;
 }

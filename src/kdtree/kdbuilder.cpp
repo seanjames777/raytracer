@@ -281,7 +281,7 @@ KDTree *KDBuilder::build(const Triangle *triangles, int num_triangles, KDAllocat
 
 #ifndef NDEBUG
 	// TODO: reserving a core for the rest of the system
-	int num_threads = max(std::thread::hardware_concurrency() - 1, 1);
+	int num_threads = max((int)std::thread::hardware_concurrency() - 1, 1);
 #else
 	int num_threads = std::thread::hardware_concurrency();
 #endif

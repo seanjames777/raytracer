@@ -9,8 +9,6 @@
 #ifndef __RTDEFS_H
 #define __RTDEFS_H
 
-#include <cstddef>
-
 #ifdef WIN32
 #ifdef rt_EXPORTS
 #define RT_EXPORT __declspec(dllexport)
@@ -22,7 +20,12 @@
 #define RT_EXPORT
 #endif
 
+#if GPU
+#define GLOBAL device
+#define THREAD thread
+#else
 #define GLOBAL
 #define THREAD
+#endif
 
 #endif

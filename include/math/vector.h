@@ -9,7 +9,11 @@
 #ifndef __MATH_VECTOR_H
 #define __MATH_VECTOR_H
 
-#if !GPU
+#if GPU
+#include <simd/simd.h>
+
+using namespace simd;
+#else
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <algorithm>
@@ -50,6 +54,14 @@ struct vector {
 typedef vector<float, 2> float2;
 typedef vector<float, 3> float3;
 typedef vector<float, 4> float4;
+
+typedef vector<int, 2> int2;
+typedef vector<int, 3> int3;
+typedef vector<int, 4> int4;
+
+typedef vector<unsigned int, 2> uint2;
+typedef vector<unsigned int, 3> uint3;
+typedef vector<unsigned int, 4> uint4;
 
 template<typename T>
 struct vector<T, 2> {
@@ -179,6 +191,26 @@ struct vector<T, 4> {
         return _v[i];
     }
 };
+
+template<typename T, unsigned int N>
+inline vector<T, N> min(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+    vector<T, N> out;
+    
+    for (unsigned int i = 0; i < N; i++)
+    out[i] = min(lhs[i], rhs[i]);
+    
+    return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<T, N> max(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+    vector<T, N> out;
+    
+    for (unsigned int i = 0; i < N; i++)
+        out[i] = max(lhs[i], rhs[i]);
+    
+    return out;
+}
 
 template<typename T, unsigned int N>
 inline vector<T, N> & operator+=(vector<T, N> & lhs, const vector<T, N> & rhs) {

@@ -1,0 +1,149 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 20.08.2010 18:13:43
+
+newmtl leaf
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Thorn_diffuse.ktx
+	map_d Sponza_Thorn_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Thorn_normal.ktx
+	map_roughness Sponza_Thorn_roughness.ktx
+
+newmtl vase_round
+	map_metallic Dielectric_metallic.ktx
+	map_Kd VaseRound_diffuse.ktx
+	map_objectTangentSpaceNormal VaseRound_normal.ktx
+	map_roughness VaseRound_roughness.ktx
+
+newmtl Material__57
+	map_metallic Dielectric_metallic.ktx
+	map_Kd VasePlant_diffuse.ktx
+	map_objectTangentSpaceNormal VasePlant_normal.ktx
+	map_roughness VasePlant_roughness.ktx
+	map_d VasePlant_diffuse.ktx
+
+newmtl Material__298
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Background_Albedo.ktx
+	map_objectTangentSpaceNormal Background_Normal.ktx
+	map_roughness Background_Roughness.ktx
+
+newmtl bricks
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Bricks_a_Albedo.ktx
+	map_objectTangentSpaceNormal Sponza_Bricks_a_Normal.ktx
+	map_roughness Sponza_Bricks_a_Roughness.ktx
+
+newmtl arch
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Arch_diffuse.ktx
+	map_roughness Sponza_Arch_roughness.ktx
+	map_objectTangentSpaceNormal Sponza_Arch_normal.ktx
+
+newmtl ceiling
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Ceiling_diffuse.ktx
+	map_roughness Sponza_Ceiling_roughness.ktx
+	map_objectTangentSpaceNormal Sponza_Ceiling_normal.ktx
+
+newmtl column_a
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Column_a_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Column_a_normal.ktx
+	map_roughness Sponza_Column_a_roughness.ktx
+
+newmtl floor
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Floor_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Floor_normal.ktx
+	map_roughness Sponza_Floor_roughness.ktx
+
+newmtl column_c
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Column_c_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Column_c_normal.ktx
+	map_roughness Sponza_Column_c_roughness.ktx
+
+newmtl details
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Details_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Details_normal.ktx
+	map_roughness Sponza_Details_roughness.ktx
+
+newmtl column_b
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Column_b_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Column_b_normal.ktx
+	map_roughness Sponza_Column_b_roughness.ktx
+
+newmtl flagpole
+	map_metallic Metallic_metallic.ktx
+	map_Kd Sponza_FlagPole_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_FlagPole_normal.ktx
+	map_roughness Sponza_FlagPole_roughness.ktx
+
+newmtl fabric_e
+	map_metallic Sponza_Fabric_metallic.ktx
+	map_Kd Sponza_Fabric_Green_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Fabric_Green_normal.ktx
+	map_roughness Sponza_Fabric_roughness.ktx
+
+newmtl fabric_d
+	map_metallic Sponza_Fabric_metallic.ktx
+	map_Kd Sponza_Fabric_Blue_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Fabric_Blue_normal.ktx
+	map_roughness Sponza_Fabric_roughness.ktx
+
+newmtl fabric_a
+	map_metallic Sponza_Fabric_metallic.ktx
+	map_Kd Sponza_Fabric_Red_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Fabric_Red_normal.ktx
+	map_roughness Sponza_Fabric_roughness.ktx
+
+newmtl fabric_g
+	map_metallic Sponza_Curtain_metallic.ktx
+	map_Kd Sponza_Curtain_Blue_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Curtain_Blue_normal.ktx
+	map_roughness Sponza_Curtain_roughness.ktx
+
+newmtl fabric_c
+	map_metallic Sponza_Curtain_metallic.ktx
+	map_Kd Sponza_Curtain_Red_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Curtain_Red_normal.ktx
+	map_roughness Sponza_Curtain_roughness.ktx
+
+newmtl fabric_f
+	map_metallic Sponza_Curtain_metallic.ktx
+	map_Kd Sponza_Curtain_Green_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Curtain_Green_normal.ktx
+	map_roughness Sponza_Curtain_roughness.ktx
+
+newmtl chain
+	map_metallic ChainTexture_Metallic.ktx
+	map_Kd ChainTexture_Albedo.ktx
+	map_d ChainTexture_Albedo.ktx
+	map_objectTangentSpaceNormal ChainTexture_Normal.ktx
+	map_roughness ChainTexture_Roughness.ktx
+
+newmtl vase_hanging
+	map_metallic Metallic_metallic.ktx
+	map_Kd VaseHanging_diffuse.ktx
+	map_objectTangentSpaceNormal VaseHanging_normal.ktx
+	map_roughness VaseHanging_roughness.ktx
+
+newmtl vase
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Vase_diffuse.ktx
+	map_objectTangentSpaceNormal Vase_normal.ktx
+	map_roughness Vase_roughness.ktx
+
+newmtl Material__25
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Lion_Albedo.ktx
+	map_objectTangentSpaceNormal Lion_Normal.ktx
+	map_roughness Lion_Roughness.ktx
+
+newmtl roof
+	map_metallic Dielectric_metallic.ktx
+	map_Kd Sponza_Roof_diffuse.ktx
+	map_objectTangentSpaceNormal Sponza_Roof_normal.ktx
+	map_roughness Sponza_Roof_roughness.ktx
