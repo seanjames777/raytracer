@@ -129,7 +129,22 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 								const Triangle *triangle = scene->getTriangle(result.triangle_id);
 								Vertex interp = triangle->interpolate(result.beta, result.gamma);
 
+								interp.normal = normalize(interp.normal); // TODO: do we want to do this here?
+
 								const Material *material = scene->getMaterial(triangle->material_id);
+
+								Image<float, 3> *normalMap = material->getNormalTexture();
+
+								if (normalMap) {
+									float3 tangent = normalize(interp.tangent);
+									float3 bitangent = cross(interp.normal, tangent);
+
+									Sampler sampler(Bilinear, Wrap);
+									float3 tbn = sampler.sample(normalMap, interp.uv) * 2.0f - 1.0f;
+
+									// TODO: extra normalize might not be needed
+									interp.normal = normalize(tbn.x * tangent - tbn.y * bitangent + tbn.z * interp.normal);
+								}
 
 								float3 wo = -r.direction;
 
@@ -146,19 +161,31 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 										float ndotl = saturate(dot(wi, interp.normal)); // TODO: normal mapping
 
 										sampleColor += weight * Li * material->f(interp, wo, wi) * ndotl;
+										//sampleColor += weight * material->f(interp, wo, wi);
 									}
 								}
 
-								float2 rand;
-								rand2D(1, &rand);
-
-								mapSamplesCosHemisphere(1, 1.0f, &rand, &r.direction);
-								alignHemisphereNormal(1, &r.direction, triangle->normal);
-
 								r.origin = interp.position + triangle->normal * 0.001f;
 
-								float ndotl = saturate(dot(r.direction, interp.normal));
-								weight *= material->f(interp, wo, r.direction) * ndotl * 1.5f;
+								float secondary;
+								rand1D(1, &secondary);
+
+								if (secondary < 0.5f || material->getReflectivity() == 0.0f) {
+									float2 rand;
+									rand2D(1, &rand);
+
+									mapSamplesCosHemisphere(1, 1.0f, &rand, &r.direction);
+									alignHemisphereNormal(1, &r.direction, triangle->normal);
+
+									// Importance sampling: n dot l term cancels out
+									weight *= material->f(interp, wo, r.direction) * (float)M_PI;
+								}
+								else {
+									r.direction = reflect(wo, interp.normal);
+									weight *= material->getReflectivity(); // TODO: hack
+									//float ndotl = saturate(dot(r.direction, interp.normal));
+									//weight *= material->f(interp, wo, r.direction) * ndotl;
+								}
 							}
 							else
 								break;

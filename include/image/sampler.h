@@ -27,8 +27,9 @@ enum FilterMode {
  * sampling
  */
 enum BorderMode {
-    Clamp, //!< Clamp pixel address to edge of image
-    Wrap   //!< Wrap pixel address around border of image
+    Clamp,  //!< Clamp pixel address to edge of image
+    Wrap,   //!< Wrap pixel address around border of image
+	Mirror  //!< Wrap mirrored
 };
 
 /**
@@ -51,7 +52,7 @@ private:
      * @return Pixel value
      */
     template<typename T, int C>
-    inline vector<T, C> sampleBorder(const Image<T, C> & image, int x, int y) const {
+    inline vector<T, C> sampleBorder(const Image<T, C> *image, int x, int y) const {
         // TODO: Note: power of two only
 
         int width = image->getWidth();
@@ -68,6 +69,11 @@ private:
             x &= (width - 1);           // Wrap around width - 1
             y &= (height - 1);
             break;
+		case Mirror:
+			// TODO
+			x = (x & width) ? (width - (x & (width - 1)) - 1) : (x & (width - 1));
+			y = (y & height) ? (height - (y & (height - 1)) - 1) : (y & (height - 1));
+			break;
         }
 
         return image->getPixel(x, y);
@@ -103,7 +109,7 @@ public:
      * @return Color value
      */
     template<typename T, int C>
-    inline vector<T, C> sample(const Image<T, C> & image, const float2 & uv) const
+    inline vector<T, C> sample(const Image<T, C> *image, const float2 & uv) const
     {
         // TODO: Might be worth doing a fancier filter
 
@@ -119,16 +125,16 @@ public:
             return sampleBorder(image, x0, y0);
         case Bilinear:
             // These should be nearby in the cache due to tiling
-            float4 s0 = sampleBorder(image, x0,     y0);
-            float4 s1 = sampleBorder(image, x0 + 1, y0);
-            float4 s2 = sampleBorder(image, x0,     y0 + 1);
-            float4 s3 = sampleBorder(image, x0 + 1, y0 + 1);
+            vector<T, C> s0 = sampleBorder(image, x0,     y0);
+			vector<T, C> s1 = sampleBorder(image, x0 + 1, y0);
+			vector<T, C> s2 = sampleBorder(image, x0,     y0 + 1);
+			vector<T, C> s3 = sampleBorder(image, x0 + 1, y0 + 1);
 
             float du = x - x0;
             float dv = y - y0;
 
-            float4 t0 = du * s1 + (1.0f - du) * s0;
-            float4 t1 = du * s3 + (1.0f - du) * s2;
+			vector<T, C> t0 = du * s1 + (1.0f - du) * s0;
+			vector<T, C> t1 = du * s3 + (1.0f - du) * s2;
 
             return dv * t1 + (1.0f - dv) * t0;
         }
@@ -143,7 +149,7 @@ public:
      * @return Color value
      */
     template<typename T, int C>
-    inline vector<T, C> sample(const Image<T, C> & image, const float3 & norm) const
+    inline vector<T, C> sample(const Image<T, C> *image, const float3 & norm) const
     {
         // TODO: This atan2 and acosf is super expensive
         float2 uv = (float2){ atan2f(norm.z, norm.x) + (float)M_PI, acosf(-norm.y) };

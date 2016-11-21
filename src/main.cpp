@@ -27,11 +27,15 @@ Vertex transformVertex(const Vertex & vertex, const float4x4 & transform,
 {
     float4 position = transform * float4(vertex.position, 1.0f);
     float4 normal = transformInverseTranspose * float4(vertex.normal, 0.0f);
+	float4 tangent = transformInverseTranspose * float4(vertex.tangent, 0.0f);
 
-    return Vertex(position.xyz(), normalize(normal.xyz()), vertex.uv);
+    return Vertex(position.xyz(), normalize(normal.xyz()), normalize(tangent.xyz()), vertex.uv);
 }
 
-std::shared_ptr<Image<float, 3>> loadTexture(std::string filename) {
+std::shared_ptr<Image<float, 3>> loadTexture(std::string name) {
+	std::string filename = relToExeDir("content/textures/" + name);
+	std::cout << "Load texture " << filename << std::endl;
+
 	if (textures.find(filename) != textures.end())
 		return textures[filename];
 
@@ -74,8 +78,30 @@ void loadMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<Scene> scene,
 
 		auto material = new PBRMaterial(); // TODO: delete
 
+		material->setDiffuseColor(props.diffuseColor);
+		material->setSpecularColor(props.specularColor);
+		material->setSpecularPower(props.specularPower);
+		material->setReflectivity(props.reflectivity);
+
 		if (props.diffuseTexture != "") {
-			std::cout << "Load " << props.diffuseTexture << std::endl;
+			auto texture = loadTexture(props.diffuseTexture);
+			assert(texture);
+
+			material->setDiffuseTexture(texture.get());
+		}
+
+		if (props.normalTexture != "") {
+			auto texture = loadTexture(props.normalTexture);
+			assert(texture);
+
+			material->setNormalTexture(texture.get());
+		}
+
+		if (props.specularTexture != "") {
+			auto texture = loadTexture(props.specularTexture);
+			assert(texture);
+
+			material->setRoughnessTexture(texture.get());
 		}
 
 		scene->addMaterial(material);
@@ -86,11 +112,11 @@ int main(int argc, char *argv[]) {
     printf("Loading scene...\n");
 
     RaytracerSettings settings;
-    settings.width = 1920;
-    settings.height = 1080;
-    settings.pixelSamples = 2;
+    settings.width = 3840;
+    settings.height = 2160;
+    settings.pixelSamples = 8;
     settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
-	settings.maxDepth = 1;
+	settings.maxDepth = 4;
 
     float aspect = (float)settings.width / (float)settings.height;
 
@@ -98,18 +124,18 @@ int main(int argc, char *argv[]) {
     // cleaned up at the end of the program. The raytracing code uses raw
     // pointers to minimize overhead.
 
+#if 1
     auto camera = std::make_shared<Camera>(float3(10.0f, 3.0f, 0.0f), float3(0.0f, 3.0f, 0.0f),
         aspect, (float)M_PI / 2.0f, 19.25f, 0.0f);
+#else
+	auto camera = std::make_shared<Camera>(float3(1.0f, 5.0f, 0.0f), float3(0.0f, 0.0f, 0.0f),
+		aspect, (float)M_PI / 2.0f, 19.25f, 0.0f);
+#endif
 
     auto output = std::make_shared<Image<float, 3>>(settings.width, settings.height);
 
     auto environment = ImageLoader::load(relToExeDir("content/textures/cubemap.bmp"));
-
-    auto checker = ImageLoader::load(relToExeDir("content/textures/checker.bmp"));
-
-    auto check_sampler = std::make_shared<Sampler>(Bilinear, Wrap);
-
-    auto env_sampler = std::make_shared<Sampler>(Nearest, Wrap);
+	auto env_sampler = std::make_shared<Sampler>(Nearest, Wrap);
 
     auto scene = std::make_shared<Scene>(camera.get(), output.get(), env_sampler.get(),
         environment.get());
@@ -117,12 +143,28 @@ int main(int argc, char *argv[]) {
     printf("Loading Mesh\n");
 
 	auto mesh = MeshLoader::load(relToExeDir("content/models/sponza.obj"));
-
     loadMesh(mesh, scene, float3(0.0f, 0.0f, 0.0f), float3(0.0f), float3(0.02f));
 
-	auto light1 = std::make_shared<PointLight>(
-        float3(0, 30, 0), 400.0f, true);
-    scene->addLight(light1.get());
+	mesh = MeshLoader::load(relToExeDir("content/models/sphere.fbx"));
+	MaterialProperties & mat = mesh->getMaterial(0);
+	mat.diffuseColor = 0.01f;
+	mat.specularPower = 256.0f;
+	mat.specularColor = 1.0f;
+	mat.reflectivity = 1.0f;
+	//loadMesh(mesh, scene, float3(4.0f, 1.0f, 0.0f), float3(0.0f), float3(1.0f));
+
+#if 0
+	auto light1 = std::make_shared<PointLight>(float3(0, 30, 0), 1500.0f, true);
+	scene->addLight(light1.get());
+#elif 0
+	auto light1 = std::make_shared<PointLight>(float3(0, 3.0f, 0), 20.0f, true);
+	scene->addLight(light1.get());
+#else
+	for (int x = -1; x <= 1; x++) {
+		auto light = new PointLight(float3(x * 10.0f, 3.0f, 0), 5.0f, true);
+		scene->addLight(light);
+	}
+#endif
 
     printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getNumLights());
 

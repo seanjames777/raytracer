@@ -35,6 +35,7 @@ add_library(rt SHARED
     src/core/scene.cpp
     src/core/triangle.cpp
     src/image/image.cpp
+    src/image/sampler.cpp
     src/kdtree/kdbuilder.cpp
     src/kdtree/kdmedianbuilder.cpp
     src/kdtree/kdnode.cpp
@@ -50,7 +51,6 @@ add_library(rt SHARED
     src/util/path.cpp
     src/util/timer.cpp
 
-    include/core/brdf.h
     include/core/camera.h
     include/core/material.h
     include/core/raytracer.h
@@ -59,6 +59,7 @@ add_library(rt SHARED
     include/core/triangle.h
     include/core/triangle.inl
     include/image/image.h
+    include/image/sampler.h
     include/kdtree/kdbuilder.h
     include/kdtree/kdmedianbuilder.h
     include/kdtree/kdnode.h

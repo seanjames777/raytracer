@@ -27,6 +27,7 @@
 struct Vertex {
     float3 position; //!< Vertex position
     float3 normal;   //!< Vertex normal
+	float3 tangent;  //!< Vertex tangent
     float2 uv;       //!< Vertex UV coordinates
 
     /**
@@ -44,6 +45,7 @@ struct Vertex {
     Vertex(
         float3 position,
         float3 normal,
+		float3 tangent,
         float2 uv);
 };
 
@@ -130,9 +132,11 @@ inline Vertex::Vertex() {
 inline Vertex::Vertex(
     float3 position,
     float3 normal,
+	float3 tangent,
     float2 uv)
     : position(position),
       normal(normal),
+	  tangent(tangent),
       uv(uv)
 {
 }
@@ -169,6 +173,7 @@ inline Vertex Triangle::interpolate(float beta, float gamma) const GLOBAL {
     return Vertex(
         v[0].position * alpha + v[1].position * beta + v[2].position * gamma,
         v[0].normal   * alpha + v[1].normal   * beta + v[2].normal   * gamma,
+		v[0].tangent  * alpha + v[1].tangent  * beta + v[2].tangent  * gamma,
         v[0].uv       * alpha + v[1].uv       * beta + v[2].uv       * gamma);
 }
 

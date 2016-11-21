@@ -33,6 +33,7 @@ void processSubmesh(aiMesh *mesh, const aiScene *scene, std::shared_ptr<Mesh> lo
 
 			v.position = float3(mesh->mVertices[index].x, mesh->mVertices[index].y, mesh->mVertices[index].z);
 			v.normal = float3(mesh->mNormals[index].x, mesh->mNormals[index].y, mesh->mNormals[index].z);
+			v.tangent = float3(mesh->mTangents[index].x, mesh->mTangents[index].y, mesh->mTangents[index].z);
 
 			if (texCoords)
 				v.uv = float2(texCoords[index].x, texCoords[index].y);
@@ -57,17 +58,16 @@ void processNode(aiNode *node, const aiScene *scene, std::shared_ptr<Mesh> mesh)
 }
 
 void processMaterial(aiMaterial *material, std::shared_ptr<Mesh> mesh) {
-#if 0
-	for (int i = 0; i < material->mNumProperties; i++) {
-		std::cout << material->mProperties[i]->mKey.C_Str() << std::endl;
-	}
-#endif
-
 	MaterialProperties props;
 
 	aiColor3D diffuse;
 	material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-	props.diffuseColor = float3(diffuse.r, diffuse.g, diffuse.b);
+	//props.diffuseColor = float3(diffuse.r, diffuse.g, diffuse.b);
+	props.diffuseColor = 0.6f; // TODO
+
+	props.specularColor = 0.8f; // TODO
+	props.specularPower = 8.0f; // TODO
+	props.reflectivity = 0.0f; // TODO
 
 	aiString path;
 
@@ -77,13 +77,33 @@ void processMaterial(aiMaterial *material, std::shared_ptr<Mesh> mesh) {
 		props.diffuseTexture = std::string(path.C_Str());
 	}
 
+	if (material->GetTextureCount(aiTextureType_NORMALS)) {
+		material->GetTexture(aiTextureType_NORMALS, 0, &path);
+		props.normalTexture = std::string(path.C_Str());
+	}
+
+	if (material->GetTextureCount(aiTextureType_HEIGHT)) {
+		material->GetTexture(aiTextureType_HEIGHT, 0, &path);
+		props.normalTexture = std::string(path.C_Str());
+	}
+
+	if (material->GetTextureCount(aiTextureType_SPECULAR)) {
+		material->GetTexture(aiTextureType_SPECULAR, 0, &path);
+		props.specularTexture = std::string(path.C_Str());
+	}
+
+	if (material->GetTextureCount(aiTextureType_SHININESS)) {
+		material->GetTexture(aiTextureType_SHININESS, 0, &path);
+		props.specularTexture = std::string(path.C_Str());
+	}
+
 	mesh->addMaterial(props);
 }
 
 std::shared_ptr<Mesh> load(std::string filename) {
 	Assimp::Importer importer;
 
-	const aiScene *scene = importer.ReadFile(filename, aiProcess_Triangulate);
+	const aiScene *scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
 
 	if (scene && scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		return nullptr;

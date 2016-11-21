@@ -38,7 +38,7 @@ public:
 		return triangles.size();
 	}
 
-	const Triangle & getTriangle(unsigned int i) const {
+	Triangle & getTriangle(unsigned int i) {
 		return triangles[i];
 	}
 
@@ -49,8 +49,13 @@ public:
 
 struct MaterialProperties {
 	float3 diffuseColor;
+	float3 specularColor;
+	float  specularPower;
+	float  reflectivity;
 
 	std::string diffuseTexture;
+	std::string normalTexture;
+	std::string specularTexture;
 };
 
 class Mesh {
@@ -87,7 +92,7 @@ public:
 		return materials.size();
 	}
 
-	const MaterialProperties & getMaterial(unsigned int i) const {
+	MaterialProperties & getMaterial(unsigned int i) {
 		return materials[i];
 	}
 };

@@ -88,7 +88,7 @@ inline void randJittered1D(int count, float *samples) {
  * @param[out] samples 2D array of samples
  */
 inline void randJittered2D(int count, float2 *samples) {
-    float step = 1.0f / (count + 1);
+    float step = 1.0f / (count + 1); // TODO: are you sure?
 
     for (int i = 0; i < count; i++) {
         for (int j = 0; j < count; j++) {

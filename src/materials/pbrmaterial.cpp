@@ -7,29 +7,70 @@
 #include <materials/pbrmaterial.h>
 
 #include <core/raytracer.h>
+#include <image/sampler.h>
 
 // TODO: preallocate upper bound for samples system wide or something
 // TODO: maybe interpolate less. there's a cheap way to get position
 
-PBRMaterial::PBRMaterial() {
+PBRMaterial::PBRMaterial()
+	: diffuseColor(1.0f),
+	  specularColor(1.0f),
+	  specularPower(8.0f),
+	  reflectivity(0.0f),
+	  diffuseTexture(nullptr),
+	  roughnessTexture(nullptr)
+{
 }
 
 PBRMaterial::~PBRMaterial() {
 }
+
+#if 0
+float3 PBRMaterial::f_delta(
+	const Vertex & interp,
+	const float3 & wo,
+	float3 & wi) const
+{
+	wo = 
+
+	return reflectivity;
+}
+#endif
 
 float3 PBRMaterial::f(
     const Vertex & interp,
     const float3 & wo,
     const float3 & wi) const
 {
-	return 1.0f / (float)M_PI;
+	float3 n = interp.normal;
+	float3 diffuse = diffuseColor / (float)M_PI;
 
+	Sampler sampler(Bilinear, Wrap);
+
+	if (diffuseTexture)
+		diffuse = sampler.sample(diffuseTexture, interp.uv);
+
+	float3 ks = specularColor;
+	float a = specularPower;
+
+	if (roughnessTexture) {
+		float shininess = sampler.sample(roughnessTexture, interp.uv).x;
+		a = pow(2.0f, 3.0f + shininess * 5.0f);
+	}
+
+	float3 h = (wi + wo) / 2.0f;
+	float ndoth = saturate(dot(n, h));
+
+	float3 specular = specularColor * (a + 8.0f) / (8.0f * (float)M_PI) * pow(ndoth, a);
+
+	return diffuse + specular;
+
+#if 0
     float3 lp = float3(0.0f, 50.0f, 0.0f);
     float2 ls = float2(30.0f, 30.0f);
     float3 ln = float3(0.0f, -1.0f, 0.0f);
     float3 kd = 1.0f / (float)M_PI;
     float3 ld = 1000.0f * ls.x * ls.y;
-    float3 n = normalize(interp.normal);
 
     float3 output;
 
@@ -63,6 +104,7 @@ float3 PBRMaterial::f(
 			output += light * sampleWeight;
 		//}
     }
+#endif
 
 #if 0
     //if (ray.depth < 2) {
@@ -173,8 +215,6 @@ float3 PBRMaterial::f(
     // TODO: ray.direction and ray are redundant. If this shows up elsewhere, maybe remove the direction
     // argument everywhere.
 #endif
-
-    return output;
 
     //float3 env = raytracer->getAmbientOcclusion(kdStack,
     //    interp.position + triangle->normal * .001f, triangle->normal);

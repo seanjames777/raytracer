@@ -121,6 +121,13 @@ struct vector<T, 3> {
           z(v)
     {
     }
+
+	vector<T, 3>(const vector<T, 2> & xy, T z)
+		: x(xy.x),
+		  y(xy.y),
+		  z(z)
+	{
+	}
     
     vector<T, 3>(T x, T y, T z)
         : x(x),
@@ -210,6 +217,16 @@ inline vector<T, N> max(const vector<T, N> & lhs, const vector<T, N> & rhs) {
         out[i] = max(lhs[i], rhs[i]);
     
     return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<T, N> abs(const vector<T, N> & v) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = abs(v[i]);
+
+	return out;
 }
 
 template<typename T, unsigned int N>

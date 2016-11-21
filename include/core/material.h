@@ -10,11 +10,16 @@
 #define __MATERIAL_H
 
 #include <core/triangle.h>
+#include <image/image.h>
 
 /**
  * @brief Base class for all Materials
  */
 class RT_EXPORT Material {
+private:
+
+	Image<float, 3> *normalTexture;
+
 public:
 
     /**
@@ -34,9 +39,21 @@ public:
         const Vertex & interp,
         const float3 & wo,
         const float3 & wi) const = 0;
+
+	virtual float getReflectivity() const = 0;
+
+	Image<float, 3> *getNormalTexture() const {
+		return normalTexture;
+	}
+
+	void setNormalTexture(Image<float, 3> *texture) {
+		normalTexture = texture;
+	}
 };
 
-inline Material::Material() {
+inline Material::Material()
+	: normalTexture(nullptr)
+{
 }
 
 inline Material::~Material() {
