@@ -100,6 +100,8 @@ public:
 
     void refresh();
 
+    bool shouldClose();
+
 };
 
 #endif

@@ -51,7 +51,7 @@ private:
      *
      * @return Pixel value
      */
-    template<typename T, int C>
+    template<typename T, unsigned int C>
     inline vector<T, C> sampleBorder(const Image<T, C> *image, int x, int y) const {
         // TODO: Note: power of two only
 
@@ -108,7 +108,7 @@ public:
      *
      * @return Color value
      */
-    template<typename T, int C>
+    template<typename T, unsigned int C>
     inline vector<T, C> sample(const Image<T, C> *image, const float2 & uv) const
     {
         // TODO: Might be worth doing a fancier filter
@@ -148,7 +148,7 @@ public:
      *
      * @return Color value
      */
-    template<typename T, int C>
+    template<typename T, unsigned int C>
     inline vector<T, C> sample(const Image<T, C> *image, const float3 & norm) const
     {
         // TODO: This atan2 and acosf is super expensive

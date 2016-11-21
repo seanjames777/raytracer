@@ -105,7 +105,7 @@ std::shared_ptr<Mesh> load(std::string filename) {
 
 	const aiScene *scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
 
-	if (scene && scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		return nullptr;
 
 	std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();

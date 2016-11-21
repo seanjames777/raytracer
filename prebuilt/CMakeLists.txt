@@ -46,9 +46,10 @@ if ("${CMAKE_SYSTEM}" MATCHES "Windows")
 elseif ("${CMAKE_SYSTEM}" MATCHES "Darwin")
     include_directories(${CMAKE_SOURCE_DIR}/prebuilt/OSX/include)
 
-    set_target_properties(fbx  PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libfbxsdk.dylib)
-    set_target_properties(glfw PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libglfw.dylib)
-    set_target_properties(glew PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libGLEW.dylib)
+    set_target_properties(fbx    PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libfbxsdk.dylib)
+    set_target_properties(glfw   PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libglfw.dylib)
+    set_target_properties(glew   PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libGLEW.dylib)
+    set_target_properties(assimp PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/prebuilt/OSX/lib/libassimp.dylib)
 else()
 # TODO
 endif()

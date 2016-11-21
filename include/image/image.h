@@ -88,7 +88,7 @@ public:
      * @brief Destructor
      */
     ~Image() {
-        _aligned_free(data);
+        aligned_free(data);
     }
 
     /**

@@ -84,7 +84,6 @@ void KDBuilder::buildLeafNode(KDBuilderQueueNode *q_node) {
 
     node->offset = (uint32_t)offset | KD_LEAF;
     node->count = q_node->triangles.size();
-    node->magic = 0xFF00FF00;
 }
 
 void KDBuilder::buildInnerNode(
@@ -118,7 +117,6 @@ void KDBuilder::buildInnerNode(
 
     node->offset = offset | dir;
     node->split_dist = split;
-    node->magic = 0xFF00FF00;
 
     queue_lock.lock();
     node_queue.enqueue(left);

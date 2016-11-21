@@ -190,6 +190,10 @@ ImageDisplay::~ImageDisplay() {
     glfwTerminate();
 }
 
+bool ImageDisplay::shouldClose() {
+    return glfwWindowShouldClose(window);
+}
+
 /*
  * Copy the texture to video memory and redraw the image
  * on screen

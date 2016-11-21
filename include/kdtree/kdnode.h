@@ -36,8 +36,6 @@ struct KDNode {
         unsigned int   count;
     };
     
-    uint32_t magic;
-    
     inline uint32_t type() const GLOBAL {
         return offset & 0x00000003;
     }

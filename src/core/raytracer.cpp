@@ -28,8 +28,8 @@ void Raytracer::render() {
         KDSAHBuilder builder;
 
         // TODO
-		void *nodeMem = aligned_alloc(1024 * 1024 * 100, alignof(KDNode));
-		void *triangleMem = aligned_alloc(1024 * 1024 * 100, alignof(SetupTriangle));
+		void *nodeMem = aligned_alloc(1024 * 1024 * 100, 8);
+		void *triangleMem = aligned_alloc(1024 * 1024 * 100, 8);
 
 		KDAllocator nodeAllocator(nodeMem, 1024 * 1024 * 100);
 		KDAllocator triangleAllocator(triangleMem, 1024 * 1024 * 100);

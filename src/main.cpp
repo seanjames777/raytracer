@@ -112,11 +112,11 @@ int main(int argc, char *argv[]) {
     printf("Loading scene...\n");
 
     RaytracerSettings settings;
-    settings.width = 3840;
-    settings.height = 2160;
-    settings.pixelSamples = 8;
+    settings.width = 1920;
+    settings.height = 1080;
+    settings.pixelSamples = 1;
     settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
-	settings.maxDepth = 4;
+	settings.maxDepth = 2;
 
     float aspect = (float)settings.width / (float)settings.height;
 
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
     printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getNumLights());
 
     auto rt = std::make_shared<Raytracer>(settings, scene.get());
-	auto disp = std::make_shared<ImageDisplay>(3840, 2160, output.get());
+	auto disp = std::make_shared<ImageDisplay>(1920, 1080, output.get());
 
     printf("Rendering\n");
 
@@ -178,23 +178,26 @@ int main(int argc, char *argv[]) {
 
     rt->render();
 
-    while (!rt->finished()) {
+    bool finished = false;
+
+    while (!disp->shouldClose()) {
         disp->refresh();
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (!finished && rt->finished()) {
+            finished = true;
+            
+            // TODO: Move into raytracer itself
+            float elapsed = (float)timer.getElapsedMilliseconds() / 1000.0f;
+            float cpu     = (float)timer.getCPUTime() / 1000.0f;
+
+            printf("Done: %f seconds (total), %f seconds (CPU), speedup: %.02f\n",
+                elapsed, cpu, cpu / elapsed);
+        }
     }
 
-    rt->shutdown(true);
+    rt->shutdown(false);
     disp->refresh();
-
-    // TODO: Move into raytracer itself
-    float elapsed = (float)timer.getElapsedMilliseconds() / 1000.0f;
-    float cpu     = (float)timer.getCPUTime() / 1000.0f;
-
-    printf("Done: %f seconds (total), %f seconds (CPU), speedup: %.02f\n",
-        elapsed, cpu, cpu / elapsed);
-
-    printf("Press any key to exit...\n");
-    getchar();
 
     return 0;
 }

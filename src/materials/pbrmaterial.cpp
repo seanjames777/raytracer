@@ -61,7 +61,7 @@ float3 PBRMaterial::f(
 	float3 h = (wi + wo) / 2.0f;
 	float ndoth = saturate(dot(n, h));
 
-	float3 specular = specularColor * (a + 8.0f) / (8.0f * (float)M_PI) * pow(ndoth, a);
+	float3 specular = specularColor * (a + 8.0f) / (8.0f * (float)M_PI) * powf(ndoth, a);
 
 	return diffuse + specular;
 
