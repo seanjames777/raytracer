@@ -1,0 +1,10 @@
+No stack:                                                5.79
+Stack:                                                   5.87
+Shadow stack + radiance stack:                           5.71
++ Shading stack:                                         5.55
+Sort by triangle ID:                                     5.34
+--- blue screen ---
+Iterate over shadows instead of pop:                     5.19
+Sort primary rays by direction:                          5.16
+Sort primary rays by origin/direction                    5.16
+Don't enqueue far KD nodes if they are outside max       3.67

@@ -205,7 +205,7 @@ void ImageDisplay::refresh() {
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->getWidth(), image->getHeight(),
         GL_RGB, GL_FLOAT, pixels);
 
-    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shaders);
@@ -213,6 +213,23 @@ void ImageDisplay::refresh() {
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vb);
     glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0);
+
+	int windowWidth, windowHeight;
+	int imageWidth = image->getWidth();
+	int imageHeight = image->getHeight();
+	glfwGetWindowSize(window, &windowWidth, &windowHeight);
+
+	float imageAspect = (float)imageWidth / (float)imageHeight;
+
+	int viewportHeight = windowHeight;
+	int viewportWidth = viewportHeight * imageAspect;
+
+	if (viewportWidth > windowWidth) {
+		viewportWidth = windowWidth;
+		viewportHeight = viewportWidth / imageAspect;
+	}
+
+	glViewport((windowWidth - viewportWidth) / 2, (windowHeight - viewportHeight) / 2, viewportWidth, viewportHeight);
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 

@@ -90,6 +90,10 @@ public:
      */
     bool intersect(THREAD KDStackFrame *stack, Ray ray, bool anyCollision, float max, THREAD Collision & result);
 
+#if 0
+	void intersectPacket(THREAD KDStackFrame *stackMem, const Packet & packet, bool anyCollision, vector<float, 4> max, vector<bool, 4> & collision, THREAD Collision(&result)[4]);
+#endif
+
 };
 
 #endif

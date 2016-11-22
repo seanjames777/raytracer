@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
 	scene->addLight(light1.get());
 #else
 	for (int x = -1; x <= 1; x++) {
-		auto light = new PointLight(float3(x * 10.0f, 3.0f, 0), 5.0f, true);
+		auto light = new PointLight(float3(x * 10.0f, 3.0f, 0), 20.0f, true);
 		scene->addLight(light);
 	}
 #endif

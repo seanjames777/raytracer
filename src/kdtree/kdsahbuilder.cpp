@@ -55,6 +55,10 @@ bool KDSAHBuilder::splitNode(
     int                           & dir,
     enum KDBuilderPlanarMode      & planarMode)
 {
+	// TODO: Look around for better heuristics. Empty leaves?
+	// TODO: Perfect splits
+	// TODO: Tune depth vs. node size
+
     KDSAHBuilderThreadCtx *ctx = (KDSAHBuilderThreadCtx *)threadCtx;
 
     // Assumptions:

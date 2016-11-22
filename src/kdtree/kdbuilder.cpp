@@ -96,7 +96,7 @@ void KDBuilder::buildInnerNode(
     KDBuilderQueueNode *left = new KDBuilderQueueNode();
     KDBuilderQueueNode *right = new KDBuilderQueueNode();
     
-    uint32_t offset = _nodeAllocator->alloc(sizeof(KDNode) * 2, 4);
+    uint32_t offset = _nodeAllocator->alloc(sizeof(KDNode) * 2, 8);
 
     left->depth = depth + 1;
     left->refCount = 2;
@@ -126,7 +126,7 @@ void KDBuilder::buildInnerNode(
 }
 
 void KDBuilder::buildNode(void *threadCtx, KDBuilderQueueNode *q_node) {
-    // TODO: possibly traverse after construction to remove useless cells, etc.
+    // TODO: traverse after construction to remove useless cells, etc.
 
     int dir;
     float split;
@@ -262,7 +262,7 @@ KDTree *KDBuilder::build(const Triangle *triangles, int num_triangles, KDAllocat
     for (int i = 0; i < num_triangles; i++)
         q_node->triangles.push_back(const_cast<Triangle *>(&triangles[i]));
     
-    uint32_t offset = nodeAllocator->alloc(sizeof(KDNode), 4);
+    uint32_t offset = nodeAllocator->alloc(sizeof(KDNode), 8);
     KDNode *root = (KDNode *)((char *)nodeAllocator->memory() + offset);
 
     q_node->bounds = buildAABB(q_node->triangles);
