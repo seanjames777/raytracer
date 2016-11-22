@@ -47,6 +47,7 @@ float3 PBRMaterial::f(
 
 	Sampler sampler(Bilinear, Wrap);
 
+	// TODO: Big cache miss on texture sampling due to incoherent rays. Try sorting by material?
 	if (diffuseTexture)
 		diffuse = sampler.sample(diffuseTexture, interp.uv);
 
@@ -55,7 +56,7 @@ float3 PBRMaterial::f(
 
 	if (roughnessTexture) {
 		float shininess = sampler.sample(roughnessTexture, interp.uv).x;
-		a = pow(2.0f, 3.0f + shininess * 5.0f);
+		a = exp2(3.0f + shininess * 5.0f); // TODO: approximate pow
 	}
 
 	float3 h = (wi + wo) / 2.0f;

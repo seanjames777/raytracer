@@ -26,7 +26,9 @@ endif()
 
 include(prebuilt/CMakeLists.txt)
 
-add_library(rt SHARED
+add_executable(raytracer
+    src/main.cpp
+
     src/core/camera.cpp
     src/core/camera.cpp
     src/core/material.cpp
@@ -86,27 +88,21 @@ add_library(rt SHARED
     include/util/timer.h
 )
 
-add_executable(raytracer src/main.cpp)
-target_link_libraries(raytracer rt)
-install(TARGETS raytracer DESTINATION bin)
-
 FIND_PACKAGE(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
 
-target_link_libraries(rt
+target_link_libraries(raytracer
     glfw
     glew
     ${OPENGL_LIBRARIES}
     assimp
 )
 
-install(TARGETS rt DESTINATION bin)
+install(TARGETS raytracer DESTINATION bin)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/content/" DESTINATION bin/content)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     install(FILES ${PROJECT_BINARY_DIR}/Debug/raytracer.pdb DESTINATION bin CONFIGURATIONS Debug)
-    install(FILES ${PROJECT_BINARY_DIR}/Debug/rt.pdb DESTINATION bin CONFIGURATIONS Debug)
     install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/raytracer.pdb DESTINATION bin CONFIGURATIONS RelWithDebInfo)
-    install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/rt.pdb DESTINATION bin CONFIGURATIONS RelWithDebInfo)
 endif ()

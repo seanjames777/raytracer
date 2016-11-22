@@ -215,9 +215,16 @@ bool KDSAHBuilder::splitNode(
             float sa_l = v1.surfaceArea();
             float sa_r = v2.surfaceArea();
 
-            // Try placing planar triangles in the left and right sets and choose the lower cost
-            float costL = k_traversal + k_intersect * (sa_l / sa_v * (count_left + count_planar) + sa_r / sa_v * count_right);
-            float costR = k_traversal + k_intersect * (sa_l / sa_v * count_left + sa_r / sa_v * (count_right + count_planar));
+			float costL = std::numeric_limits<float>::infinity();
+			float costR = std::numeric_limits<float>::infinity();
+
+			// Don't use this split if either child volume would have zero surface area, because the probability of hitting
+			// those nodes would be 0
+			if (sa_l != 0.0f && sa_r != 0.0f) {
+				// Try placing planar triangles in the left and right sets and choose the lower cost
+				costL = k_traversal + k_intersect * (sa_l / sa_v * (count_left + count_planar) + sa_r / sa_v * count_right);
+				costR = k_traversal + k_intersect * (sa_l / sa_v * count_left + sa_r / sa_v * (count_right + count_planar));
+			}
 
             enum KDBuilderPlanarMode minMode;
             float cost;

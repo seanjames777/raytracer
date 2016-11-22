@@ -80,12 +80,14 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision
                 exit = t;
             }
             
+			// TODO: Significant cache miss here due to pulling node in from memory. Try prefetching or sorting rays by traversed nodes.
             type = currentNode->type();
         }
         
         // TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
         // TODO: Ignores max depth
         
+		// TODO: inlining this function may help
         if (intersects(ray, currentNode->triangles(triangles),
                        currentNode->count,
                        anyCollision,

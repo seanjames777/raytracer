@@ -37,7 +37,7 @@ inline void *aligned_alloc(size_t size, size_t align) {
 
 inline void aligned_free(void *ptr) {
 #ifdef WIN32
-    return _aligned_free(size, align);
+    return _aligned_free(ptr);
 #else
     free(ptr);
 #endif   

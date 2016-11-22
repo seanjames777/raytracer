@@ -127,6 +127,9 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 						for (int depth = 0; depth < settings.maxDepth; depth++) {
 							if (tree->intersect(stack, r, false, INFINITY, result)) {
 								const Triangle *triangle = scene->getTriangle(result.triangle_id);
+
+								// TODO: Significant cache miss here pulling vertex data in from memory. Try sorting shading work by
+								// triangle?
 								Vertex interp = triangle->interpolate(result.beta, result.gamma);
 
 								interp.normal = normalize(interp.normal); // TODO: do we want to do this here?

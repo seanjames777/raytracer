@@ -11,9 +11,11 @@
 
 #ifdef WIN32
 #ifdef rt_EXPORTS
-#define RT_EXPORT __declspec(dllexport)
+//#define RT_EXPORT __declspec(dllexport)
+#define RT_EXPORT
 #else
-#define RT_EXPORT __declspec(dllimport)
+//#define RT_EXPORT __declspec(dllimport)
+#define RT_EXPORT
 #endif
 #pragma warning(disable: 4251)
 #else
