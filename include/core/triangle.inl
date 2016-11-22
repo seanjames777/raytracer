@@ -50,7 +50,7 @@ bool intersects(
                          - tri.n_u * ray.origin[u] - tri.n_v * ray.origin[v]) * nd;
         
         // Behind camera or further
-        if (t_plane <= 0.0f || (found && t_plane >= result.distance) || t_plane < min || t_plane > max)
+        if ((found && t_plane >= result.distance) || t_plane < min || t_plane > max)
             continue;
         
         float hu = ray.origin[u] + t_plane * ray.direction[u];

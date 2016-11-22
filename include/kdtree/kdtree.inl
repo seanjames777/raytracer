@@ -27,7 +27,7 @@
 // TODO: Maybe help the heuristic with creating big empty gaps? Something about this
 //       in the SAH paper. Creating empty nodes or whatever.
 // TODO: Tweak heursitic constants
-bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision, float max, THREAD Collision & result)
+bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision, float tmax, THREAD Collision & result)
 {
     // http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
@@ -38,8 +38,14 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision
     GLOBAL KDNode *currentNode;
     float entry, exit;
     
-    if (!_bounds.intersects(ray, entry, exit) || entry > max)
+    if (!_bounds.intersects(ray, entry, exit))
         return false;
+
+	entry = max(entry, 0.0001f);
+	exit = min(exit, tmax);
+
+	if (entry > exit)
+		return false;
     
     float3 inv_direction = ray.invDirection();
     
@@ -75,8 +81,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision
             else if (t < entry)
                 currentNode = farNode;
             else {
-				if (t < max)
-					stack.push(KDStackFrame(farNode, t, exit));
+				stack.push(KDStackFrame(farNode, t, exit));
 
                 currentNode = nearNode;
                 exit = t;
@@ -90,12 +95,14 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision
         // TODO: Ignores max depth
         
 		// TODO: inlining this function may help
-        if (intersects(ray, currentNode->triangles(triangles),
-                       currentNode->count,
-                       anyCollision,
-                       entry,
-                       min(exit, max), // TODO
-                       result))
+        if (intersects(
+				ray,
+				currentNode->triangles(triangles),
+                currentNode->count,
+                anyCollision,
+                entry,
+                exit,
+                result))
         {
             return true;
         }
