@@ -230,6 +230,16 @@ inline vector<T, N> abs(const vector<T, N> & v) {
 }
 
 template<typename T, unsigned int N>
+inline vector<T, N> saturate(const vector<T, N> & v) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = saturate(v[i]);
+
+	return out;
+}
+
+template<typename T, unsigned int N>
 inline vector<T, N> & operator+=(vector<T, N> & lhs, const vector<T, N> & rhs) {
     for (unsigned int i = 0; i < N; i++)
         lhs[i] += rhs[i];

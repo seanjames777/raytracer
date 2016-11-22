@@ -20,8 +20,8 @@
 // TODO: Mipmaps
 // TODO: Cubemaps
 
-#define TILEX 32
-#define TILEY 32
+#define TILEX 4
+#define TILEY 4
 
 /**
  * @brief Stores an array of pixels. Pixels are grouped into tiles to improve cache coherence

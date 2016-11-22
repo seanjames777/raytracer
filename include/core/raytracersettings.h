@@ -21,9 +21,6 @@ struct RT_EXPORT RaytracerSettings {
     /** @brief Image height */
     int height;
 
-    /** @brief Block side size, in pixels. Threads render one block at a time */
-    int blockSize;
-
     /** @brief Square root of number of samples to take per pixel */
     int pixelSamples;
 
