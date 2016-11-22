@@ -19,13 +19,12 @@
  * @return True if there was a collision, or false otherwise
  */
 bool intersects(
-                Ray     ray,
-                GLOBAL SetupTriangle *data,
-                int            count,
-                bool           anyCollision,
-                float          min,
-                float          max,
-                THREAD Collision     &result)
+                Ray                    ray,
+                GLOBAL SetupTriangle * data,
+                int                    count,
+                float                  min,
+                float                  max,
+                THREAD Collision     & result)
 {
 #if defined(WALD_INTERSECTION)
     // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
@@ -71,10 +70,10 @@ bool intersects(
         result.beta = beta;
         result.gamma = gamma;
         result.triangle_id = tri.triangle_id;
+
         found = true;
-        
-        if (anyCollision)
-            return true;
+
+		// TODO: Could break here, but SIMD
     }
     
     return found;
@@ -124,5 +123,41 @@ bool intersects(
     return found;
 #endif
 }
+
+template<unsigned int N>
+vector<bool, N> intersectsPacket(
+	const Packet<N>           & packet,
+	GLOBAL SetupTriangle      * data,
+	int                         count,
+	const vector<float, N>    & min,
+	const vector<float, N>    & max,
+	THREAD PacketCollision<N> & result)
+{
+ 	vector<bool, N> hit = false;
+
+	for (int i = 0; i < N; i++) {
+		Ray ray(float3(packet.origin[0][i], packet.origin[1][i], packet.origin[2][i]), float3(packet.direction[0][i], packet.direction[1][i], packet.direction[2][i]));
+
+		Collision _result;
+		_result.distance = result.distance[i];
+
+		hit[i] = intersects(ray, data, count, min[i], max[i], _result);
+
+		result.beta[i] = _result.beta;
+		result.gamma[i] = _result.gamma;
+		result.distance[i] = _result.distance;
+		result.triangle_id[i] = _result.triangle_id;
+	}
+
+	return hit;
+}
+
+template vector<bool, 1> intersectsPacket(
+	const Packet<1>           & packet,
+	GLOBAL SetupTriangle      * data,
+	int                         count,
+	const vector<float, 1>    & min,
+	const vector<float, 1>    & max,
+	THREAD PacketCollision<1> & result);
 
 #endif /* triangle_h */

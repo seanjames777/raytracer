@@ -47,6 +47,23 @@ struct KDStackFrame {
     }
 };
 
+template<unsigned int N>
+struct KDPacketStackFrame {
+	GLOBAL KDNode *node;
+	vector<float, N> enter;
+	vector<float, N> exit;
+	
+	KDPacketStackFrame() {
+	}
+
+	KDPacketStackFrame(GLOBAL KDNode *node, vector<float, N> enter, vector<float, N> exit)
+		: node(node),
+		  enter(enter),
+		  exit(exit)
+	{
+	}
+};
+
 /**
  * @brief KD-Tree acceleration structure
  */
@@ -88,11 +105,10 @@ public:
      *
      * @return True if there is a collision, or false if there is not
      */
-    bool intersect(THREAD KDStackFrame *stack, Ray ray, bool anyCollision, float max, THREAD Collision & result);
+    bool intersect(THREAD KDStackFrame *stack, Ray ray, float max, THREAD Collision & result);
 
-#if 0
-	void intersectPacket(THREAD KDStackFrame *stackMem, const Packet & packet, bool anyCollision, vector<float, 4> max, vector<bool, 4> & collision, THREAD Collision(&result)[4]);
-#endif
+	template<unsigned int N>
+	vector<bool, N> intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, const Packet<N> & packet, THREAD const vector<float, N> & tmax, THREAD PacketCollision<N> & result);
 
 };
 

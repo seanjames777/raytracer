@@ -86,42 +86,90 @@ public:
      * @return Whether the ray intersected the box
      */
     // TODO test inline
-    inline bool intersects(Ray r, THREAD float & tmin_out, THREAD float & tmax_out) const
+    inline bool intersects(
+		THREAD const float3 & origin,
+		THREAD const float3 & inv_direction,
+		THREAD float & tmin_out,
+		THREAD float & tmax_out) const
     {
         // http://people.csail.mit.edu/amy/papers/box-jgt.pdf
 
-        float3 inv_direction = r.invDirection();
-
         float tmin, tmax;
+		bool result = true;
 
-        float txmin = (min.x - r.origin.x) * inv_direction.x;
-        float txmax = (max.x - r.origin.x) * inv_direction.x;
-        if (txmin > txmax) swap(txmin, txmax);
+        float _txmin = (min[0] - origin[0]) * inv_direction[0];
+        float _txmax = (max[0] - origin[0]) * inv_direction[0];
+		float txmin = ::min(_txmin, _txmax);
+		float txmax = ::max(_txmin, _txmax);
 
-        float tymin = (min.y - r.origin.y) * inv_direction.y;
-        float tymax = (max.y - r.origin.y) * inv_direction.y;
-        if (tymin > tymax) swap(tymin, tymax);
+        float _tymin = (min[1] - origin[1]) * inv_direction[1];
+        float _tymax = (max[1] - origin[1]) * inv_direction[1];
+		float tymin = ::min(_tymin, _tymax);
+		float tymax = ::max(_tymin, _tymax);
 
-        if (txmin > tymax || tymin > txmax) return false;
+        result = result && !(txmin > tymax || tymin > txmax);
 
-        tmin = fmax(txmin, tymin);
-        tmax = fmin(txmax, tymax);
+        tmin = ::max(txmin, tymin);
+        tmax = ::min(txmax, tymax);
 
-        float tzmin = (min.z - r.origin.z) * inv_direction.z;
-        float tzmax = (max.z - r.origin.z) * inv_direction.z;
-        if (tzmin > tzmax) swap(tzmin, tzmax);
+        float _tzmin = (min[2] - origin[2]) * inv_direction[2];
+        float _tzmax = (max[2] - origin[2]) * inv_direction[2];
+		float tzmin = ::min(_tzmin, _tzmax);
+		float tzmax = ::max(_tzmin, _tzmax);
 
-        if (tmin > tzmax || tzmin > tmax)
-            return false;
+		result = result && !(tmin > tzmax || tzmin > tmax);
 
-        tmin = fmax(tmin, tzmin);
-        tmax = fmin(tmax, tzmax);
+        tmin = ::max(tmin, tzmin);
+        tmax = ::min(tmax, tzmax);
 
         tmin_out = tmin;
         tmax_out = tmax;
 
-        return true;
+        return result;
     }
+
+	template<unsigned int N>
+	inline vector<bool, N> intersectsPacket(
+		THREAD const vector<float, N> (&origin)[3],
+		THREAD const vector<float, N> (&inv_direction)[3],
+		THREAD vector<float, N> & tmin_out,
+		THREAD vector<float, N> & tmax_out) const
+	{
+		// http://people.csail.mit.edu/amy/papers/box-jgt.pdf
+
+		vector<float, N> tmin, tmax;
+		vector<bool, N> result = true;
+
+		vector<float, N> _txmin = (min[0] - origin[0]) * inv_direction[0];
+		vector<float, N> _txmax = (max[0] - origin[0]) * inv_direction[0];
+		vector<float, N> txmin = ::min(_txmin, _txmax);
+		vector<float, N> txmax = ::max(_txmin, _txmax);
+
+		vector<float, N> _tymin = (min[1] - origin[1]) * inv_direction[1];
+		vector<float, N> _tymax = (max[1] - origin[1]) * inv_direction[1];
+		vector<float, N> tymin = ::min(_tymin, _tymax);
+		vector<float, N> tymax = ::max(_tymin, _tymax);
+
+		result = result && !(txmin > tymax || tymin > txmax);
+
+		tmin = ::max(txmin, tymin);
+		tmax = ::min(txmax, tymax);
+
+		vector<float, N> _tzmin = (min[2] - origin[2]) * inv_direction[2];
+		vector<float, N> _tzmax = (max[2] - origin[2]) * inv_direction[2];
+		vector<float, N> tzmin = ::min(_tzmin, _tzmax);
+		vector<float, N> tzmax = ::max(_tzmin, _tzmax);
+
+		result = result && !(tmin > tzmax || tzmin > tmax);
+
+		tmin = ::max(tmin, tzmin);
+		tmax = ::min(tmax, tzmax);
+
+		tmin_out = tmin;
+		tmax_out = tmax;
+
+		return result;
+	}
 
     /**
      * @brief Check whether a point is within the bounds of the box

@@ -83,7 +83,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
     int blockID = idx;
 
 	assert(stats.max_depth < 64);
-	KDStackFrame stack[64]; // TODO
+	KDPacketStackFrame<4> stack[64]; // TODO
 
 	struct RadianceRayStackFrame {
 		Ray ray;
@@ -218,7 +218,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 				Collision result;
 				Ray r = frame.ray;
 
-				if (tree->intersect(stack, r, false, INFINITY, result)) {
+				if (tree->intersect((KDStackFrame *)stack, r, INFINITY, result)) { // TODO fix cast
 					ShadingWorkItem item;
 					item.frame = frame;
 					item.collision = result;
@@ -346,7 +346,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 			Collision result;
 			Ray r = frame.ray;
 
-			if (!tree->intersect(stack, r, true, frame.maxDist, result)) {
+			if (!tree->intersect((KDStackFrame *)stack, r, frame.maxDist, result)) { // TODO fix
 				// TODO
 				float3 color = scene->getOutput()->getPixel(frame.pixel.x, frame.pixel.y);
 				color += frame.weight; // TODO

@@ -64,6 +64,34 @@ typedef vector<unsigned int, 3> uint3;
 typedef vector<unsigned int, 4> uint4;
 
 template<typename T>
+struct vector<T, 1> {
+	union {
+		T _v[1];
+		struct {
+			T x;
+		};
+	};
+
+	vector<T, 1>()
+		: _v()
+	{
+	}
+
+	vector<T, 1>(T v)
+		: x(v)
+	{
+	}
+
+	T & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const T& operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+template<typename T>
 struct vector<T, 2> {
     union {
         T _v[2];
@@ -390,6 +418,124 @@ inline vector<T, N> operator-(const vector<T, N> & rhs) {
         val[i] = -rhs[i];
 
     return val;
+}
+
+template<typename T, unsigned int N>
+T any(const vector<T, N> & v) {
+	for (unsigned int i = 0; i < N; i++)
+		if (v[i])
+			return true;
+
+	return false;
+}
+
+template<typename T, unsigned int N>
+T all(const vector<T, N> & v) {
+	for (unsigned int i = 0; i < N; i++)
+		if (!v[i])
+			return false;
+
+	return true;
+}
+
+template<typename T, typename B, unsigned int N>
+vector<T, N> blend(const vector<T, N> & lhs, const vector<T, N> & rhs, const vector<B, N> & mask) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = mask[i] ? rhs[i] : lhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator<(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bool, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] < rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator<=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bool, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] <= rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator==(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bool, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] == rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator>=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bool, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] >= rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator>(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bool, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] > rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator!=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bool, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] != rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator&&(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] && rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator||(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] || rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+vector<bool, N> operator!(const vector<T, N> & v) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = !v[i];
+
+	return out;
 }
 
 template<typename T, unsigned int N>

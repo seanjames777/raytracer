@@ -94,6 +94,20 @@ struct Collision {
     unsigned int triangle_id; //!< ID of intersected triangle
 };
 
+template<unsigned int N>
+struct Packet {
+	vector<float, N> origin[3];
+	vector<float, N> direction[3];
+};
+
+template<unsigned int N>
+struct PacketCollision {
+	vector<float, N> distance;
+	vector<float, N> beta;
+	vector<float, N> gamma;
+	vector<unsigned int, N> triangle_id;
+};
+
 /**
  * @brief Minimal triangle data struct optimized for performance of ray/triangle
  * intersection tests.
@@ -195,13 +209,21 @@ inline Vertex Triangle::interpolate(float beta, float gamma) const GLOBAL {
  * @return True if there was a collision, or false otherwise
  */
 bool intersects(
-	Ray     ray,
-	GLOBAL SetupTriangle *data,
-	int            count,
-	bool           anyCollision,
-	float          min,
-	float          max,
-	THREAD Collision     &result);
+	Ray                    ray, // TODO ref
+	GLOBAL SetupTriangle * data,
+	int                    count,
+	float                  min,
+	float                  max,
+	THREAD Collision     & result);
+
+template<unsigned int N>
+vector<bool, N> intersectsPacket(
+	const Packet<N> & packet,
+	GLOBAL SetupTriangle * data,
+	int                    count,
+	const vector<float, N> & min,
+	const vector<float, N> & max,
+	THREAD PacketCollision<N>     & result);
 
 #if !GPU
 /**

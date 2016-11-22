@@ -27,7 +27,8 @@
 // TODO: Maybe help the heuristic with creating big empty gaps? Something about this
 //       in the SAH paper. Creating empty nodes or whatever.
 // TODO: Tweak heursitic constants
-bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision, float tmax, THREAD Collision & result)
+#if 0
+bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREAD Collision & result)
 {
     // http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
@@ -37,8 +38,14 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision
     
     GLOBAL KDNode *currentNode;
     float entry, exit;
+
+	result.distance = INFINITY;
+	bool hit = false;
+
+	// TODO: Can precompute inv_direction when ray is created, along with ray.direction[i] < 0
+	float3 inv_direction = ray.invDirection();
     
-    if (!_bounds.intersects(ray, entry, exit))
+    if (!_bounds.intersects(ray.origin, inv_direction, entry, exit))
         return false;
 
 	entry = max(entry, 0.0001f);
@@ -46,8 +53,6 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision
 
 	if (entry > exit)
 		return false;
-    
-    float3 inv_direction = ray.invDirection();
     
     stack.push(KDStackFrame(root, entry, exit));
     
@@ -69,201 +74,97 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, bool anyCollision
             GLOBAL KDNode *nearNode = currentNode->left(nodes);
             GLOBAL KDNode *farNode = currentNode->right(nodes);
             
-            if (split < origin) {
-                GLOBAL KDNode *temp = nearNode;
-                nearNode = farNode;
-                farNode = temp;
-            }
-            
-            // TODO: Avoid doing all the work for empty leaves
-            if (t > exit || t < 0)
-                currentNode = nearNode;
-            else if (t < entry)
-                currentNode = farNode;
-            else {
-				stack.push(KDStackFrame(farNode, t, exit));
+			if (ray.direction[type] < 0.0f) {
+				GLOBAL KDNode *temp = nearNode;
+				nearNode = farNode;
+				farNode = temp;
+			}
 
-                currentNode = nearNode;
-                exit = t;
-            }
-            
+			// TODO: Avoid doing all the work for empty leaves
+			if (t > exit || (exit < entry))
+				currentNode = nearNode;
+			else if (t < entry || (exit < entry))
+				currentNode = farNode;
+			else {
+				stack.push(KDStackFrame(farNode, max(t, entry), exit));
+
+				currentNode = nearNode;
+				exit = min(t, exit);
+			}
+
 			// TODO: Significant cache miss here due to pulling node in from memory. Try prefetching or sorting rays by traversed nodes.
             type = currentNode->type();
         }
         
-        // TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
-        // TODO: Ignores max depth
-        
 		// TODO: inlining this function may help
-        if (intersects(
-				ray,
-				currentNode->triangles(triangles),
-                currentNode->count,
-                anyCollision,
-                entry,
-                exit,
-                result))
-        {
-            return true;
-        }
+		hit = hit || intersects(
+			ray,
+			currentNode->triangles(triangles),
+			currentNode->count,
+			entry,
+			exit,
+			result);
+
+		if (hit)
+			return true;
     }
     
-    return false;
+    return hit;
 }
-
-template<typename T, unsigned int N>
-T any(vector<T, N> v) {
-	for (unsigned int i = 0; i < N; i++)
-		if (v[i])
-			return true;
+#elif 1
+bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREAD Collision & result)
+{
+	Packet<1> packet;
 	
-	return false;
+	packet.origin[0][0] = ray.origin[0];
+	packet.origin[1][0] = ray.origin[1];
+	packet.origin[2][0] = ray.origin[2];
+
+	packet.direction[0][0] = ray.direction[0];
+	packet.direction[1][0] = ray.direction[1];
+	packet.direction[2][0] = ray.direction[2];
+
+	PacketCollision<1> _collision;
+
+	vector<bool, 1> hit = intersectPacket((KDPacketStackFrame<1> *)stackMem, packet, vector<float, 1>(tmax), _collision);
+
+	result.beta = _collision.beta[0];
+	result.gamma = _collision.gamma[0];
+	result.distance = _collision.distance[0];
+	result.triangle_id = _collision.triangle_id[0];
+
+	return hit[0];
 }
-
-template<typename T, unsigned int N>
-T all(vector<T, N> v) {
-	for (unsigned int i = 0; i < N; i++)
-		if (!v[i])
-			return false;
-
-	return true;
-}
-
-template<typename T, unsigned int N>
-vector<bool, N> operator<(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<T, N> out;
-
-	for (unsigned int i = 0; i < N; i++)
-		out[i] = lhs[i] < rhs[i];
-
-	return out;
-}
-
-template<typename T, unsigned int N>
-vector<bool, N> operator<=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<T, N> out;
-
-	for (unsigned int i = 0; i < N; i++)
-		out[i] = lhs[i] <= rhs[i];
-
-	return out;
-}
-
-template<typename T, unsigned int N>
-vector<bool, N> operator==(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<T, N> out;
-
-	for (unsigned int i = 0; i < N; i++)
-		out[i] = lhs[i] == rhs[i];
-
-	return out;
-}
-
-template<typename T, unsigned int N>
-vector<bool, N> operator>=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<T, N> out;
-
-	for (unsigned int i = 0; i < N; i++)
-		out[i] = lhs[i] >= rhs[i];
-
-	return out;
-}
-
-template<typename T, unsigned int N>
-vector<bool, N> operator>(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<T, N> out;
-
-	for (unsigned int i = 0; i < N; i++)
-		out[i] = lhs[i] > rhs[i];
-
-	return out;
-}
-
-template<typename T, unsigned int N>
-vector<bool, N> operator!=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<T, N> out;
-
-	for (unsigned int i = 0; i < N; i++)
-		out[i] = lhs[i] != rhs[i];
-
-	return out;
-}
-
-template<typename T, unsigned int N>
-vector<bool, N> operator&&(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<T, N> out;
-
-	for (unsigned int i = 0; i < N; i++)
-		out[i] = lhs[i] && rhs[i];
-
-	return out;
-}
-
-template<typename T, unsigned int N>
-vector<bool, N> operator||(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<T, N> out;
-
-	for (unsigned int i = 0; i < N; i++)
-		out[i] = lhs[i] || rhs[i];
-
-	return out;
-}
-
-struct Packet {
-	vector<float, 4> origin[3];
-	vector<float, 4> direction[3];
-};
-
-struct KDPacketStackFrame {
-	GLOBAL KDNode *node;
-	vector<float, 4> enter;
-	vector<float, 4> exit;
-	vector<bool, 4> active;
-
-	KDPacketStackFrame() {
-	}
-
-	KDPacketStackFrame(GLOBAL KDNode *node, vector<float, 4> enter, vector<float, 4> exit, vector<bool, 4> active)
-		: node(node),
-		  enter(enter),
-		  exit(exit),
-		  active(active)
-	{
-	}
-};
-
-#if 0
-void KDTree::intersectPacket(THREAD KDPacketStackFrame *stackMem, const Packet & packet, bool anyCollision, vector<float, 4> max, vector<bool, 4> & collision, THREAD Collision (&result)[4])
+#else
+bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREAD Collision & result)
 {
 	// http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
 	// TODO: use max to skip nodes, not just triangles
 
-	util::stack<KDPacketStackFrame> stack(stackMem);
+	util::stack<KDStackFrame> stack(stackMem);
 
 	GLOBAL KDNode *currentNode;
-	vector<float, 4> entry, exit;
+	float entry, exit;
 
-	vector<bool, 4> active(true);
+	result.distance = INFINITY;
 
-	for (int i = 0; i < 4; i++)
-		active[i] = _bounds.intersectPacket(packet, entry, exit) && entry <= max;
+	// TODO: Can precompute inv_direction when ray is created, along with ray.direction[i] < 0
+	float3 inv_direction = ray.invDirection();
 
-	if (!any(active)) {
-		collision = false;
-		return;
-	}
+	if (!_bounds.intersects(ray.origin, inv_direction, entry, exit))
+		return false;
 
-	vector<float, 4> inv_direction[3] = {
-		1.0f / packet.direction[0],
-		1.0f / packet.direction[1],
-		1.0f / packet.direction[2]
-	};
+	entry = max(entry, 0.0001f);
+	exit = min(exit, tmax);
 
-	stack.push(KDPacketStackFrame(root, entry, exit, active));
+	if (entry > exit)
+		return false;
+
+	stack.push(KDStackFrame(root, entry, exit));
 
 	while (!stack.empty()) {
-		KDPacketStackFrame curr_stack = stack.pop();
+		KDStackFrame curr_stack = stack.pop();
 
 		currentNode = curr_stack.node;
 		entry = curr_stack.enter;
@@ -272,31 +173,28 @@ void KDTree::intersectPacket(THREAD KDPacketStackFrame *stackMem, const Packet &
 		uint32_t type = currentNode->type();
 
 		while (type != KD_LEAF) {
-			vector<float, 4> split = currentNode->split_dist; // Note: Broadcast
+			float split = currentNode->split_dist;
+			float origin = ray.origin[type];
 
-			vector<float, 4> origin = packet.origin[type];
-			vector<float, 4> t = (split - origin) * inv_direction[type];
+			float t = (split - origin) * inv_direction[type];
 
 			GLOBAL KDNode *nearNode = currentNode->left(nodes);
 			GLOBAL KDNode *farNode = currentNode->right(nodes);
 
-			if (split < origin) {
+			if (ray.direction[type] < 0.0f) {
 				GLOBAL KDNode *temp = nearNode;
 				nearNode = farNode;
 				farNode = temp;
 			}
 
-			vector<bool, 4> near = (t > exit || t < vector<float, 4>(0.0f)) && active;
-			vector<bool, 4> far = (t < entry) && active;
-
 			// TODO: Avoid doing all the work for empty leaves
-			if (t > exit || t < vector<float, 4>(0.0f))
+			if (t > exit)
 				currentNode = nearNode;
 			else if (t < entry)
 				currentNode = farNode;
 			else {
-				if (t < max)
-					stack.push(KDStackFrame(farNode, t, exit));
+				stack.push(KDStackFrame(farNode, t, exit));
+
 				currentNode = nearNode;
 				exit = t;
 			}
@@ -305,23 +203,113 @@ void KDTree::intersectPacket(THREAD KDPacketStackFrame *stackMem, const Packet &
 			type = currentNode->type();
 		}
 
-		// TODO: Used to have tmpResult.distance >= entry && tmpResult.distance <= exit
-		// TODO: Ignores max depth
-
 		// TODO: inlining this function may help
-		if (intersects(ray, currentNode->triangles(triangles),
+		if (intersects(
+			ray,
+			currentNode->triangles(triangles),
 			currentNode->count,
-			anyCollision,
 			entry,
-			min(exit, max), // TODO
+			exit,
 			result))
 		{
 			return true;
 		}
-	}
+}
 
 	return false;
 }
 #endif
+
+template<unsigned int N>
+vector<bool, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, const Packet<N> & packet, THREAD const vector<float, N> & tmax, THREAD PacketCollision<N> & result)
+{
+	// http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
+
+	// TODO: use max to skip nodes, not just triangles
+
+	util::stack<KDPacketStackFrame<N>> stack(stackMem);
+
+	GLOBAL KDNode *currentNode;
+	vector<float, N> entry, exit;
+
+	result.distance = INFINITY;
+	vector<bool, N> hit = false;
+
+	vector<float, N> inv_direction[3] = {
+		1.0f / packet.direction[0],
+		1.0f / packet.direction[1],
+		1.0f / packet.direction[2]
+	};
+
+	// TODO: If intersects sets max < min, we don't need two checks
+	if (!any(_bounds.intersectsPacket(packet.origin, inv_direction, entry, exit)))
+		return false;
+	
+	entry = max(entry, vector<float, N>(0.0001f));
+	exit = min(exit, tmax);
+
+	if (all(entry > exit))
+		return false;
+
+	stack.push(KDPacketStackFrame<N>(root, entry, exit));
+
+	while (!stack.empty()) {
+		KDPacketStackFrame<N> curr_stack = stack.pop();
+
+		currentNode = curr_stack.node;
+		entry = curr_stack.enter;
+		exit = curr_stack.exit;
+
+		uint32_t type = currentNode->type();
+
+		while (type != KD_LEAF) {
+			vector<float, N> split = currentNode->split_dist; // Note: Broadcast
+			vector<float, N> origin = packet.origin[type];
+
+			vector<float, N> t = (split - origin) * inv_direction[type];
+
+			GLOBAL KDNode *nearNode = currentNode->left(nodes);
+			GLOBAL KDNode *farNode = currentNode->right(nodes);
+
+			// TODO: All incoming rays must have the same sign in each direction component
+			if (packet.direction[type][0] < 0.0f) {
+				GLOBAL KDNode *temp = nearNode;
+				nearNode = farNode;
+				farNode = temp;
+			}
+
+			// TODO: Avoid doing all the work for empty leaves
+			if (all(t > exit || (exit < entry)))
+				currentNode = nearNode;
+			else if (all(t < entry || (exit < entry)))
+				currentNode = farNode;
+			else {
+				// Min and max invalidate rays which do not participate in each branch
+				stack.push(KDPacketStackFrame<N>(farNode, max(t, entry), exit));
+				currentNode = nearNode;
+				exit = min(t, exit);
+			}
+
+			// TODO: Significant cache miss here due to pulling node in from memory. Try prefetching or sorting rays by traversed nodes.
+			type = currentNode->type();
+		}
+
+		// TODO: inlining this function may help
+		hit = hit || intersectsPacket(
+			packet,
+			currentNode->triangles(triangles),
+			currentNode->count,
+			entry,
+			exit,
+			result);
+		
+		if (all(hit))
+			return true;
+	}
+
+	return hit;
+}
+
+template vector<bool, 1> KDTree::intersectPacket(THREAD KDPacketStackFrame<1> *stackMem, const Packet<1> & packet, THREAD const vector<float, 1> & tmax, THREAD PacketCollision<1> & result);
 
 #endif

@@ -8,3 +8,4 @@ Iterate over shadows instead of pop:                     5.19
 Sort primary rays by direction:                          5.16
 Sort primary rays by origin/direction                    5.16
 Don't enqueue far KD nodes if they are outside max       3.67
+Mess with AABB intersection and tree node rejection      3.56
