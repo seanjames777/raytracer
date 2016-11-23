@@ -30,4 +30,6 @@
 #define THREAD
 #endif
 
+#define SIMD 4
+
 #endif

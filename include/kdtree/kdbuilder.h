@@ -36,12 +36,12 @@ enum KDBuilderPlanarMode {
  * @brief Node in a KDBuilder's work queue
  */
 struct KDBuilderQueueNode {
-    KDNode                  *node;      //!< KD-tree node to build
-    AABB                     bounds;    //!< Bounds of all triangles
+    KDNode                   *node;      //!< KD-tree node to build
+    AABB                      bounds;    //!< Bounds of all triangles
     std::vector<Triangle *>  triangles; //!< Triangles to place in node
-    int                      depth;     //!< Node depth in KD-tree
-    std::atomic_int          refCount;  //!< Number of references to queue node
-    KDBuilderQueueNode      *parent;    //!< Parent node
+    int                       depth;     //!< Node depth in KD-tree
+    std::atomic_int           refCount;  //!< Number of references to queue node
+    KDBuilderQueueNode       *parent;    //!< Parent node
 };
 
 /**
@@ -127,8 +127,8 @@ private:
         int                             dir,
         enum KDBuilderPlanarMode      & planarMode,
         const std::vector<Triangle *> & triangles,
-        std::vector<Triangle *>       & left,
-        std::vector<Triangle *>       & right);
+		std::vector<Triangle *>       & left,
+		std::vector<Triangle *>       & right);
 
     /**
      * @brief Build a leaf node

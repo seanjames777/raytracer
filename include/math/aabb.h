@@ -129,7 +129,7 @@ public:
     }
 
 	template<unsigned int N>
-	inline vector<bool, N> intersectsPacket(
+	inline vector<bmask, N> intersectsPacket(
 		THREAD const vector<float, N> (&origin)[3],
 		THREAD const vector<float, N> (&inv_direction)[3],
 		THREAD vector<float, N> & tmin_out,
@@ -138,29 +138,33 @@ public:
 		// http://people.csail.mit.edu/amy/papers/box-jgt.pdf
 
 		vector<float, N> tmin, tmax;
-		vector<bool, N> result = true;
+		vector<bmask, N> result = vector<bmask, N>(0xFFFFFFFF);
 
-		vector<float, N> _txmin = (min[0] - origin[0]) * inv_direction[0];
-		vector<float, N> _txmax = (max[0] - origin[0]) * inv_direction[0];
+		// Broadcast to all channels. TODO: could do this at construction.
+		vector<float, N> minv[3] = { min.x, min.y, min.z };
+		vector<float, N> maxv[3] = { max.x, max.y, max.z };
+
+		vector<float, N> _txmin = (minv[0] - origin[0]) * inv_direction[0];
+		vector<float, N> _txmax = (maxv[0] - origin[0]) * inv_direction[0];
 		vector<float, N> txmin = ::min(_txmin, _txmax);
 		vector<float, N> txmax = ::max(_txmin, _txmax);
 
-		vector<float, N> _tymin = (min[1] - origin[1]) * inv_direction[1];
-		vector<float, N> _tymax = (max[1] - origin[1]) * inv_direction[1];
+		vector<float, N> _tymin = (minv[1] - origin[1]) * inv_direction[1];
+		vector<float, N> _tymax = (maxv[1] - origin[1]) * inv_direction[1];
 		vector<float, N> tymin = ::min(_tymin, _tymax);
 		vector<float, N> tymax = ::max(_tymin, _tymax);
 
-		result = result && !(txmin > tymax || tymin > txmax);
+		result = result & ~((txmin > tymax) | (tymin > txmax));
 
 		tmin = ::max(txmin, tymin);
 		tmax = ::min(txmax, tymax);
 
-		vector<float, N> _tzmin = (min[2] - origin[2]) * inv_direction[2];
-		vector<float, N> _tzmax = (max[2] - origin[2]) * inv_direction[2];
+		vector<float, N> _tzmin = (minv[2] - origin[2]) * inv_direction[2];
+		vector<float, N> _tzmax = (maxv[2] - origin[2]) * inv_direction[2];
 		vector<float, N> tzmin = ::min(_tzmin, _tzmax);
 		vector<float, N> tzmax = ::max(_tzmin, _tzmax);
 
-		result = result && !(tmin > tzmax || tzmin > tmax);
+		result = result & ~((tmin > tzmax) | (tzmin > tmax));
 
 		tmin = ::max(tmin, tzmin);
 		tmax = ::min(tmax, tzmax);

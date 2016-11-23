@@ -49,7 +49,7 @@ float3 PBRMaterial::f(
 
 	// TODO: Big cache miss on texture sampling due to incoherent rays. Try sorting by material?
 	if (diffuseTexture)
-		diffuse = sampler.sample(diffuseTexture, interp.uv);
+		diffuse = sampler.sample(diffuseTexture, interp.uv).xyz();
 
 	float3 ks = specularColor;
 	float a = specularPower;

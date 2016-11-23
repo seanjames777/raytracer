@@ -18,9 +18,10 @@
 #include <fstream>
 #include <map>
 #include <iostream>
+#include <math/vector.h>
 
 // TODO: Might be better to compact textures to RGB8
-std::map<std::string, std::shared_ptr<Image<float, 3>>> textures;
+std::map<std::string, std::shared_ptr<Image<float, 4>>> textures;
 
 Vertex transformVertex(const Vertex & vertex, const float4x4 & transform,
     const float4x4 & transformInverseTranspose)
@@ -32,7 +33,7 @@ Vertex transformVertex(const Vertex & vertex, const float4x4 & transform,
     return Vertex(position.xyz(), normalize(normal.xyz()), normalize(tangent.xyz()), vertex.uv);
 }
 
-std::shared_ptr<Image<float, 3>> loadTexture(std::string name) {
+std::shared_ptr<Image<float, 4>> loadTexture(std::string name) {
 	std::string filename = relToExeDir("content/textures/" + name);
 	std::cout << "Load texture " << filename << std::endl;
 
@@ -108,7 +109,11 @@ void loadMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<Scene> scene,
 	}
 }
 
+extern void testVectors();
+
 int main(int argc, char *argv[]) {
+	testVectors();
+
     printf("Loading scene...\n");
 
     RaytracerSettings settings;
@@ -132,7 +137,7 @@ int main(int argc, char *argv[]) {
 		aspect, (float)M_PI / 2.0f, 19.25f, 0.0f);
 #endif
 
-    auto output = std::make_shared<Image<float, 3>>(settings.width, settings.height);
+    auto output = std::make_shared<Image<float, 4>>(settings.width, settings.height);
 
     auto environment = ImageLoader::load(relToExeDir("content/textures/cubemap.bmp"));
 	auto env_sampler = std::make_shared<Sampler>(Nearest, Wrap);

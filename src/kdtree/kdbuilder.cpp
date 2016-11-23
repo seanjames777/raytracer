@@ -30,8 +30,8 @@ void KDBuilder::partition(
     int                             dir,
     enum KDBuilderPlanarMode      & planarMode,
     const std::vector<Triangle *> & triangles,
-    std::vector<Triangle *>       & left,
-    std::vector<Triangle *>       & right)
+	std::vector<Triangle *>       & left,
+	std::vector<Triangle *>       & right)
 {
     // TODO: By keeping references to triangles in the SAH event list, we could
     // avoid this whole loop.

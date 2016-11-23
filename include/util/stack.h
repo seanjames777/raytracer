@@ -22,22 +22,14 @@ template<typename T>
 class stack {
 private:
 
-#if GPU
     THREAD T *_stack;
-#else
-    T *_stack;
-#endif
-    int  _size;
+	THREAD T *_curr;
 
 public:
 
-#if GPU
     stack(THREAD T *stack)
-#else
-    stack(T *stack)
-#endif
         : _stack(stack),
-          _size(0)
+		  _curr(stack)
     {
     }
 
@@ -46,7 +38,7 @@ public:
      * the newly allocated frame.
      */
     inline void push(T elem) {
-        _stack[_size++] = elem;
+        *(_curr++) = elem;
     }
 
     /**
@@ -54,28 +46,28 @@ public:
      * first. TODO.
      */
     inline T pop() {
-        return _stack[--_size];
+		return *(--_curr);
     }
 
     /**
      * @brief Get number of elements in stack
      */
     inline unsigned int size() const {
-        return _size;
+		return _curr - _stack;
     }
 
     /**
      * @brief Check whether the stack is empty
      */
     inline bool empty() const {
-        return _size == 0;
+        return _curr == _stack;
     }
 
     /**
      * @brief Clear the stack
      */
     inline void clear() {
-        _size = 0;
+		_curr = _stack;
     }
 
 };

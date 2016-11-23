@@ -27,6 +27,8 @@ bool intersects(
                 THREAD Collision     & result)
 {
 #if defined(WALD_INTERSECTION)
+	// TODO: go back to early exit version
+#if 0
     // http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
     bool found = false;
     const int mod_table[5] = { 0, 1, 2, 0, 1 };
@@ -77,6 +79,55 @@ bool intersects(
     }
     
     return found;
+#else
+	// http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
+	bool found = false;
+	const int mod_table[5] = { 0, 1, 2, 0, 1 };
+
+	for (int i = 0; i < count; i++) {
+		bool hit = true;
+
+		GLOBAL const SetupTriangle & tri = data[i];
+
+		int u = mod_table[tri.k + 1];
+		int v = mod_table[tri.k + 2];
+
+		float dot = (ray.direction[tri.k] + tri.n_u * ray.direction[u] + tri.n_v *
+			ray.direction[v]);
+
+		// TODO: necessary?
+		hit = hit && (dot != 0.0f);
+
+		float nd = 1.0f / dot;
+		float t_plane = (tri.n_d - ray.origin[tri.k]
+			- tri.n_u * ray.origin[u] - tri.n_v * ray.origin[v]) * nd;
+
+		// Behind camera or further
+		hit = hit && !((found && t_plane >= result.distance) || t_plane < min || t_plane > max);
+
+		float hu = ray.origin[u] + t_plane * ray.direction[u];
+		float hv = ray.origin[v] + t_plane * ray.direction[v];
+
+		float beta = (hu * tri.b_nu + hv * tri.b_nv + tri.b_d);
+		hit = hit && beta >= 0.0f;
+
+		float gamma = (hu * tri.c_nu + hv * tri.c_nv + tri.c_d);
+		hit = hit && gamma >= 0.0f;
+
+		hit = hit && beta + gamma <= 1.0f;
+
+		result.distance = hit ? t_plane : result.distance;
+		result.beta = hit ? beta : result.beta;
+		result.gamma = hit ? gamma : result.gamma;
+		result.triangle_id = hit ? tri.triangle_id : result.triangle_id;
+
+		found = found || hit;
+
+		// TODO: Could break here, but SIMD
+}
+
+	return found;
+#endif
 #elif defined(MOLLER_TRUMBORE_INTERSECTION)
     bool found = false;
     
@@ -125,7 +176,7 @@ bool intersects(
 }
 
 template<unsigned int N>
-vector<bool, N> intersectsPacket(
+vector<bmask, N> intersectsPacket(
 	const Packet<N>           & packet,
 	GLOBAL SetupTriangle      * data,
 	int                         count,
@@ -133,31 +184,66 @@ vector<bool, N> intersectsPacket(
 	const vector<float, N>    & max,
 	THREAD PacketCollision<N> & result)
 {
- 	vector<bool, N> hit = false;
+	// http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
+	vector<bmask, N> found = vector<bmask, N>(0x00000000);
+	const int mod_table[5] = { 0, 1, 2, 0, 1 };
 
-	for (int i = 0; i < N; i++) {
-		Ray ray(float3(packet.origin[0][i], packet.origin[1][i], packet.origin[2][i]), float3(packet.direction[0][i], packet.direction[1][i], packet.direction[2][i]));
+	for (int i = 0; i < count; i++) {
+		GLOBAL const SetupTriangle & tri = data[i];
 
-		Collision _result;
-		_result.distance = result.distance[i];
+		int u = mod_table[tri.k + 1];
+		int v = mod_table[tri.k + 2];
 
-		hit[i] = intersects(ray, data, count, min[i], max[i], _result);
+		// TODO: Some of these broadcast to 4 channels, which could be done earlier at the cost of
+		// bigger triangle data
 
-		result.beta[i] = _result.beta;
-		result.gamma[i] = _result.gamma;
-		result.distance[i] = _result.distance;
-		result.triangle_id[i] = _result.triangle_id;
+		// TODO: Can bail early if all of the rays miss a triangle
+
+		vector<float, N> dot = (packet.direction[tri.k] + vector<float, N>(tri.n_u) * packet.direction[u] + vector<float, N>(tri.n_v) *
+			packet.direction[v]);
+
+		vector<bmask, N> hit = (dot != vector<float, N>(0.0f));
+
+		vector<float, N> nd = vector<float, N>(1.0f) / dot;
+
+		vector<float, N> t_plane = (vector<float, N>(tri.n_d) - packet.origin[tri.k]
+			- vector<float, N>(tri.n_u) * packet.origin[u] - vector<float, N>(tri.n_v) * packet.origin[v]) * nd;
+
+		// Behind camera or further
+		hit = hit & ~((found & (t_plane >= result.distance)) | (t_plane < min) | (t_plane > max));
+
+		vector<float, N> hu = packet.origin[u] + t_plane * packet.direction[u];
+		vector<float, N> hv = packet.origin[v] + t_plane * packet.direction[v];
+
+		vector<float, N> beta = (hu * vector<float, N>(tri.b_nu) + hv * vector<float, N>(tri.b_nv) + vector<float, N>(tri.b_d));
+
+		hit = hit & (beta >= vector<float, N>(0.0f));
+
+		vector<float, N> gamma = (hu * vector<float, N>(tri.c_nu) + hv * vector<float, N>(tri.c_nv) + vector<float, N>(tri.c_d));
+
+		hit = hit & (gamma >= vector<float, N>(0.0f));
+
+		hit = hit & (beta + gamma <= vector<float, N>(1.0f));
+
+		result.distance = blend(hit, result.distance, t_plane);
+		result.beta = blend(hit, result.beta, beta);
+		result.gamma = blend(hit, result.gamma, gamma);
+		result.triangle_id = blend(hit, result.triangle_id, vector<int, N>(tri.triangle_id)); // TODO: broadcast
+
+		found = found | hit;
+
+		// TODO: Could break here, but SIMD
 	}
 
-	return hit;
+	return found;
 }
 
-template vector<bool, 1> intersectsPacket(
-	const Packet<1>           & packet,
+template vector<bmask, SIMD> intersectsPacket(
+	const Packet<SIMD>           & packet,
 	GLOBAL SetupTriangle      * data,
 	int                         count,
-	const vector<float, 1>    & min,
-	const vector<float, 1>    & max,
-	THREAD PacketCollision<1> & result);
+	const vector<float, SIMD>    & min,
+	const vector<float, SIMD>    & max,
+	THREAD PacketCollision<SIMD> & result);
 
 #endif /* triangle_h */

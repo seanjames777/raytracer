@@ -27,7 +27,7 @@
 // TODO: Maybe help the heuristic with creating big empty gaps? Something about this
 //       in the SAH paper. Creating empty nodes or whatever.
 // TODO: Tweak heursitic constants
-#if 0
+#if 1
 bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREAD Collision & result)
 {
     // http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
@@ -126,7 +126,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 
 	PacketCollision<1> _collision;
 
-	vector<bool, 1> hit = intersectPacket((KDPacketStackFrame<1> *)stackMem, packet, vector<float, 1>(tmax), _collision);
+	vector<bmask, 1> hit = intersectPacket((KDPacketStackFrame<1> *)stackMem, packet, vector<float, 1>(tmax), _collision);
 
 	result.beta = _collision.beta[0];
 	result.gamma = _collision.gamma[0];
@@ -221,7 +221,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 #endif
 
 template<unsigned int N>
-vector<bool, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, const Packet<N> & packet, THREAD const vector<float, N> & tmax, THREAD PacketCollision<N> & result)
+vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, const Packet<N> & packet, THREAD const vector<float, N> & tmax, THREAD PacketCollision<N> & result)
 {
 	// http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
@@ -233,23 +233,23 @@ vector<bool, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, 
 	vector<float, N> entry, exit;
 
 	result.distance = INFINITY;
-	vector<bool, N> hit = false;
+	vector<bmask, N> hit = vector<bmask, N>(false);
 
+	// TODO: Can precompute inv_direction when ray is created, along with ray.direction[i] < 0
 	vector<float, N> inv_direction[3] = {
-		1.0f / packet.direction[0],
-		1.0f / packet.direction[1],
-		1.0f / packet.direction[2]
+		vector<float, N>(1.0f) / packet.direction[0],
+		vector<float, N>(1.0f) / packet.direction[1],
+		vector<float, N>(1.0f) / packet.direction[2]
 	};
 
-	// TODO: If intersects sets max < min, we don't need two checks
 	if (!any(_bounds.intersectsPacket(packet.origin, inv_direction, entry, exit)))
-		return false;
-	
+		return vector<bmask, N>(0x00000000);
+
 	entry = max(entry, vector<float, N>(0.0001f));
 	exit = min(exit, tmax);
 
 	if (all(entry > exit))
-		return false;
+		return vector<bmask, N>(0x00000000);
 
 	stack.push(KDPacketStackFrame<N>(root, entry, exit));
 
@@ -263,7 +263,7 @@ vector<bool, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, 
 		uint32_t type = currentNode->type();
 
 		while (type != KD_LEAF) {
-			vector<float, N> split = currentNode->split_dist; // Note: Broadcast
+			vector<float, N> split = currentNode->split_dist;
 			vector<float, N> origin = packet.origin[type];
 
 			vector<float, N> t = (split - origin) * inv_direction[type];
@@ -271,7 +271,6 @@ vector<bool, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, 
 			GLOBAL KDNode *nearNode = currentNode->left(nodes);
 			GLOBAL KDNode *farNode = currentNode->right(nodes);
 
-			// TODO: All incoming rays must have the same sign in each direction component
 			if (packet.direction[type][0] < 0.0f) {
 				GLOBAL KDNode *temp = nearNode;
 				nearNode = farNode;
@@ -279,13 +278,13 @@ vector<bool, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, 
 			}
 
 			// TODO: Avoid doing all the work for empty leaves
-			if (all(t > exit || (exit < entry)))
+			if (all((t > exit) | (exit < entry)))
 				currentNode = nearNode;
-			else if (all(t < entry || (exit < entry)))
+			else if (all((t < entry) | (exit < entry)))
 				currentNode = farNode;
 			else {
-				// Min and max invalidate rays which do not participate in each branch
 				stack.push(KDPacketStackFrame<N>(farNode, max(t, entry), exit));
+
 				currentNode = nearNode;
 				exit = min(t, exit);
 			}
@@ -295,21 +294,21 @@ vector<bool, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, 
 		}
 
 		// TODO: inlining this function may help
-		hit = hit || intersectsPacket(
+		hit = hit | intersectsPacket(
 			packet,
 			currentNode->triangles(triangles),
 			currentNode->count,
 			entry,
 			exit,
 			result);
-		
+
 		if (all(hit))
-			return true;
+			return vector<bmask, N>(0xFFFFFFFF);
 	}
 
 	return hit;
 }
 
-template vector<bool, 1> KDTree::intersectPacket(THREAD KDPacketStackFrame<1> *stackMem, const Packet<1> & packet, THREAD const vector<float, 1> & tmax, THREAD PacketCollision<1> & result);
+template vector<bmask, SIMD> KDTree::intersectPacket(THREAD KDPacketStackFrame<SIMD> *stackMem, const Packet<SIMD> & packet, THREAD const vector<float, SIMD> & tmax, THREAD PacketCollision<SIMD> & result);
 
 #endif

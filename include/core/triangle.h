@@ -105,7 +105,7 @@ struct PacketCollision {
 	vector<float, N> distance;
 	vector<float, N> beta;
 	vector<float, N> gamma;
-	vector<unsigned int, N> triangle_id;
+	vector<int, N> triangle_id;
 };
 
 /**
@@ -217,7 +217,7 @@ bool intersects(
 	THREAD Collision     & result);
 
 template<unsigned int N>
-vector<bool, N> intersectsPacket(
+vector<bmask, N> intersectsPacket(
 	const Packet<N> & packet,
 	GLOBAL SetupTriangle * data,
 	int                    count,

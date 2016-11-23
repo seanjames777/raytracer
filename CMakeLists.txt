@@ -22,12 +22,16 @@ if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
         message("Release build")
         add_definitions(-O3 -fomit-frame-pointer)
     endif()
+else()
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GS-")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /GS-")
 endif()
 
 include(prebuilt/CMakeLists.txt)
 
 add_executable(raytracer
     src/main.cpp
+    src/testvectors.cpp # TODO
 
     src/core/camera.cpp
     src/core/camera.cpp
@@ -86,6 +90,7 @@ add_executable(raytracer
     include/util/queue.h
     include/util/stack.h
     include/util/timer.h
+    include/util/vector.h
 )
 
 FIND_PACKAGE(OpenGL REQUIRED)

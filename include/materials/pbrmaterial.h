@@ -23,8 +23,8 @@ private:
 	float  specularPower;
 	float  reflectivity;
 
-	Image<float, 3> *diffuseTexture;
-	Image<float, 3> *roughnessTexture;
+	Image<float, 4> *diffuseTexture;
+	Image<float, 4> *roughnessTexture;
 
 public:
 
@@ -53,12 +53,12 @@ public:
 		specularPower = power;
 	}
 
-	void setDiffuseTexture(Image<float, 3> *texture) {
+	void setDiffuseTexture(Image<float, 4> *texture) {
 		diffuseTexture = texture;
 	}
 
 	// TODO: Only need grayscale for this
-	void setRoughnessTexture(Image<float, 3> *texture) {
+	void setRoughnessTexture(Image<float, 4> *texture) {
 		roughnessTexture = texture;
 	}
 

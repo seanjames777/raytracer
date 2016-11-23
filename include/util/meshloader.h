@@ -11,13 +11,14 @@
 
 #include <core/triangle.h>
 #include <string>
-#include <vector>
+#include <util/vector.h>
 #include <memory>
+#include <vector>
 
 class Submesh {
 private:
 
-	std::vector<Triangle> triangles;
+	util::vector<Triangle, 16> triangles;
 	unsigned int materialID;
 
 public:
@@ -62,7 +63,7 @@ class Mesh {
 private:
 
 	std::vector<std::shared_ptr<Submesh>> submeshes;
-	std::vector<MaterialProperties> materials;
+	util::vector<MaterialProperties, 16> materials;
 
 public:
 

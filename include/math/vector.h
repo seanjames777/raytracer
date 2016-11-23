@@ -41,6 +41,11 @@ struct vector {
         : _v()
     {
     }
+
+	vector<T, N>(T v){
+		for (unsigned int i = 0; i < N; i++)
+			_v[i] = v;
+	}
     
     T & operator[](unsigned int i) {
         return _v[i];
@@ -59,10 +64,13 @@ typedef vector<int, 2> int2;
 typedef vector<int, 3> int3;
 typedef vector<int, 4> int4;
 
-typedef vector<unsigned int, 2> uint2;
-typedef vector<unsigned int, 3> uint3;
-typedef vector<unsigned int, 4> uint4;
+typedef unsigned int bmask;
 
+typedef vector<bmask, 2> bmask2;
+typedef vector<bmask, 3> bmask3;
+typedef vector<bmask, 4> bmask4;
+
+#if 0
 template<typename T>
 struct vector<T, 1> {
 	union {
@@ -226,13 +234,15 @@ struct vector<T, 4> {
         return _v[i];
     }
 };
+#endif
 
+#if 0
 template<typename T, unsigned int N>
 inline vector<T, N> min(const vector<T, N> & lhs, const vector<T, N> & rhs) {
     vector<T, N> out;
     
     for (unsigned int i = 0; i < N; i++)
-    out[i] = min(lhs[i], rhs[i]);
+		out[i] = min(lhs[i], rhs[i]);
     
     return out;
 }
@@ -421,7 +431,7 @@ inline vector<T, N> operator-(const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-T any(const vector<T, N> & v) {
+inline T any(const vector<T, N> & v) {
 	for (unsigned int i = 0; i < N; i++)
 		if (v[i])
 			return true;
@@ -430,7 +440,7 @@ T any(const vector<T, N> & v) {
 }
 
 template<typename T, unsigned int N>
-T all(const vector<T, N> & v) {
+inline T all(const vector<T, N> & v) {
 	for (unsigned int i = 0; i < N; i++)
 		if (!v[i])
 			return false;
@@ -439,7 +449,7 @@ T all(const vector<T, N> & v) {
 }
 
 template<typename T, typename B, unsigned int N>
-vector<T, N> blend(const vector<T, N> & lhs, const vector<T, N> & rhs, const vector<B, N> & mask) {
+inline vector<T, N> blend(const vector<B, N> & mask, const vector<T, N> & lhs, const vector<T, N> & rhs) {
 	vector<T, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
@@ -449,8 +459,8 @@ vector<T, N> blend(const vector<T, N> & lhs, const vector<T, N> & rhs, const vec
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator<(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<bool, N> out;
+inline vector<bmask, N> operator<(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
 		out[i] = lhs[i] < rhs[i];
@@ -459,8 +469,8 @@ vector<bool, N> operator<(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator<=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<bool, N> out;
+inline vector<bmask, N> operator<=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
 		out[i] = lhs[i] <= rhs[i];
@@ -469,8 +479,8 @@ vector<bool, N> operator<=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator==(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<bool, N> out;
+inline vector<bmask, N> operator==(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
 		out[i] = lhs[i] == rhs[i];
@@ -479,8 +489,8 @@ vector<bool, N> operator==(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator>=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<bool, N> out;
+inline vector<bmask, N> operator>=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
 		out[i] = lhs[i] >= rhs[i];
@@ -489,8 +499,8 @@ vector<bool, N> operator>=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator>(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<bool, N> out;
+inline vector<bmask, N> operator>(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
 		out[i] = lhs[i] > rhs[i];
@@ -499,8 +509,8 @@ vector<bool, N> operator>(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator!=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
-	vector<bool, N> out;
+inline vector<bmask, N> operator!=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
 		out[i] = lhs[i] != rhs[i];
@@ -509,7 +519,7 @@ vector<bool, N> operator!=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator&&(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+inline vector<bmask, N> operator&&(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 	vector<T, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
@@ -519,7 +529,7 @@ vector<bool, N> operator&&(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator||(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+inline vector<bmask, N> operator||(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 	vector<T, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
@@ -529,7 +539,7 @@ vector<bool, N> operator||(const vector<T, N> & lhs, const vector<T, N> & rhs) {
 }
 
 template<typename T, unsigned int N>
-vector<bool, N> operator!(const vector<T, N> & v) {
+inline vector<bmask, N> operator!(const vector<T, N> & v) {
 	vector<T, N> out;
 
 	for (unsigned int i = 0; i < N; i++)
@@ -634,4 +644,989 @@ inline float schlick(const vector<T, 3> & n, const vector<T, 3> & v, float n1, f
 }
 #endif
 
+template<>
+struct __declspec(align(16)) vector<float, 2> {
+	union {
+		float _v[4];
+		struct {
+			float x;
+			float y;
+			float _pad1;
+			float _pad2;
+		};
+		__m128 _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_ps())
+	{
+	}
+
+	vector(float v)
+		: _s(_mm_set1_ps(v))
+	{
+	}
+
+	vector(float x, float y)
+		: _s(_mm_setr_ps(x, y, 0.0f, 0.0f))
+	{
+	}
+
+	vector(__m128 s)
+		: _s(s)
+	{
+	}
+
+	float & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const float & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+inline vector<float, 2> min(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_min_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 2> max(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_max_ps(lhs._s, rhs._s);
+}
+
+// TODO: abs
+// TODO: saturate. Note: SSE has special functions for saturation
+
+inline vector<float, 2> operator+(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_add_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 2> operator-(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_sub_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 2> operator-(const vector<float, 2> & vec) {
+	return _mm_sub_ps(_mm_set1_ps(0.0f), vec._s);
+}
+
+inline vector<float, 2> operator*(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_mul_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 2> operator/(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_div_ps(lhs._s, rhs._s);
+}
+
+inline float dot(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return vector<float, 2>(_mm_dp_ps(lhs._s, rhs._s, 0x3F)).x;
+}
+
+inline float length(const vector<float, 2> & vec) {
+	return vector<float, 2>(_mm_sqrt_ps(_mm_dp_ps(vec._s, vec._s, 0x3F))).x;
+}
+
+inline vector<float, 2> normalize(const vector<float, 2> & vec) {
+	return _mm_div_ps(vec._s, _mm_sqrt_ps(_mm_dp_ps(vec._s, vec._s, 0x3F)));
+}
+
+template<>
+struct __declspec(align(16)) vector<float, 3> {
+	union {
+		float _v[4];
+		struct {
+			float x;
+			float y;
+			float z;
+			float _pad;
+		};
+		__m128 _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_ps())
+	{
+	}
+
+	vector(float v)
+		: _s(_mm_set1_ps(v))
+	{
+	}
+
+#if 0
+	vector(const vector<float, 2> & xy, float z)
+		: _s(_mm_setr_ps(xy.x, xy.y, z, 0.0f)) // TODO
+	{
+	}
+#endif
+
+	vector(float x, float y, float z)
+		: _s(_mm_setr_ps(x, y, z, 0.0f))
+	{
+	}
+
+	vector(__m128 s)
+		: _s(s)
+	{
+	}
+
+	float & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const float & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+inline vector<float, 3> min(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return _mm_min_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 3> max(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return _mm_max_ps(lhs._s, rhs._s);
+}
+
+// TODO: abs
+// TODO: saturate. Note: SSE has special functions for saturation
+
+inline vector<float, 3> operator+(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return _mm_add_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 3> operator-(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return _mm_sub_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 3> operator-(const vector<float, 3> & vec) {
+	return _mm_sub_ps(_mm_set1_ps(0.0f), vec._s);
+}
+
+inline vector<float, 3> operator*(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return _mm_mul_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 3> operator/(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return _mm_div_ps(lhs._s, rhs._s);
+}
+
+inline float dot(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return vector<float, 3>(_mm_dp_ps(lhs._s, rhs._s, 0x71)).x;
+}
+
+inline float length(const vector<float, 3> & vec) {
+	return vector<float, 3>(_mm_sqrt_ps(_mm_dp_ps(vec._s, vec._s, 0x7F))).x;
+}
+
+inline vector<float, 3> normalize(const vector<float, 3> & vec) {
+	return _mm_div_ps(vec._s, _mm_sqrt_ps(_mm_dp_ps(vec._s, vec._s, 0x7F)));
+}
+
+// TODO: These can probably be implemented more efficiently
+inline vector<float, 3> cross(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return vector<float, 3>(
+		lhs.y * rhs.z - lhs.z * rhs.y,
+		lhs.z * rhs.x - lhs.x * rhs.z,
+		lhs.x * rhs.y - lhs.y * rhs.x);
+}
+
+/**
+* Reflect this vector across a normal vector. TODO.
+*/
+inline vector<float, 3> reflect(const vector<float, 3> & vec, const vector<float, 3> & norm) {
+	return 2.0f * dot(vec, norm) * norm - vec;
+}
+
+/**
+* Get a refracted vector according to Snell's law. Assumes that this vector points towards
+* the interface. TODO.
+*
+* @param norm Normal at interface
+* @param n1   Index of refraction of material being left
+* @param n2   Index of refractio nof material being entered
+*/
+inline vector<float, 3> refract(const vector<float, 3> & vec, const vector<float, 3> & norm, float n1, float n2) {
+	vector<float, 3> L = -vec;
+	vector<float, 3> N = norm;
+
+	float r = n1 / n2;
+	float cos_theta_l = dot(L, N);
+	float c = sqrtf(1.0f - r * r * (1.0f - cos_theta_l * cos_theta_l));
+
+	float c_l = -r;
+	float c_n = -c - r * cos_theta_l;
+
+	return L * c_l + N * c_n;
+}
+
+/**
+* @brief Schlick's approximation. TODO.
+*
+* @param n  Normal
+* @param v  View direction
+* @param n1 Index of refraction of material being left
+* @param n2 Index of refraction of material being entered
+*
+* @return A factor for blending reflection and refraction. 0 = refraction only,
+* 1 = reflection only
+*/
+inline float schlick(const vector<float, 3> & n, const vector<float, 3> & v, float n1, float n2) {
+	// TODO specular highlights can use this too?
+
+	float cos_i = dot(n, v);
+
+	float r0 = (n1 - n2) / (n1 + n2);
+	r0 *= r0;
+
+	// TODO: total internal reflection
+
+	return r0 + (1.0f - r0) * pow(1.0f - cos_i, 5.0f);
+}
+
+#if 0
+template<typename T, unsigned int N>
+inline T any(const vector<T, N> & v) {
+	for (unsigned int i = 0; i < N; i++)
+		if (v[i])
+			return true;
+
+	return false;
+}
+
+template<typename T, unsigned int N>
+inline T all(const vector<T, N> & v) {
+	for (unsigned int i = 0; i < N; i++)
+		if (!v[i])
+			return false;
+
+	return true;
+}
+
+template<typename T, typename B, unsigned int N>
+inline vector<T, N> blend(const vector<B, N> & mask, const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = mask[i] ? rhs[i] : lhs[i];
+
+	return out;
+}
+#endif
+
+#if 0
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator<(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] < rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator<=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] <= rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator==(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] == rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator>=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] >= rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator>(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] > rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator!=(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<bmask, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] != rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator&&(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] && rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator||(const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = lhs[i] || rhs[i];
+
+	return out;
+}
+
+template<typename T, unsigned int N>
+inline vector<bmask, N> operator!(const vector<T, N> & v) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = !v[i];
+
+	return out;
+}
+#endif
+
+template<>
+struct __declspec(align(16)) vector<float, 4> {
+	union {
+		float _v[4];
+		struct {
+			float x;
+			float y;
+			float z;
+			float w;
+		};
+		__m128 _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_ps())
+	{
+	}
+
+	vector(float v)
+		: _s(_mm_set1_ps(v))
+	{
+	}
+
+	vector(const vector<float, 3> & xyz, float w)
+		: _s(_mm_setr_ps(xyz.x, xyz.y, xyz.z, w)) // TODO
+	{
+	}
+
+	vector(float x, float y, float z, float w)
+		: _s(_mm_setr_ps(x, y, z, w))
+	{
+	}
+
+	vector(__m128 s)
+		: _s(s)
+	{
+	}
+
+	vector<float, 3> xyz() {
+		return vector<float, 3 >(_s);
+	}
+
+	float & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const float & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+inline vector<float, 4> min(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return _mm_min_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 4> max(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return _mm_max_ps(lhs._s, rhs._s);
+}
+
+// TODO: abs
+// TODO: saturate. Note: SSE has special functions for saturation
+
+inline vector<float, 4> operator+(const vector<float, 4> lhs, const vector<float, 4> & rhs) {
+	return _mm_add_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 4> operator-(const vector<float, 4> lhs, const vector<float, 4> & rhs) {
+	return _mm_sub_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 4> operator-(const vector<float, 4> & vec) {
+	return _mm_sub_ps(_mm_set1_ps(0.0f), vec._s);
+}
+
+inline vector<float, 4> operator*(const vector<float, 4> lhs, const vector<float, 4> & rhs) {
+	return _mm_mul_ps(lhs._s, rhs._s);
+}
+
+inline vector<float, 4> operator/(const vector<float, 4> lhs, const vector<float, 4> & rhs) {
+	return _mm_div_ps(lhs._s, rhs._s);
+}
+
+inline float dot(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return vector<float, 4>(_mm_dp_ps(lhs._s, rhs._s, 0xFF)).x;
+}
+
+inline float length(const vector<float, 4> & vec) {
+	return vector<float, 4>(_mm_sqrt_ps(_mm_dp_ps(vec._s, vec._s, 0xFF))).x;
+}
+
+inline vector<float, 4> normalize(const vector<float, 4> & vec) {
+	return _mm_div_ps(vec._s, _mm_sqrt_ps(_mm_dp_ps(vec._s, vec._s, 0xFF)));
+}
+
+#if 0
+template<typename T, unsigned int N>
+inline T any(const vector<T, N> & v) {
+	for (unsigned int i = 0; i < N; i++)
+		if (v[i])
+			return true;
+
+	return false;
+}
+
+template<typename T, unsigned int N>
+inline T all(const vector<T, N> & v) {
+	for (unsigned int i = 0; i < N; i++)
+		if (!v[i])
+			return false;
+
+	return true;
+}
+
+template<typename T, typename B, unsigned int N>
+inline vector<T, N> blend(const vector<B, N> & mask, const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = mask[i] ? rhs[i] : lhs[i];
+
+	return out;
+}
+#endif
+
+template<>
+struct __declspec(align(16)) vector<bmask, 2> {
+	union {
+		bmask _v[4];
+		struct {
+			bmask x;
+			bmask y;
+			bmask _pad0;
+			bmask _pad1;
+		};
+		__m128 _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_ps())
+	{
+	}
+
+	vector(bmask v)
+		: _s(_mm_castsi128_ps(_mm_set1_epi32(v)))
+	{
+	}
+
+#if 0
+	vector(const vector<bmask, 3> & xyz, bmask w)
+		: _s(_mm_setr_ps(xyz.x, xyz.y, xyz.z, w)) // TODO
+	{
+	}
+#endif
+
+	vector(bmask x, bmask y)
+		: _s(_mm_castsi128_ps(_mm_setr_epi32(x, y, 0, 0)))
+	{
+	}
+
+	vector(__m128 s)
+		: _s(s)
+	{
+	}
+
+#if 0
+	vector<bmask, 3> xyz() {
+		return vector<bmask, 3 >(_s);
+	}
+#endif
+
+	bmask & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const bmask & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+template<>
+struct __declspec(align(16)) vector<bmask, 3> {
+	union {
+		bmask _v[4];
+		struct {
+			bmask x;
+			bmask y;
+			bmask z;
+			bmask _pad;
+		};
+		__m128 _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_ps())
+	{
+	}
+
+	vector(bmask v)
+		: _s(_mm_castsi128_ps(_mm_set1_epi32(v)))
+	{
+	}
+
+#if 0
+	vector(const vector<bmask, 3> & xyz, bmask w)
+		: _s(_mm_setr_ps(xyz.x, xyz.y, xyz.z, w)) // TODO
+	{
+	}
+#endif
+
+	vector(bmask x, bmask y, bmask z)
+		: _s(_mm_castsi128_ps(_mm_setr_epi32(x, y, z, 0)))
+	{
+	}
+
+	vector(__m128 s)
+		: _s(s)
+	{
+	}
+
+#if 0
+	vector<bmask, 3> xyz() {
+		return vector<bmask, 3 >(_s);
+	}
+#endif
+
+	bmask & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const bmask & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+template<>
+struct __declspec(align(16)) vector<bmask, 4> {
+	union {
+		bmask _v[4];
+		struct {
+			bmask x;
+			bmask y;
+			bmask z;
+			bmask w;
+		};
+		__m128 _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_ps())
+	{
+	}
+
+	vector(bmask v)
+		: _s(_mm_castsi128_ps(_mm_set1_epi32(v)))
+	{
+	}
+
+#if 0
+	vector(const vector<bmask, 3> & xyz, bmask w)
+		: _s(_mm_setr_ps(xyz.x, xyz.y, xyz.z, w)) // TODO
+	{
+	}
+#endif
+
+	vector(bmask x, bmask y, bmask z, bmask w)
+		: _s(_mm_castsi128_ps(_mm_setr_epi32(x, y, z, w)))
+	{
+	}
+
+	vector(__m128 s)
+		: _s(s)
+	{
+	}
+
+#if 0
+	vector<bmask, 3> xyz() {
+		return vector<bmask, 3 >(_s);
+	}
+#endif
+
+	bmask & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const bmask & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+inline vector<bmask, 2> operator<(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_cmplt_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 2> operator<=(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_cmple_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 2> operator==(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_cmpeq_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 2> operator>=(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_cmpge_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 2> operator>(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_cmpgt_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 2> operator!=(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_cmpneq_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 3> operator<(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+    return _mm_cmplt_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 3> operator<=(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+    return _mm_cmple_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 3> operator==(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+    return _mm_cmpeq_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 3> operator>=(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+    return _mm_cmpge_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 3> operator>(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+    return _mm_cmpgt_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 3> operator!=(const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+    return _mm_cmpneq_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator<(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+    return _mm_cmplt_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator<=(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return _mm_cmple_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator==(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return _mm_cmpeq_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator>=(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return _mm_cmpge_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator>(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return _mm_cmpgt_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator!=(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return _mm_cmpneq_ps(lhs._s, rhs._s);
+}
+
+#if 0
+template<>
+inline vector<bmask, 4> operator&&(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	vector<float, 4> out;
+
+	for (unsigned int i = 0; i < 4; i++)
+		out[i] = lhs[i] && rhs[i];
+
+	return out;
+}
+
+template<>
+inline vector<bmask, 4> operator||(const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	vector<float, 4> out;
+
+	for (unsigned int i = 0; i < 4; i++)
+		out[i] = lhs[i] || rhs[i];
+
+	return out;
+}
+
+template<>
+inline vector<bmask, 4> operator!(const vector<float, 4> & v) {
+	vector<float, 4> out;
+
+	for (unsigned int i = 0; i < 4; i++)
+		out[i] = !v[i];
+
+	return out;
+}
+#endif
+
+#if 0
+template<typename T, unsigned int N>
+inline T any(const vector<T, N> & v) {
+	for (unsigned int i = 0; i < N; i++)
+		if (v[i])
+			return true;
+
+	return false;
+}
+
+template<typename T, unsigned int N>
+inline T all(const vector<T, N> & v) {
+	for (unsigned int i = 0; i < N; i++)
+		if (!v[i])
+			return false;
+
+	return true;
+}
+
+template<typename T, typename B, unsigned int N>
+inline vector<T, N> blend(const vector<B, N> & mask, const vector<T, N> & lhs, const vector<T, N> & rhs) {
+	vector<T, N> out;
+
+	for (unsigned int i = 0; i < N; i++)
+		out[i] = mask[i] ? rhs[i] : lhs[i];
+
+	return out;
+}
+#endif
+
+inline vector<bmask, 4> operator==(const vector<bmask, 4> & lhs, const vector<bmask, 4> & rhs) {
+	return _mm_cmpeq_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator!=(const vector<bmask, 4> & lhs, const vector<bmask, 4> & rhs) {
+	return _mm_cmpneq_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 2> operator&(const vector<bmask, 2> & lhs, const vector<bmask, 2> & rhs) {
+	return _mm_and_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 2> operator|(const vector<bmask, 2> & lhs, const vector<bmask, 2> & rhs) {
+	return _mm_or_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 3> operator&(const vector<bmask, 3> & lhs, const vector<bmask, 3> & rhs) {
+	return _mm_and_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 3> operator|(const vector<bmask, 3> & lhs, const vector<bmask, 3> & rhs) {
+	return _mm_or_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator&(const vector<bmask, 4> & lhs, const vector<bmask, 4> & rhs) {
+	return _mm_and_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 4> operator|(const vector<bmask, 4> & lhs, const vector<bmask, 4> & rhs) {
+	return _mm_or_ps(lhs._s, rhs._s);
+}
+
+inline vector<bmask, 2> operator~(const vector<bmask, 2> & v) {
+	__m128 mask = _mm_cmpge_ps(_mm_setzero_ps(), _mm_setzero_ps());
+	return _mm_andnot_ps(v._s, mask);
+}
+
+inline vector<bmask, 3> operator~(const vector<bmask, 3> & v) {
+	__m128 mask = _mm_cmpge_ps(_mm_setzero_ps(), _mm_setzero_ps());
+	return _mm_andnot_ps(v._s, mask);
+}
+
+inline vector<bmask, 4> operator~(const vector<bmask, 4> & v) {
+	__m128 mask = _mm_cmpge_ps(_mm_setzero_ps(), _mm_setzero_ps());
+	return _mm_andnot_ps(v._s, mask);
+}
+
+inline vector<float, 2> blend(const vector<bmask, 2> & mask, const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
+	return _mm_blendv_ps(lhs._s, rhs._s, mask._s);
+}
+
+inline vector<float, 3> blend(const vector<bmask, 3> & mask, const vector<float, 3> & lhs, const vector<float, 3> & rhs) {
+	return _mm_blendv_ps(lhs._s, rhs._s, mask._s);
+}
+
+inline vector<float, 4> blend(const vector<bmask, 4> & mask, const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
+	return _mm_blendv_ps(lhs._s, rhs._s, mask._s);
+}
+
+inline bool any(const vector<bmask, 4> & v) {
+	return _mm_movemask_ps(v._s) != 0x00000000;
+	// TODO: more efficient way?
+}
+
+inline bool all(const vector<bmask, 4> & v) {
+	return _mm_movemask_ps(v._s) == 0x0000000F;
+	// TODO: more efficient way?
+}
+
+template<>
+struct __declspec(align(16)) vector<int, 2> {
+	union {
+		int _v[4];
+		struct {
+			int x;
+			int y;
+			int _pad0;
+			int _pad1;
+		};
+		__m128i _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_si128())
+	{
+	}
+
+	vector(int v)
+		: _s(_mm_set1_epi32(v))
+	{
+	}
+
+	vector(int x, int y)
+		: _s(_mm_setr_epi32(x, y, 0, 0))
+	{
+	}
+
+	vector(__m128i s)
+		: _s(s)
+	{
+	}
+
+	int & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const int & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+template<>
+struct __declspec(align(16)) vector<int, 3> {
+	union {
+		int _v[4];
+		struct {
+			int x;
+			int y;
+			int z;
+			int _pad0;
+		};
+		__m128i _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_si128())
+	{
+	}
+
+	vector(int v)
+		: _s(_mm_set1_epi32(v))
+	{
+	}
+
+	vector(int x, int y, int z)
+		: _s(_mm_setr_epi32(x, y, z, 0))
+	{
+	}
+
+	vector(__m128i s)
+		: _s(s)
+	{
+	}
+
+	int & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const int & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+template<>
+struct __declspec(align(16)) vector<int, 4> {
+	union {
+		int _v[4];
+		struct {
+			int x;
+			int y;
+			int z;
+			int w;
+		};
+		__m128i _s;
+	};
+
+	vector()
+		: _s(_mm_setzero_si128())
+	{
+	}
+
+	vector(int v)
+		: _s(_mm_set1_epi32(v))
+	{
+	}
+
+	vector(int x, int y, int z, int w)
+		: _s(_mm_setr_epi32(x, y, z, w))
+	{
+	}
+
+	vector(__m128i s)
+		: _s(s)
+	{
+	}
+
+	int & operator[](unsigned int i) {
+		return _v[i];
+	}
+
+	const int & operator[](unsigned int i) const {
+		return _v[i];
+	}
+};
+
+inline vector<int, 4> blend(const vector<bmask, 4> & mask, const vector<int, 4> & lhs, const vector<int, 4> & rhs) {
+	// TODO: Conversion between float and int vector pipes may be a problem
+	// TODO: make sure the masking is compatible
+	return _mm_blendv_epi8(lhs._s, rhs._s, _mm_castps_si128(mask._s));
+}
+
+#endif
 #endif

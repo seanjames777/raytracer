@@ -22,38 +22,37 @@ const char *vs_source =
     "}\n";
 
 const char *ps_source =
-    "#version 330 core\n"
-    "in vec2 var_uv;\n"
-    "out vec4 out_color;\n"
-    "uniform sampler2D textureSampler;\n"
-    "uniform vec2 imageSize;\n"
-    "void main() {\n"
-    "    vec4 image = texture(textureSampler, var_uv);\n"
-    "    // vec2 pixel = var_uv * imageSize;\n"
-    "    // ivec2 check = ivec2(int(pixel.x / 16) %2, int(pixel.y / 16) % 2);\n"
-    "    // vec3 check_rgb = vec3(check.x ^ check.y) * .2 + .7;\n"
-    "    out_color.rgb = image.rgb; /* * image.a + check_rgb * (1.0 - image.a); */\n"
+	"#version 330 core\n"
+	"in vec2 var_uv;\n"
+	"out vec4 out_color;\n"
+	"uniform sampler2D textureSampler;\n"
+	"uniform vec2 imageSize;\n"
+	"void main() {\n"
+	"    vec4 image = texture(textureSampler, var_uv);\n"
+	"    // vec2 pixel = var_uv * imageSize;\n"
+	"    // ivec2 check = ivec2(int(pixel.x / 16) %2, int(pixel.y / 16) % 2);\n"
+	"    // vec3 check_rgb = vec3(check.x ^ check.y) * .2 + .7;\n"
+	"    out_color.rgb = image.rgb; /* * image.a + check_rgb * (1.0 - image.a); */\n"
     "    // out_color.rgb *= 2.0;\n"
     "    // out_color.rgb = out_color.rgb / (1.0 + out_color.rgb);\n"
     "    // out_color.rgb = pow(out_color.rgb, vec3(1.0 / 2.2));\n"
     "}\n";
 
 // TODO: shorthand for this type
-float2 vertices[6] = {
-    float2(-1, -1),
-    float2(-1, 1),
-    float2(1, 1),
-
-    float2(-1, -1),
-    float2(1, 1),
-    float2(1, -1)
+float vertices[] = {
+    -1, -1,
+    -1,  1,
+     1,  1,
+    -1, -1,
+     1,  1,
+     1, -1
 };
 
 void glfw_error_callback(int error, const char *msg) {
     printf("GLFW Error (%d): %s\n", error, msg);
 }
 
-ImageDisplay::ImageDisplay(int width, int height, Image<float, 3> *image)
+ImageDisplay::ImageDisplay(int width, int height, Image<float, 4> *image)
     : width(width),
       height(height),
       image(image)
@@ -80,7 +79,7 @@ ImageDisplay::ImageDisplay(int width, int height, Image<float, 3> *image)
         return;
     }
 
-    pixels = new float[image->getWidth() * image->getHeight() * 3]; // TODO delete
+    pixels = new float[image->getWidth() * image->getHeight() * 4]; // TODO delete
 
     glfwMakeContextCurrent(window);
 
@@ -118,7 +117,7 @@ ImageDisplay::ImageDisplay(int width, int height, Image<float, 3> *image)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, image->getWidth(), image->getHeight(), 0, GL_RGB,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image->getWidth(), image->getHeight(), 0, GL_RGBA,
         GL_FLOAT, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -203,7 +202,7 @@ void ImageDisplay::refresh() {
 
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->getWidth(), image->getHeight(),
-        GL_RGB, GL_FLOAT, pixels);
+        GL_RGBA, GL_FLOAT, pixels);
 
     glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

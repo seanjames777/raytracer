@@ -15,6 +15,7 @@
 #include <image/sampler.h>
 #include <light/light.h>
 #include <core/material.h>
+#include <util/vector.h>
 #include <vector>
 
 // TODO: Might want to make some of the pointers not-pointers, i.e. just copy
@@ -31,7 +32,7 @@ private:
     std::vector<Material *> materials;
 
     /** @brief Triangles */
-    std::vector<Triangle> triangles;
+    util::vector<Triangle, 16> triangles;
 
     /** @brief Lights */
     std::vector<Light *> lights;
@@ -40,10 +41,10 @@ private:
     Camera *camera;
 
     /** @brief Output image */
-    Image<float, 3> *output;
+    Image<float, 4> *output;
 
     /** @brief Environment image */
-    Image<float, 3> *environment;
+    Image<float, 4> *environment;
 
     /** @brief Environment image sampler */
     Sampler *environmentSampler;
@@ -58,9 +59,9 @@ public:
      */
     Scene(
         Camera          *camera,
-        Image<float, 3> *output,
+        Image<float, 4> *output,
         Sampler         *environmentSampler,
-        Image<float, 3> *environment);
+        Image<float, 4> *environment);
 
     /**
      * @brief Add a light to the scene
@@ -89,7 +90,7 @@ public:
     /**
      * @brief Get vector of triangles
      */
-    const std::vector<Triangle> & getTriangles() const;
+    const util::vector<Triangle, 16> & getTriangles() const;
 
     /**
      * @brief Get a triangle by ID
@@ -99,12 +100,12 @@ public:
     /**
      * @brief Get output image
      */
-    Image<float, 3> *getOutput() const;
+    Image<float, 4> *getOutput() const;
 
     /**
      * @brief Get environment image
      */
-    const Image<float, 3> *getEnvironment() const;
+    const Image<float, 4> *getEnvironment() const;
 
     /**
      * @brief Get environment image sampler
@@ -127,13 +128,14 @@ public:
 
 inline Scene::Scene(
     Camera          *camera,
-    Image<float, 3> *output,
+    Image<float, 4> *output,
     Sampler         *environmentSampler,
-    Image<float, 3> *environment)
+    Image<float, 4> *environment)
     : camera(camera),
       output(output),
       environmentSampler(environmentSampler),
-      environment(environment)
+      environment(environment),
+	  triangles(16) // TODO: might not be necessary because alignof(Triangle) should be 16
 {
 }
 
@@ -158,7 +160,7 @@ inline unsigned int Scene::getNumMaterials() const {
 	return materials.size();
 }
 
-inline const std::vector<Triangle> & Scene::getTriangles() const {
+inline const util::vector<Triangle, 16> & Scene::getTriangles() const {
     return triangles;
 }
 
@@ -166,11 +168,11 @@ inline const Triangle *Scene::getTriangle(unsigned int id) const {
     return &triangles[id];
 }
 
-inline Image<float, 3> *Scene::getOutput() const {
+inline Image<float, 4> *Scene::getOutput() const {
     return output;
 }
 
-inline const Image<float, 3> *Scene::getEnvironment() const {
+inline const Image<float, 4> *Scene::getEnvironment() const {
     return environment;
 }
 

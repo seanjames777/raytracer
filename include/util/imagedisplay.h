@@ -77,7 +77,7 @@ private:
     GLFWwindow *window;
 
     /** @brief Displayed image */
-    Image<float, 3> *image;
+    Image<float, 4> *image;
 
     // TODO
     float *pixels;
@@ -91,7 +91,7 @@ public:
      * @param height Height of the display window
      * @param image  Image to display
      */
-    ImageDisplay(int width, int height, Image<float, 3> *image);
+    ImageDisplay(int width, int height, Image<float, 4> *image);
 
     /**
      * @brief Destructor

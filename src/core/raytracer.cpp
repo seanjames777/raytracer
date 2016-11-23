@@ -38,7 +38,7 @@ void Raytracer::render() {
 		KDAllocator nodeAllocator(nodeMem, 1024 * 1024 * 100);
 		KDAllocator triangleAllocator(triangleMem, 1024 * 1024 * 100);
 
-		const std::vector<Triangle> & triangles = scene->getTriangles();
+		const util::vector<Triangle, 16> & triangles = scene->getTriangles();
 
 		tree = builder.build(&triangles[0], triangles.size(), &nodeAllocator, &triangleAllocator, &stats);
     }
@@ -86,27 +86,26 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 	KDPacketStackFrame<4> stack[64]; // TODO
 
 	struct RadianceRayStackFrame {
-		Ray ray;
-		uint2 pixel;
+		int2 pixel;
 		float3 weight;
-		char depth;
 	};
 
 	struct ShadowRayStackFrame {
 		Ray ray;
-		uint2 pixel;
+		int2 pixel;
 		float3 weight;
 		float maxDist;
 	};
 
-#define DIRSTACKS 0
+	struct RadianceRayStack {
+		util::vector<RadianceRayStackFrame, 16> frame;
+		util::vector<float, 16> origin[3];
+		util::vector<float, 16> direction[3];
+	};
 
-#if DIRSTACKS
-	std::vector<RadianceRayStackFrame> radianceStack[8];
-#else
-	std::vector<RadianceRayStackFrame> radianceStack;
-#endif
-	std::vector<ShadowRayStackFrame> shadowStack;
+	RadianceRayStack radianceStack[8];
+
+	util::vector<ShadowRayStackFrame, 16> shadowStack;
 
 	float3 min = tree->bounds().min;
 	float3 max = tree->bounds().max;
@@ -153,86 +152,91 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 						float3 weight(1.0f / (settings.pixelSamples * settings.pixelSamples));
 
 						RadianceRayStackFrame frame;
-						frame.ray = r;
-						frame.pixel = uint2(x, y);
+						frame.pixel = int2(x, y);
 						frame.weight = weight;
-						frame.depth = 0;
 
-#if DIRSTACKS
 						int c = (signbit(r.direction.x) << 2) | (signbit(r.direction.y) << 1) | (signbit(r.direction.z) << 0);
-						radianceStack[c].push_back(frame);
-#else
-						radianceStack.push_back(frame);
-#endif
+
+						radianceStack[c].frame.push_back(frame);
+
+						radianceStack[c].origin[0].push_back(r.origin.x);
+						radianceStack[c].origin[1].push_back(r.origin.y);
+						radianceStack[c].origin[2].push_back(r.origin.z);
+
+						radianceStack[c].direction[0].push_back(r.direction.x);
+						radianceStack[c].direction[1].push_back(r.direction.y);
+						radianceStack[c].direction[2].push_back(r.direction.z);
 					}
 				}
 			}
 		}
 
 		struct ShadingWorkItem {
+			Ray ray;
 			RadianceRayStackFrame frame;
 			Collision collision; // TODO: mess with offset of triangle ID
 		};
 
-		std::vector<ShadingWorkItem> shadingBuff;
+		util::vector<ShadingWorkItem, 16> shadingBuff;
 
 		// Alternate between tree traversal and shading. Shading may produce more traversal work.
-#if DIRSTACKS
-		while (!radianceStack[0].empty() || !radianceStack[1].empty() || !radianceStack[2].empty() || !radianceStack[3].empty() || !radianceStack[4].empty() || !radianceStack[5].empty() || !radianceStack[6].empty() || !radianceStack[7].empty()) {
-#else
-		while (!radianceStack.empty()) {
-#endif
-
-#if !DIRSTACKS && 0
-			// TODO: Bucket instead of sort
-			std::sort(radianceStack.begin(), radianceStack.end(), [&](const RadianceRayStackFrame & l, const RadianceRayStackFrame & r) {
-#if 0
-				float3 pl = saturate((l.ray.origin - min) * minMaxDenom) * (float)((1 << 10) - 1); // TODO: precompute
-				uint3 il = uint3(pl.x, pl.y, pl.z); // TODO: cast function
-
-				float3 pr = saturate((r.ray.origin - min) * minMaxDenom) * (float)((1 << 10) - 1); // TODO: precompute
-				uint3 ir = uint3(pr.x, pr.y, pr.z); // TODO: cast function
-#else
-				uint3 il(0);
-				uint3 ir(0);
-#endif
-
-				// TODO: Using 9 bits per component, but we could trade off vertical bits for horizontal for most scenes, probably.
-
-				int cl = (il.x << 22) | (il.y << 13) | (il.z << 4) | (signbit(l.ray.direction.x) << 2) | (signbit(l.ray.direction.y) << 1) | (signbit(l.ray.direction.z) << 0);
-				int cr = (ir.x << 22) | (ir.y << 13) | (ir.z << 4) | (signbit(r.ray.direction.x) << 2) | (signbit(r.ray.direction.y) << 1) | (signbit(r.ray.direction.z) << 0);
-
-				return cl < cr;
-			});
-#endif
-
-			// TODO: trace rays in SIMD
+		for (int generation = 0; generation < settings.maxDepth; generation++) {
 			// Note: rays now have same sign bits in each direction
 
-#if DIRSTACKS
 			for (int i = 0; i < 8; i++)
-			for (auto & frame : radianceStack[i]) {
-#else
-			for (auto & frame : radianceStack) {
-#endif
-				Collision result;
-				Ray r = frame.ray;
+				for (int j = 0; j < (radianceStack[i].frame.size() & ~(SIMD - 1)); j += SIMD) { // TODO: handle last elements
+					PacketCollision<SIMD> result;
+					Packet<SIMD> packet;
 
-				if (tree->intersect((KDStackFrame *)stack, r, INFINITY, result)) { // TODO fix cast
-					ShadingWorkItem item;
-					item.frame = frame;
-					item.collision = result;
+					// TODO: Avoid this copy by passing registers directly
+					packet.origin[0] = *(vector<float, SIMD> *)&radianceStack[i].origin[0][j];
+					packet.origin[1] = *(vector<float, SIMD> *)&radianceStack[i].origin[1][j];
+					packet.origin[2] = *(vector<float, SIMD> *)&radianceStack[i].origin[2][j];
 
-					shadingBuff.push_back(item);
+					packet.direction[0] = *(vector<float, SIMD> *)&radianceStack[i].direction[0][j];
+					packet.direction[1] = *(vector<float, SIMD> *)&radianceStack[i].direction[1][j];
+					packet.direction[2] = *(vector<float, SIMD> *)&radianceStack[i].direction[2][j];
+
+					vector<bmask, SIMD> hit = tree->intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
+						packet, vector<float, SIMD>(INFINITY), result);
+
+					// TODO: Might be useful to pass in active mask
+
+					for (int k = 0; k < SIMD; k++) {
+						if (hit[k]) {
+							ShadingWorkItem item;
+
+							item.ray.origin[0] = radianceStack[i].origin[0][j + k];
+							item.ray.origin[1] = radianceStack[i].origin[1][j + k];
+							item.ray.origin[2] = radianceStack[i].origin[2][j + k];
+
+							item.ray.direction[0] = radianceStack[i].direction[0][j + k];
+							item.ray.direction[1] = radianceStack[i].direction[1][j + k];
+							item.ray.direction[2] = radianceStack[i].direction[2][j + k];
+
+							item.frame = radianceStack[i].frame[j + k];
+
+							item.collision.beta = result.beta[k];
+							item.collision.gamma = result.gamma[k];
+							item.collision.distance = result.distance[k];
+							item.collision.triangle_id = result.triangle_id[k];
+
+							shadingBuff.push_back(item);
+						}
+					}
 				}
-			}
 
-#if DIRSTACKS
-			for (int i = 0; i < 8; i++)
-			radianceStack[i].clear();
-#else
-			radianceStack.clear();
-#endif
+			for (int i = 0; i < 8; i++) {
+				radianceStack[i].frame.clear();
+
+				radianceStack[i].origin[0].clear();
+				radianceStack[i].origin[1].clear();
+				radianceStack[i].origin[2].clear();
+
+				radianceStack[i].direction[0].clear();
+				radianceStack[i].direction[1].clear();
+				radianceStack[i].direction[2].clear();
+			}
 
 #if 1
 			// TODO: Better sorting is probably possible
@@ -256,20 +260,20 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 				const Material *material = scene->getMaterial(triangle->material_id);
 
-				Image<float, 3> *normalMap = material->getNormalTexture();
+				Image<float, 4> *normalMap = material->getNormalTexture();
 
 				if (normalMap) {
 					float3 tangent = normalize(interp.tangent);
 					float3 bitangent = cross(interp.normal, tangent);
 
 					Sampler sampler(Bilinear, Wrap);
-					float3 tbn = sampler.sample(normalMap, interp.uv) * 2.0f - 1.0f;
+					float3 tbn = sampler.sample(normalMap, interp.uv).xyz() * 2.0f - 1.0f;
 
 					// TODO: extra normalize might not be needed
 					interp.normal = normalize(tbn.x * tangent - tbn.y * bitangent + tbn.z * interp.normal);
 				}
 
-				float3 wo = -item.frame.ray.direction;
+				float3 wo = -item.ray.direction;
 
 				for (int l = 0; l < scene->getNumLights(); l++) {
 					const Light *light = scene->getLight(l);
@@ -291,10 +295,11 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 					shadowStack.push_back(shadow);
 				}
 
-				if (item.frame.depth < settings.maxDepth - 1) {
+				if (generation < settings.maxDepth - 1) {
+					Ray indirectRay;
 					RadianceRayStackFrame indirect;
 
-					indirect.ray.origin = interp.position + triangle->normal * 0.001f;
+					indirectRay.origin = interp.position + triangle->normal * 0.001f;
 
 					float secondary;
 					rand1D(1, &secondary);
@@ -303,28 +308,32 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 						float2 rand;
 						rand2D(1, &rand);
 
-						mapSamplesCosHemisphere(1, 1.0f, &rand, &indirect.ray.direction);
-						alignHemisphereNormal(1, &indirect.ray.direction, triangle->normal);
+						mapSamplesCosHemisphere(1, 1.0f, &rand, &indirectRay.direction);
+						alignHemisphereNormal(1, &indirectRay.direction, triangle->normal);
 
 						// Importance sampling: n dot l term cancels out
-						indirect.weight = item.frame.weight * material->f(interp, wo, indirect.ray.direction) * (float)M_PI;
+						indirect.weight = item.frame.weight * material->f(interp, wo, indirectRay.direction) * (float)M_PI;
 					}
 					else {
-						indirect.ray.direction = reflect(wo, interp.normal);
+						indirectRay.direction = reflect(wo, interp.normal);
 						indirect.weight = item.frame.weight * material->getReflectivity(); // TODO: hack
 						//float ndotl = saturate(dot(r.direction, interp.normal));
 						//weight *= material->f(interp, wo, r.direction) * ndotl;
 					}
 
 					indirect.pixel = item.frame.pixel;
-					indirect.depth = item.frame.depth + 1;
 
-#if DIRSTACKS
-					int c = (signbit(indirect.ray.direction.x) << 2) | (signbit(indirect.ray.direction.y) << 1) | (signbit(indirect.ray.direction.z) << 0);
-					radianceStack[c].push_back(indirect);
-#else
-					radianceStack.push_back(indirect);
-#endif
+					int c = (signbit(indirectRay.direction.x) << 2) | (signbit(indirectRay.direction.y) << 1) | (signbit(indirectRay.direction.z) << 0);
+
+					radianceStack[c].frame.push_back(indirect);
+
+					radianceStack[c].origin[0].push_back(indirectRay.origin.x);
+					radianceStack[c].origin[1].push_back(indirectRay.origin.y);
+					radianceStack[c].origin[2].push_back(indirectRay.origin.z);
+
+					radianceStack[c].direction[0].push_back(indirectRay.direction.x);
+					radianceStack[c].direction[1].push_back(indirectRay.direction.y);
+					radianceStack[c].direction[2].push_back(indirectRay.direction.z);
 				}
 			}
 
@@ -348,9 +357,9 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 			if (!tree->intersect((KDStackFrame *)stack, r, frame.maxDist, result)) { // TODO fix
 				// TODO
-				float3 color = scene->getOutput()->getPixel(frame.pixel.x, frame.pixel.y);
-				color += frame.weight; // TODO
-				scene->getOutput()->setPixel(frame.pixel.x, frame.pixel.y, color);
+				float3 color = scene->getOutput()->getPixel(frame.pixel.x, frame.pixel.y).xyz();
+				color = color + frame.weight; // TODO
+				scene->getOutput()->setPixel(frame.pixel.x, frame.pixel.y, float4(color, 1.0f));
 			}
 		}
 

@@ -18,7 +18,7 @@
 class RT_EXPORT Material {
 private:
 
-	Image<float, 3> *normalTexture;
+	Image<float, 4> *normalTexture;
 
 public:
 
@@ -42,11 +42,11 @@ public:
 
 	virtual float getReflectivity() const = 0;
 
-	Image<float, 3> *getNormalTexture() const {
+	Image<float, 4> *getNormalTexture() const {
 		return normalTexture;
 	}
 
-	void setNormalTexture(Image<float, 3> *texture) {
+	void setNormalTexture(Image<float, 4> *texture) {
 		normalTexture = texture;
 	}
 };

@@ -17,7 +17,7 @@ PointLight::PointLight(float3 position, float3 radiance, bool shadow)
 void PointLight::sample(const float3 & p, float3 & wo, float & r, float3 & Lo) const {
 	wo = position - p;
 	r = length(wo);
-	wo /= r;
+	wo = wo / r; // TODO /=
 
 	Lo = radiance / (r * r);
 }
