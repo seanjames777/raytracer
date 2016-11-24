@@ -663,7 +663,7 @@ struct __declspec(align(16)) vector<float, 2> {
 	}
 
 	vector(float v)
-		: _s(_mm_set1_ps(v))
+		: _s(_mm_broadcast_ss(&v))
 	{
 	}
 
@@ -685,6 +685,11 @@ struct __declspec(align(16)) vector<float, 2> {
 		return _v[i];
 	}
 };
+
+template<unsigned int N, unsigned int X, unsigned int Y, unsigned int Z, unsigned int W, unsigned int M>
+inline vector<float, N> shuffle(const vector<float, M> v) {
+	return _mm_shuffle_ps(v._s, v._s, _MM_SHUFFLE(X, Y, Z, W));
+}
 
 inline vector<float, 2> min(const vector<float, 2> & lhs, const vector<float, 2> & rhs) {
 	return _mm_min_ps(lhs._s, rhs._s);
@@ -748,7 +753,7 @@ struct __declspec(align(16)) vector<float, 3> {
 	}
 
 	vector(float v)
-		: _s(_mm_set1_ps(v))
+		: _s(_mm_broadcast_ss(&v))
 	{
 	}
 
@@ -818,6 +823,7 @@ inline float length(const vector<float, 3> & vec) {
 }
 
 inline vector<float, 3> normalize(const vector<float, 3> & vec) {
+	// TODO: Check if rsqrt is accurate enough and faster
 	return _mm_div_ps(vec._s, _mm_sqrt_ps(_mm_dp_ps(vec._s, vec._s, 0x7F)));
 }
 
@@ -1023,7 +1029,7 @@ struct __declspec(align(16)) vector<float, 4> {
 	}
 
 	vector(float v)
-		: _s(_mm_set1_ps(v))
+		: _s(_mm_broadcast_ss(&v))
 	{
 	}
 
@@ -1484,6 +1490,11 @@ inline vector<float, 3> blend(const vector<bmask, 3> & mask, const vector<float,
 
 inline vector<float, 4> blend(const vector<bmask, 4> & mask, const vector<float, 4> & lhs, const vector<float, 4> & rhs) {
 	return _mm_blendv_ps(lhs._s, rhs._s, mask._s);
+}
+
+inline bool none(const vector<bmask, 4> & v) {
+	return _mm_movemask_ps(v._s) == 0x00000000;
+	// TODO: more efficient way?
 }
 
 inline bool any(const vector<bmask, 4> & v) {

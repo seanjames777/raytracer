@@ -221,7 +221,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 #endif
 
 template<unsigned int N>
-vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, const Packet<N> & packet, THREAD const vector<float, N> & tmax, THREAD PacketCollision<N> & result)
+vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, const Packet<N> & packet, THREAD PacketCollision<N> & result)
 {
 	// http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
@@ -246,7 +246,7 @@ vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem,
 		return vector<bmask, N>(0x00000000);
 
 	entry = max(entry, vector<float, N>(0.0001f));
-	exit = min(exit, tmax);
+	exit = min(exit, packet.maxDist);
 
 	if (all(entry > exit))
 		return vector<bmask, N>(0x00000000);
@@ -309,6 +309,6 @@ vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem,
 	return hit;
 }
 
-template vector<bmask, SIMD> KDTree::intersectPacket(THREAD KDPacketStackFrame<SIMD> *stackMem, const Packet<SIMD> & packet, THREAD const vector<float, SIMD> & tmax, THREAD PacketCollision<SIMD> & result);
+template vector<bmask, SIMD> KDTree::intersectPacket(THREAD KDPacketStackFrame<SIMD> *stackMem, const Packet<SIMD> & packet, THREAD PacketCollision<SIMD> & result);
 
 #endif

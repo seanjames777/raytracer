@@ -24,14 +24,13 @@ private:
     /** @brief Position */
     float3 position;
 
-    /** @brief Forward direction */
-    float3 forward;
-
     /** @brief Right directiom */
     float3 right;
 
     /** @brief Up direction */
     float3 up;
+
+	float3 forward;
 
     /** @brief Target position */
     float3 target;
@@ -41,18 +40,6 @@ private:
 
     /** @brief Aspect ratio */
     float aspect;
-
-    /** @brief Focal length */
-    float focus;
-
-    /** @brief Aperture radius */
-    float aperture;
-
-    /** @brief Half the width of the view plane */
-    float halfWidth;
-
-    /** @brief Half the height of the view plane */
-    float halfHeight;
 
     /** @brief Update values */
     void refresh();
@@ -73,9 +60,7 @@ public:
         const float3 & position,
         const float3 & target,
         float        aspect,
-        float        fov,
-        float        focus,
-        float        aperture);
+        float        fov);
 
     // TODO
 #if 0
@@ -109,47 +94,37 @@ public:
     /**
      * @brief Get the camera position
      */
-    float3 getPosition();
+    float3 getPosition() const;
 
     /**
      * @brief Get the camera target position
      */
-    float3 getTarget();
+    float3 getTarget() const;
 
     /**
      * @brief Get the forward vector of the camera
      */
-    float3 getForward();
+    float3 getForward() const;
 
     /**
      * @brief Get the right vector of the camera
      */
-    float3 getRight();
+    float3 getRight() const;
 
     /**
      * @brief Get the up vector of the camera
      */
-    float3 getUp();
+    float3 getUp() const;
 
     /**
      * @brief Get the field of view of the camera
      */
-    float getFOV();
+    float getFOV() const;
 
     /**
      * @brief Get the aspect ratio of the camera
      */
-    float getAspectRatio();
-
-    /**
-     * @brief Get the focal length of the camera
-     */
-    float getFocalLength();
-
-    /**
-     * @brief Get the aperture radius of the camera
-     */
-    float getAperture();
+    float getAspectRatio() const;
 
     /**
      * @brief Set the camera position
@@ -171,68 +146,50 @@ public:
      */
     void setAspectRatio(float aspectRatio);
 
-    /**
-     * @brief Set the focal length of the camera
-     */
-    void setFocalLength(float focus);
-
-    /**
-     * @brief Set the aperture radius of the camera
-     */
-    void setAperture(float aperture);
-
 };
 
-inline Ray Camera::getViewRay(const float2 &uv) const
-{
-    // TODO: Lens coordinates
+inline Ray Camera::getViewRay(const float2 & uv) const {
+	// TODO: This tries to use SIMD efficiently, but the only way to get full SIMD utilization would be to
+	// compute N samples at once and transpose the math operations
 
-    float x = uv.x * 2.0f - 1.0f;
-    float y = uv.y * 2.0f - 1.0f;
+	// TODO: operation to swizzle x and y into all channels
+    float2 xy = uv * 2.0f - 1.0f;
+	
+	// TODO: FMA
+    float3 targ = forward + right * shuffle<3, 0, 0, 0, 0>(xy) + up * shuffle<3, 1, 1, 1, 1>(xy);
 
-    float3 rightAmt = right * halfWidth  * x; // TODO: Premultiply right/up
-    float3 upAmt    = up    * halfHeight * y;
-
-    float3 targ = forward * focus + rightAmt + upAmt;
+	// TODO: Is there a cheaper closed form for the reciprocal length?
     targ = normalize(targ);
 
     return Ray(position, targ);
 }
 
-inline float3 Camera::getPosition() {
+inline float3 Camera::getPosition() const {
     return position;
 }
 
-inline float3 Camera::getTarget() {
+inline float3 Camera::getTarget() const {
     return target;
 }
 
-inline float3 Camera::getForward() {
-    return forward;
+inline float3 Camera::getForward() const {
+    return target - position;
 }
 
-inline float3 Camera::getRight() {
-    return right;
+inline float3 Camera::getRight() const {
+    return normalize(right); // TODO: if anyone seriously uses this, precompute the normalize version
 }
 
-inline float3 Camera::getUp() {
-    return up;
+inline float3 Camera::getUp() const {
+    return normalize(up); // TODO: if anyone seriously uses this, precompute the normalize version
 }
 
-inline float Camera::getFOV() {
+inline float Camera::getFOV() const {
     return fov;
 }
 
-inline float Camera::getAspectRatio() {
+inline float Camera::getAspectRatio() const {
     return aspect;
-}
-
-inline float Camera::getFocalLength() {
-    return focus;
-}
-
-inline float Camera::getAperture() {
-    return aperture;
 }
 
 inline void Camera::setPosition(const float3 & position) {
@@ -252,16 +209,6 @@ inline void Camera::setFOV(float fov) {
 
 inline void Camera::setAspectRatio(float aspectRatio) {
     this->aspect = aspectRatio;
-    refresh();
-}
-
-inline void Camera::setFocalLength(float focus) {
-    this->focus = focus;
-    refresh();
-}
-
-inline void Camera::setAperture(float aperture) {
-    this->aperture = aperture;
     refresh();
 }
 

@@ -98,6 +98,13 @@ void testVectors() {
 		bmask2 z = x > y;
 		assert(z[0] == 0x00000000 && z[1] == 0x00000000);
 	}
+	{
+		float2 x = float2(2.0f, 3.0f);
+		float2 y = shuffle<2, 0, 0, 0, 0>(x);
+		float2 z = shuffle<2, 1, 1, 1, 1>(x);
+
+		assert(y.x == 2.0f && y.y == 2.0f && z.x == 3.0f && z.y == 3.0f);
+	}
 
 	// 3D float vector
 	{

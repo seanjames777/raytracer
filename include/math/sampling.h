@@ -27,9 +27,8 @@
  * @param[in]  count   The number of samples to be generated
  * @param[out] samples 2D array of samples
  */
-inline void rand1D(int count, float *samples) {
-    for (int i = 0; i < count; i++)
-        samples[i] = (float)rand() / (float)RAND_MAX;
+inline float rand1D() {
+	return (float)rand() / (float)RAND_MAX;
 }
 
 /**
@@ -38,12 +37,11 @@ inline void rand1D(int count, float *samples) {
  * @param[in]  count   The square root of the number of samples to be generated
  * @param[out] samples 2D array of samples
  */
-inline void rand2D(int count, float2 *samples) {
-    for (int i = 0; i < count * count; i++)
-        samples[i] = float2(
-            (float)rand() / (float)RAND_MAX,
-            (float)rand() / (float)RAND_MAX
-        );
+inline float2 rand2D() {
+    return float2(
+        (float)rand(),
+        (float)rand()
+    ) / (float)RAND_MAX;
 }
 
 /**
@@ -52,13 +50,12 @@ inline void rand2D(int count, float2 *samples) {
  * @param[in]  count   The number of samples to be generated
  * @param[out] samples 3D array of samples
  */
-inline void rand3D(int count, float3 *samples) {
-    for (int i = 0; i < count; i++)
-        samples[i] = float3(
-            (float)rand() / (float)RAND_MAX,
-            (float)rand() / (float)RAND_MAX,
-            (float)rand() / (float)RAND_MAX
-        );
+inline float3 rand3D() {
+    return float3(
+        (float)rand(),
+        (float)rand(),
+        (float)rand()
+    ) / (float)RAND_MAX;
 }
 
 // TODO: Jitter sphere samples
@@ -69,16 +66,9 @@ inline void rand3D(int count, float3 *samples) {
  * @param[in]  count   The number of samples to be generated, less than MAX_SAMPLES.
  * @param[out] samples 2D array of samples
  */
-inline void randJittered1D(int count, float *samples) {
-    float step = 1.0f / (count + 1);
-
-    for (int i = 0; i < count; i++) {
-        float u = (float)rand() / (float)RAND_MAX;
-        float min = i * step;
-        float max = min + step;
-
-        samples[i] = min * (1.0f - u) + max * u;
-    }
+inline float randJittered1D(int count, int i) {
+    float u = (float)rand() / (float)RAND_MAX;
+	return (i + u) / count;
 }
 
 /**
@@ -87,25 +77,9 @@ inline void randJittered1D(int count, float *samples) {
  * @param[in]  count   The square root of the number of samples to be generated
  * @param[out] samples 2D array of samples
  */
-inline void randJittered2D(int count, float2 *samples) {
-    float step = 1.0f / (count + 1); // TODO: are you sure?
-
-    for (int i = 0; i < count; i++) {
-        for (int j = 0; j < count; j++) {
-            float u1 = (float)rand() / (float)RAND_MAX;
-            float u2 = (float)rand() / (float)RAND_MAX;
-
-            float min_u = i * step;
-            float max_u = min_u + step;
-            float min_v = j * step;
-            float max_v = min_v + step;
-
-            samples[i * count + j]= float2(
-                min_u * (1.0f - u1) + max_u * u1,
-                min_v * (1.0f - u2) + max_v * u2
-            );
-        }
-    }
+// TODO: 1 / count can be pulled out
+inline float2 randJittered2D(int count, int i, int j) {
+	return (float2(i, j) + float2(rand(), rand()) / (float)RAND_MAX) / count;
 }
 
 /**
@@ -114,16 +88,11 @@ inline void randJittered2D(int count, float2 *samples) {
  * @param[in]    count   Square root of number of samples
  * @param[inout] samples Samples which will be remapped to a disk
  */
-inline void mapSamplesDisk(int count, float2 *samples) {
-    for (int i = 0; i < count * count; i++) {
-        float r = sqrtf(samples[i].x);
-        float theta = 2.0f * (float)M_PI * samples[i].y;
+inline float2 mapDisk(const float2 & sample) {
+	float r = sqrtf(sample.x);
+    float theta = 2.0f * (float)M_PI * sample.y;
 
-        samples[i] = float2(
-            r * cosf(theta),
-            r * sinf(theta)
-        );
-    }
+    return float2(cosf(theta), sinf(theta)) * r;
 }
 
 // TODO: Map samples to volume of sphere
@@ -137,31 +106,24 @@ inline void mapSamplesDisk(int count, float2 *samples) {
  * @param[in]  samples_in  Input 2D samples
  * @param[out] samples_out Output 3D normals
  */
-inline void mapSamplesCosHemisphere(
-    int count,
-    float cos_pow,
-    float2 *samples_in,
-    float3 *samples_out)
-{
+inline float3 mapCosHemisphere(float cos_pow, const float2 & sample) {
     // From "Raytracing from the Ground Up", pg. 129
-    for (int i = 0; i < count * count; i++) {
-        float u1 = samples_in[i].x;
-        float u2 = samples_in[i].y;
+    float u1 = sample.x;
+    float u2 = sample.y;
 
-        float phi = 2.0f * (float)M_PI * u1;
+    float phi = 2.0f * (float)M_PI * u1;
 
-        float cos_phi = cosf(phi);
-        float sin_phi = sinf(phi);
+    float cos_phi = cosf(phi);
+    float sin_phi = sinf(phi);
 
-        float cos_theta = powf(1.0f - u2, 1.0f / (cos_pow + 1.0f));
-        float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
+    float cos_theta = powf(u2, 1.0f / (cos_pow + 1.0f));
+    float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
 
-        samples_out[i] = float3(
-            sin_theta * cos_phi,
-            cos_theta,
-            sin_theta * sin_phi
-        );
-    }
+    return float3(
+        sin_theta * cos_phi,
+        cos_theta,
+        sin_theta * sin_phi
+    );
 }
 
 /**
@@ -171,32 +133,24 @@ inline void mapSamplesCosHemisphere(
  * @param[in]  samples_in  Input 2D samples
  * @param[out] samples_out Output 3D normals
  */
-inline void mapSamplesHemisphere(
-    int count,
-    float2 *samples_in,
-    float3 *samples_out)
-{
+inline float3 mapHemisphere(const float2 & sample) {
     // Same as mapSamplesCosHemisphere, but cos_pow replaced with 0
+    float u1 = sample.x;
+    float u2 = sample.y;
 
-    for (int i = 0; i < count * count; i++) {
-        float u1 = samples_in[i].x;
-        float u2 = samples_in[i].y;
+    float phi = 2.0f * (float)M_PI * u1;
 
-        float phi = 2.0f * (float)M_PI * u1;
+    float cos_phi = cosf(phi);
+    float sin_phi = sinf(phi);
 
-        float cos_phi = cosf(phi);
-        float sin_phi = sinf(phi);
+    float cos_theta = u2;
+    float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
 
-        // Can subsitute random variable for 1 - random variable
-        float cos_theta = u2;
-        float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
-
-        samples_out[i] = float3(
-            sin_theta * cos_phi,
-            cos_theta,
-            sin_theta * sin_phi
-        );
-    }
+    return float3(
+        sin_theta * cos_phi,
+        cos_theta,
+        sin_theta * sin_phi
+    );
 }
 
 /**
@@ -206,16 +160,16 @@ inline void mapSamplesHemisphere(
  * @param[inout] samples Samples to be reoriented
  * @param[in]    normal  Normal vector to align with
  */
-inline void alignHemisphereNormal(int count, float3 *samples, const float3 & normal) {
-    // TODO: Make the below makes sense, normalizes
+inline float3 alignHemisphere(const float3 & sample, const float3 & normal) {
+    // TODO: Make the below make sense, normalize
 
     // Up vector is slightly offset from normal in case the normal is vertical
     float3 v = normal;
     float3 u = normalize(cross(normal, float3(0.0072f, 1.0f, 0.0034f)));
     float3 w = cross(u, v);
 
-    for (int i = 0; i < count * count; i++)
-        samples[i] = samples[i].x * u + samples[i].y * v + samples[i].z * w;
+	// TODO: FMA
+    return sample.x * u + sample.y * v + sample.z * w;
 }
 
 #endif

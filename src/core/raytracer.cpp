@@ -85,27 +85,61 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 	assert(stats.max_depth < 64);
 	KDPacketStackFrame<4> stack[64]; // TODO
 
-	struct RadianceRayStackFrame {
+	struct RayStackFrame {
 		int2 pixel;
 		float3 weight;
 	};
 
-	struct ShadowRayStackFrame {
-		Ray ray;
-		int2 pixel;
-		float3 weight;
-		float maxDist;
-	};
-
-	struct RadianceRayStack {
-		util::vector<RadianceRayStackFrame, 16> frame;
+	struct RayStack {
+		util::vector<RayStackFrame, 16> frame;
 		util::vector<float, 16> origin[3];
 		util::vector<float, 16> direction[3];
+		util::vector<float, 16> maxDist;
 	};
 
-	RadianceRayStack radianceStack[8];
+	RayStack radianceStack[8];
+	RayStack shadowStack[8];
 
-	util::vector<ShadowRayStackFrame, 16> shadowStack;
+	int numPrimaryRays = BLOCKW * BLOCKH * settings.pixelSamples * settings.pixelSamples;
+	int numShadowRays = numPrimaryRays * scene->getNumLights();
+
+	for (int i = 0; i < sizeof(radianceStack) / sizeof(radianceStack[0]); i++) {
+		radianceStack[i].frame.reserve(numPrimaryRays);
+
+		radianceStack[i].origin[0].reserve(numPrimaryRays);
+		radianceStack[i].origin[1].reserve(numPrimaryRays);
+		radianceStack[i].origin[2].reserve(numPrimaryRays);
+
+		radianceStack[i].direction[0].reserve(numPrimaryRays);
+		radianceStack[i].direction[1].reserve(numPrimaryRays);
+		radianceStack[i].direction[2].reserve(numPrimaryRays);
+
+		// Max dist is not used
+	}
+
+	struct ShadingWorkItem {
+		Ray ray;
+		RayStackFrame frame;
+		Collision collision; // TODO: mess with offset of triangle ID
+	};
+
+	util::vector<ShadingWorkItem, 16> shadingBuff;
+
+	shadingBuff.reserve(numPrimaryRays);
+
+	for (int i = 0; i < sizeof(shadowStack) / sizeof(shadowStack[0]); i++) {
+		shadowStack[i].frame.reserve(numShadowRays);
+
+		shadowStack[i].origin[0].reserve(numShadowRays);
+		shadowStack[i].origin[1].reserve(numShadowRays);
+		shadowStack[i].origin[2].reserve(numShadowRays);
+
+		shadowStack[i].direction[0].reserve(numShadowRays);
+		shadowStack[i].direction[1].reserve(numShadowRays);
+		shadowStack[i].direction[2].reserve(numShadowRays);
+
+		shadowStack[i].maxDist.reserve(numShadowRays);
+	}
 
 	float3 min = tree->bounds().min;
 	float3 max = tree->bounds().max;
@@ -130,12 +164,6 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 				float3 color(0.0f);
 
-				// Take jittered sampled to reduce variance and move from stairstepping
-				// artifacts to noise
-				#define MAX_PIXEL_SAMPLES 16
-				float2 samples[MAX_PIXEL_SAMPLES * MAX_PIXEL_SAMPLES];
-				randJittered2D(settings.pixelSamples, samples);
-
 				// TODO: Is the pointer chasing through scene bad?
 
 				// TODO: It's possible to do better sampling
@@ -144,40 +172,36 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 				for (int p = 0; p < settings.pixelSamples; p++) {
 					for (int q = 0; q < settings.pixelSamples; q++) {
-						float2 uv = (xy + samples[p * settings.pixelSamples + q]) * invImageSize;
+						// Take jittered sampled to reduce variance and move from stairstepping
+						// artifacts to noise
+						float2 uv = (xy + randJittered2D(settings.pixelSamples, p, q)) * invImageSize;
 
 						Ray r = scene->getCamera()->getViewRay(uv);
 
 						// float3 sampleColor = getEnvironment(r.direction); TODO
 						float3 weight(1.0f / (settings.pixelSamples * settings.pixelSamples));
 
-						RadianceRayStackFrame frame;
+						RayStackFrame frame;
 						frame.pixel = int2(x, y);
 						frame.weight = weight;
 
 						int c = (signbit(r.direction.x) << 2) | (signbit(r.direction.y) << 1) | (signbit(r.direction.z) << 0);
 
-						radianceStack[c].frame.push_back(frame);
+						radianceStack[c].frame.push_back_inbounds(frame);
 
-						radianceStack[c].origin[0].push_back(r.origin.x);
-						radianceStack[c].origin[1].push_back(r.origin.y);
-						radianceStack[c].origin[2].push_back(r.origin.z);
+						radianceStack[c].origin[0].push_back_inbounds(r.origin.x);
+						radianceStack[c].origin[1].push_back_inbounds(r.origin.y);
+						radianceStack[c].origin[2].push_back_inbounds(r.origin.z);
 
-						radianceStack[c].direction[0].push_back(r.direction.x);
-						radianceStack[c].direction[1].push_back(r.direction.y);
-						radianceStack[c].direction[2].push_back(r.direction.z);
+						radianceStack[c].direction[0].push_back_inbounds(r.direction.x);
+						radianceStack[c].direction[1].push_back_inbounds(r.direction.y);
+						radianceStack[c].direction[2].push_back_inbounds(r.direction.z);
+
+						// Max dist is unused for primary rays
 					}
 				}
 			}
 		}
-
-		struct ShadingWorkItem {
-			Ray ray;
-			RadianceRayStackFrame frame;
-			Collision collision; // TODO: mess with offset of triangle ID
-		};
-
-		util::vector<ShadingWorkItem, 16> shadingBuff;
 
 		// Alternate between tree traversal and shading. Shading may produce more traversal work.
 		for (int generation = 0; generation < settings.maxDepth; generation++) {
@@ -197,8 +221,11 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 					packet.direction[1] = *(vector<float, SIMD> *)&radianceStack[i].direction[1][j];
 					packet.direction[2] = *(vector<float, SIMD> *)&radianceStack[i].direction[2][j];
 
+					// Max dist is unused for primary rays
+					packet.maxDist = vector<float, SIMD>(INFINITY); // TODO: does passing these as args work better?
+
 					vector<bmask, SIMD> hit = tree->intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
-						packet, vector<float, SIMD>(INFINITY), result);
+						packet, result);
 
 					// TODO: Might be useful to pass in active mask
 
@@ -221,7 +248,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 							item.collision.distance = result.distance[k];
 							item.collision.triangle_id = result.triangle_id[k];
 
-							shadingBuff.push_back(item);
+							shadingBuff.push_back_inbounds(item);
 						}
 					}
 				}
@@ -236,6 +263,8 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 				radianceStack[i].direction[0].clear();
 				radianceStack[i].direction[1].clear();
 				radianceStack[i].direction[2].clear();
+
+				// Max dist is unused for primary rays
 			}
 
 #if 1
@@ -284,32 +313,42 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 					float ndotl = saturate(dot(wi, interp.normal)); // TODO: normal mapping
 
-					ShadowRayStackFrame shadow;
-					shadow.ray = Ray(interp.position + triangle->normal * 0.001f, wi);
+					Ray shadowRay(interp.position + triangle->normal * 0.001f, wi);
+
+					RayStackFrame shadow;
 					shadow.pixel = item.frame.pixel;
 					shadow.weight = item.frame.weight * Li * material->f(interp, wo, wi) * ndotl;
-					shadow.maxDist = r;
+
+					int c = (signbit(shadowRay.direction.x) << 2) | (signbit(shadowRay.direction.y) << 1) | (signbit(shadowRay.direction.z) << 0);
+
+					shadowStack[c].frame.push_back_inbounds(shadow);
+
+					shadowStack[c].origin[0].push_back_inbounds(shadowRay.origin.x);
+					shadowStack[c].origin[1].push_back_inbounds(shadowRay.origin.y);
+					shadowStack[c].origin[2].push_back_inbounds(shadowRay.origin.z);
+
+					shadowStack[c].direction[0].push_back_inbounds(shadowRay.direction.x);
+					shadowStack[c].direction[1].push_back_inbounds(shadowRay.direction.y);
+					shadowStack[c].direction[2].push_back_inbounds(shadowRay.direction.z);
+
+					shadowStack[c].maxDist.push_back_inbounds(r);
 
 					// TODO: If light does not cast shadows, return color immediately
-
-					shadowStack.push_back(shadow);
 				}
 
 				if (generation < settings.maxDepth - 1) {
 					Ray indirectRay;
-					RadianceRayStackFrame indirect;
+					RayStackFrame indirect;
 
 					indirectRay.origin = interp.position + triangle->normal * 0.001f;
 
-					float secondary;
-					rand1D(1, &secondary);
+					float secondary = rand1D();
 
 					if (secondary < 0.5f || material->getReflectivity() == 0.0f) {
-						float2 rand;
-						rand2D(1, &rand);
+						float2 rand = rand2D();
 
-						mapSamplesCosHemisphere(1, 1.0f, &rand, &indirectRay.direction);
-						alignHemisphereNormal(1, &indirectRay.direction, triangle->normal);
+						indirectRay.direction = mapCosHemisphere(1.0f, rand);
+						indirectRay.direction = alignHemisphere(indirectRay.direction, triangle->normal);
 
 						// Importance sampling: n dot l term cancels out
 						indirect.weight = item.frame.weight * material->f(interp, wo, indirectRay.direction) * (float)M_PI;
@@ -325,45 +364,71 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 					int c = (signbit(indirectRay.direction.x) << 2) | (signbit(indirectRay.direction.y) << 1) | (signbit(indirectRay.direction.z) << 0);
 
-					radianceStack[c].frame.push_back(indirect);
+					radianceStack[c].frame.push_back_inbounds(indirect);
 
-					radianceStack[c].origin[0].push_back(indirectRay.origin.x);
-					radianceStack[c].origin[1].push_back(indirectRay.origin.y);
-					radianceStack[c].origin[2].push_back(indirectRay.origin.z);
+					radianceStack[c].origin[0].push_back_inbounds(indirectRay.origin.x);
+					radianceStack[c].origin[1].push_back_inbounds(indirectRay.origin.y);
+					radianceStack[c].origin[2].push_back_inbounds(indirectRay.origin.z);
 
-					radianceStack[c].direction[0].push_back(indirectRay.direction.x);
-					radianceStack[c].direction[1].push_back(indirectRay.direction.y);
-					radianceStack[c].direction[2].push_back(indirectRay.direction.z);
+					radianceStack[c].direction[0].push_back_inbounds(indirectRay.direction.x);
+					radianceStack[c].direction[1].push_back_inbounds(indirectRay.direction.y);
+					radianceStack[c].direction[2].push_back_inbounds(indirectRay.direction.z);
+
+					// Max dist is unused for primary rays
 				}
 			}
 
 			shadingBuff.clear();
-		}
 
-#if 0
-		// TODO: Bucket instead of sort
-		std::sort(shadowStack.begin(), shadowStack.end(), [](const ShadowRayStackFrame & l, const ShadowRayStackFrame & r) {
-			int cl = (signbit(l.ray.direction.x) << 2) | (signbit(l.ray.direction.y) << 1) | (signbit(l.ray.direction.z) << 0);
-			int cr = (signbit(r.ray.direction.x) << 2) | (signbit(r.ray.direction.y) << 1) | (signbit(r.ray.direction.z) << 0);
+			// TODO: Shadow rays do not generate new rays, so we only need to iterate once
+			for (int i = 0; i < 8; i++)
+				for (int j = 0; j < (shadowStack[i].frame.size() & ~(SIMD - 1)); j += SIMD) { // TODO: handle last elements
+					PacketCollision<SIMD> result;
+					Packet<SIMD> packet;
 
-			return cl < cr;
-		});
-#endif
+					// TODO: Avoid this copy by passing registers directly
+					packet.origin[0] = *(vector<float, SIMD> *)&shadowStack[i].origin[0][j];
+					packet.origin[1] = *(vector<float, SIMD> *)&shadowStack[i].origin[1][j];
+					packet.origin[2] = *(vector<float, SIMD> *)&shadowStack[i].origin[2][j];
 
-		// Shadow rays do not generate new rays, so we only need to iterate once
-		for (auto & frame : shadowStack) {
-			Collision result;
-			Ray r = frame.ray;
+					packet.direction[0] = *(vector<float, SIMD> *)&shadowStack[i].direction[0][j];
+					packet.direction[1] = *(vector<float, SIMD> *)&shadowStack[i].direction[1][j];
+					packet.direction[2] = *(vector<float, SIMD> *)&shadowStack[i].direction[2][j];
 
-			if (!tree->intersect((KDStackFrame *)stack, r, frame.maxDist, result)) { // TODO fix
-				// TODO
-				float3 color = scene->getOutput()->getPixel(frame.pixel.x, frame.pixel.y).xyz();
-				color = color + frame.weight; // TODO
-				scene->getOutput()->setPixel(frame.pixel.x, frame.pixel.y, float4(color, 1.0f));
+					packet.maxDist = *(vector<float, SIMD> *)&shadowStack[i].maxDist[j];
+
+					vector<bmask, SIMD> hit = tree->intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
+						packet, result);
+
+					// TODO: Might be useful to pass in active mask
+
+					// TODO: Do in SIMD
+					for (int k = 0; k < SIMD; k++) {
+						if (!hit[k]) {
+							const RayStackFrame & frame = shadowStack[i].frame[j + k];
+
+							// TODO
+							float3 color = scene->getOutput()->getPixel(frame.pixel.x, frame.pixel.y).xyz();
+							color = color + frame.weight; // TODO
+							scene->getOutput()->setPixel(frame.pixel.x, frame.pixel.y, float4(color, 1.0f));
+						}
+					}
+				}
+
+			for (int i = 0; i < 8; i++) {
+				shadowStack[i].frame.clear();
+
+				shadowStack[i].origin[0].clear();
+				shadowStack[i].origin[1].clear();
+				shadowStack[i].origin[2].clear();
+
+				shadowStack[i].direction[0].clear();
+				shadowStack[i].direction[1].clear();
+				shadowStack[i].direction[2].clear();
+
+				shadowStack[i].maxDist.clear();
 			}
 		}
-
-		shadowStack.clear();
 
         // TODO: Flushing one tile at a time keeps the tile in the cache probably, but might
         // not get the most coherence. Adjusting the tile size would affect this probably.

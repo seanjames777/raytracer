@@ -11,15 +11,16 @@ namespace util {
 	class vector {
 	private:
 
-		T     *_data;
-		size_t _size;
+		T *_data;
+		T *_curr;
+		
 		size_t _capacity;
 
 	public:
 
 		vector(size_t capacity = 4)
 			: _data((T *)aligned_alloc(sizeof(T) * capacity, A)),
-			  _size(0),
+			  _curr(_data), // TODO: does this work?
 			  _capacity(capacity)
 		{
 			for (int i = 0; i < capacity; i++)
@@ -30,10 +31,10 @@ namespace util {
 			aligned_free(_data);
 		}
 
-		void push_back(const T & elem) {
+		void reserve(size_t newSize) {
 			size_t newCapacity = _capacity;
 
-			while (_size + 1 > newCapacity)
+			while (newSize > newCapacity)
 				newCapacity *= 2;
 
 			if (_capacity != newCapacity) {
@@ -42,63 +43,74 @@ namespace util {
 				for (int i = 0; i < newCapacity; i++)
 					new (&newData[i])T();
 
-				for (int i = 0; i < _size; i++)
+				size_t currSize = size();
+
+				for (int i = 0; i < currSize; i++)
 					newData[i] = _data[i];
 
 				aligned_free(_data);
 				_data = newData;
+				_curr = _data + currSize;
 				_capacity = newCapacity;
 			}
-
-			_data[_size++] = elem;
 		}
 
-		const T & back() const {
-			return _data[_size - 1];
+		inline void push_back_inbounds(const T &elem) {
+			*(_curr++) = elem;
 		}
 
-		T & back() {
-			return _data[_size - 1];
+		// TODO: make this inlineable
+		inline void push_back(const T & elem) {
+			reserve(size() + 1);
+			push_back_inbounds(elem);
 		}
 
-		const T *begin() const {
-			return &_data[0];
+		inline const T & back() const {
+			return *(_curr - 1);
 		}
 
-		T *begin() {
-			return &_data[0];
+		inline T & back() {
+			return *(_curr - 1);
 		}
 
-		const T *end() const {
-			return &_data[_size];
+		inline const T *begin() const {
+			return _data;
 		}
 
-		T *end() {
-			return &_data[_size];
+		inline T *begin() {
+			return _data;
 		}
 
-		const T & operator[](size_t i) const {
+		inline const T *end() const {
+			return _curr;
+		}
+
+		inline T *end() {
+			return _curr;
+		}
+
+		inline const T & operator[](size_t i) const {
 			return _data[i];
 		}
 
-		T & operator[](size_t i) {
+		inline T & operator[](size_t i) {
 			return _data[i];
 		}
 
-		void pop_back() {
-			--_size;
+		inline void pop_back() {
+			--_curr;
 		}
 
-		size_t size() const {
-			return _size;
+		inline size_t size() const {
+			return _curr - _data;
 		}
 
-		bool empty() const {
-			return _size == 0;
+		inline bool empty() const {
+			return _curr == _data;
 		}
 
-		void clear() {
-			_size = 0;
+		inline void clear() {
+			_curr = _data;
 		}
 
 	};

@@ -122,8 +122,6 @@ bool intersects(
 		result.triangle_id = hit ? tri.triangle_id : result.triangle_id;
 
 		found = found || hit;
-
-		// TODO: Could break here, but SIMD
 }
 
 	return found;
@@ -175,6 +173,8 @@ bool intersects(
 #endif
 }
 
+// TODO: Try that other triangle intersection algorithm
+
 template<unsigned int N>
 vector<bmask, N> intersectsPacket(
 	const Packet<N>           & packet,
@@ -199,10 +199,14 @@ vector<bmask, N> intersectsPacket(
 
 		// TODO: Can bail early if all of the rays miss a triangle
 
+		// TODO: Big cache miss here due to loading triangle data
 		vector<float, N> dot = (packet.direction[tri.k] + vector<float, N>(tri.n_u) * packet.direction[u] + vector<float, N>(tri.n_v) *
 			packet.direction[v]);
 
 		vector<bmask, N> hit = (dot != vector<float, N>(0.0f));
+
+		if (none(hit))
+			continue;
 
 		vector<float, N> nd = vector<float, N>(1.0f) / dot;
 
@@ -212,6 +216,9 @@ vector<bmask, N> intersectsPacket(
 		// Behind camera or further
 		hit = hit & ~((found & (t_plane >= result.distance)) | (t_plane < min) | (t_plane > max));
 
+		if (none(hit))
+			continue;
+
 		vector<float, N> hu = packet.origin[u] + t_plane * packet.direction[u];
 		vector<float, N> hv = packet.origin[v] + t_plane * packet.direction[v];
 
@@ -219,11 +226,20 @@ vector<bmask, N> intersectsPacket(
 
 		hit = hit & (beta >= vector<float, N>(0.0f));
 
+		if (none(hit))
+			continue;
+
 		vector<float, N> gamma = (hu * vector<float, N>(tri.c_nu) + hv * vector<float, N>(tri.c_nv) + vector<float, N>(tri.c_d));
 
 		hit = hit & (gamma >= vector<float, N>(0.0f));
 
+		if (none(hit))
+			continue;
+
 		hit = hit & (beta + gamma <= vector<float, N>(1.0f));
+
+		if (none(hit))
+			continue;
 
 		result.distance = blend(hit, result.distance, t_plane);
 		result.beta = blend(hit, result.beta, beta);
@@ -232,8 +248,11 @@ vector<bmask, N> intersectsPacket(
 
 		found = found | hit;
 
-		// TODO: Could break here, but SIMD
+		if (all(found))
+			break;
 	}
+
+	// TODO: Are the branches to bail out early helpful or not?
 
 	return found;
 }

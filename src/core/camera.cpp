@@ -10,15 +10,11 @@ Camera::Camera(
     const float3 & position,
     const float3 & target,
     float aspect,
-    float fov,
-    float focus,
-    float aperture)
+    float fov)
     : position(position),
       target(target),
       aspect(aspect),
-      fov(fov),
-      focus(focus),
-      aperture(aperture)
+      fov(fov)
 {
     refresh();
 }
@@ -33,8 +29,11 @@ void Camera::refresh() {
 
     // TODO: Handle pointing along axes
 
-    halfWidth  = tanf(fov / 2.0f) * focus;
-    halfHeight = halfWidth / aspect;
+    float halfWidth  = tanf(fov / 2.0f);
+    float halfHeight = halfWidth / aspect;
+
+	right = right * halfWidth;
+	up = up * halfHeight;
 }
 
 // TODO

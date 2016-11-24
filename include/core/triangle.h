@@ -98,6 +98,7 @@ template<unsigned int N>
 struct Packet {
 	vector<float, N> origin[3];
 	vector<float, N> direction[3];
+	vector<float, N> maxDist;
 };
 
 template<unsigned int N>

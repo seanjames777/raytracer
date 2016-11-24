@@ -119,9 +119,9 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 1;
+    settings.pixelSamples = 8;
     settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
-	settings.maxDepth = 2;
+	settings.maxDepth = 1;
 
     float aspect = (float)settings.width / (float)settings.height;
 
@@ -131,10 +131,10 @@ int main(int argc, char *argv[]) {
 
 #if 1
     auto camera = std::make_shared<Camera>(float3(10.0f, 3.0f, 0.0f), float3(0.0f, 3.0f, 0.0f),
-        aspect, (float)M_PI / 2.0f, 19.25f, 0.0f);
+        aspect, (float)M_PI / 2.0f);
 #else
 	auto camera = std::make_shared<Camera>(float3(1.0f, 5.0f, 0.0f), float3(0.0f, 0.0f, 0.0f),
-		aspect, (float)M_PI / 2.0f, 19.25f, 0.0f);
+		aspect, (float)M_PI / 2.0f);
 #endif
 
     auto output = std::make_shared<Image<float, 4>>(settings.width, settings.height);
