@@ -108,7 +108,12 @@ public:
     bool intersect(THREAD KDStackFrame *stack, Ray ray, float max, THREAD Collision & result);
 
 	template<unsigned int N>
-	vector<bmask, N> intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, const Packet<N> & packet, THREAD PacketCollision<N> & result);
+	vector<bmask, N> intersectPacket(THREAD KDPacketStackFrame<N> *stackMem,
+		THREAD const vector<float, N> (&origin)[3],
+		THREAD const vector<float, N> (&direction)[3],
+		THREAD const vector<float, N> & maxDist,
+		bool occlusionOnly,
+		THREAD PacketCollision<N> & result);
 
 };
 

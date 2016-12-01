@@ -177,11 +177,13 @@ bool intersects(
 
 template<unsigned int N>
 vector<bmask, N> intersectsPacket(
-	const Packet<N>           & packet,
+	THREAD const vector<float, N> (&origin)[3],
+	THREAD const vector<float, N> (&direction)[3],
 	GLOBAL SetupTriangle      * data,
 	int                         count,
 	const vector<float, N>    & min,
 	const vector<float, N>    & max,
+	bool                        occlusionOnly,
 	THREAD PacketCollision<N> & result)
 {
 	// http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
@@ -200,8 +202,9 @@ vector<bmask, N> intersectsPacket(
 		// TODO: Can bail early if all of the rays miss a triangle
 
 		// TODO: Big cache miss here due to loading triangle data
-		vector<float, N> dot = (packet.direction[tri.k] + vector<float, N>(tri.n_u) * packet.direction[u] + vector<float, N>(tri.n_v) *
-			packet.direction[v]);
+		// TODO: Can use shuffle if we construct the mask at runtime
+		vector<float, N> dot = (direction[tri.k] + vector<float, N>(tri.n_u) * direction[u] + vector<float, N>(tri.n_v) *
+			direction[v]);
 
 		vector<bmask, N> hit = (dot != vector<float, N>(0.0f));
 
@@ -210,8 +213,8 @@ vector<bmask, N> intersectsPacket(
 
 		vector<float, N> nd = vector<float, N>(1.0f) / dot;
 
-		vector<float, N> t_plane = (vector<float, N>(tri.n_d) - packet.origin[tri.k]
-			- vector<float, N>(tri.n_u) * packet.origin[u] - vector<float, N>(tri.n_v) * packet.origin[v]) * nd;
+		vector<float, N> t_plane = (vector<float, N>(tri.n_d) - origin[tri.k]
+			- vector<float, N>(tri.n_u) * origin[u] - vector<float, N>(tri.n_v) * origin[v]) * nd;
 
 		// Behind camera or further
 		hit = hit & ~((found & (t_plane >= result.distance)) | (t_plane < min) | (t_plane > max));
@@ -219,8 +222,8 @@ vector<bmask, N> intersectsPacket(
 		if (none(hit))
 			continue;
 
-		vector<float, N> hu = packet.origin[u] + t_plane * packet.direction[u];
-		vector<float, N> hv = packet.origin[v] + t_plane * packet.direction[v];
+		vector<float, N> hu = origin[u] + t_plane * direction[u];
+		vector<float, N> hv = origin[v] + t_plane * direction[v];
 
 		vector<float, N> beta = (hu * vector<float, N>(tri.b_nu) + hv * vector<float, N>(tri.b_nv) + vector<float, N>(tri.b_d));
 
@@ -248,7 +251,7 @@ vector<bmask, N> intersectsPacket(
 
 		found = found | hit;
 
-		if (all(found))
+		if (occlusionOnly && all(found))
 			break;
 	}
 
@@ -258,11 +261,13 @@ vector<bmask, N> intersectsPacket(
 }
 
 template vector<bmask, SIMD> intersectsPacket(
-	const Packet<SIMD>           & packet,
+	THREAD const vector<float, SIMD> (&origin)[3],
+	THREAD const vector<float, SIMD> (&direction)[3],
 	GLOBAL SetupTriangle      * data,
 	int                         count,
 	const vector<float, SIMD>    & min,
 	const vector<float, SIMD>    & max,
+	bool occlusionOnly,
 	THREAD PacketCollision<SIMD> & result);
 
 #endif /* triangle_h */

@@ -43,13 +43,13 @@ float3 PBRMaterial::f(
     const float3 & wi) const
 {
 	float3 n = interp.normal;
-	float3 diffuse = diffuseColor / (float)M_PI;
+	float3 diffuse = diffuseColor;
 
 	Sampler sampler(Bilinear, Wrap);
 
 	// TODO: Big cache miss on texture sampling due to incoherent rays. Try sorting by material?
 	if (diffuseTexture)
-		diffuse = sampler.sample(diffuseTexture, interp.uv).xyz();
+		diffuse = sampler.sample(diffuseTexture, interp.uv).xyz() / (float)M_PI;
 
 	float3 ks = specularColor;
 	float a = specularPower;

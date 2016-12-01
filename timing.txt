@@ -9,7 +9,7 @@ Sort primary rays by direction:                          5.16
 Sort primary rays by origin/direction                    5.16
 Don't enqueue far KD nodes if they are outside max       3.67
 Mess with AABB intersection and tree node rejection      3.56
-
+Don't oversample lights                                  2.80
 
 SIMD
 

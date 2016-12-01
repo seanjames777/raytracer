@@ -28,6 +28,64 @@
 //       affinity might be good since shared L1 cache or just L1 cache coherence in general
 //     - Decide if the raytracer is reusable or not
 
+enum RaytracerStat {
+	RaytracerStatTotalCycles,
+	RaytracerStatPrimaryEmitCycles,
+	RaytracerStatPrimaryPackCycles,
+	RaytracerStatPrimaryTraceCycles,
+	RaytracerStatSecondaryEmitCycles,
+	RaytracerStatSecondaryPackCycles,
+	RaytracerStatSecondaryTraceCycles,
+	RaytracerStatShadowPackCycles,
+	RaytracerStatShadingPackCycles,
+	RaytracerStatShadingSortCycles,
+	RaytracerStatShadingCycles,
+	RaytracerStatShadowTraceCycles,
+	RaytracerStatUpdateFramebufferCycles,
+	RaytracerStatUnaccountedCycles,
+	RaytracerStatCount
+};
+
+static const char *RaytracerStatNames[] = {
+	"Total Cycles",
+	"Emit Primary Rays",
+	"Pack Primary Rays",
+	"Trace Primary Rays",
+	"Emit Secondary Rays",
+	"Pack Secondary Rays",
+	"Trace Secondary Rays",
+	"Pack Shadow Rays",
+	"Pack Shading Work",
+	"Sort Shading Work",
+	"Shading",
+	"Trace Shadow Rays",
+	"Update Framebuffer",
+	"Unaccounted",
+	"Stat Count"
+};
+
+struct __declspec(align(64)) RaytracerStats {
+	uint64_t stat[RaytracerStatCount];
+};
+
+struct StatTimer {
+	uint64_t startTime;
+	uint16_t statIndex;
+};
+
+inline StatTimer startStatTimer(uint16_t stat) {
+	StatTimer timer;
+
+	timer.startTime = __rdtsc();
+	timer.statIndex = stat;
+
+	return timer;
+}
+
+inline void endStatTimer(RaytracerStats *stats, StatTimer timer) {
+	stats->stat[timer.statIndex] += __rdtsc() - timer.startTime;
+}
+
 /**
  * @brief Main raytracer class, which starts worker threads and coordinates the rendering
  * process.
@@ -38,7 +96,7 @@ private:
     typedef std::vector<std::shared_ptr<std::thread>> threadVector;
 
     KDTree                  *tree;            //!< Ray/triangle intersection acceleration tree
-    KDBuilderTreeStatistics  stats;           //!< Tree statistics
+    KDBuilderTreeStatistics  _treeStats;           //!< Tree statistics
     Scene                   *scene;           //!< Scene to render
     int                      nBlocks;         //!< Total number of blocks to render
     int                      nBlocksW;        //!< Number of blocks horizontally
@@ -48,11 +106,12 @@ private:
     std::atomic_int          currBlockID;     //!< ID of next block to render
     threadVector             workers;         //!< Worker threads
     RaytracerSettings        settings;        //!< Raytracing settings
+	std::vector<RaytracerStats> workerStats;
 
     /**
      * @brief Entry point for a worker thread
      */
-    void worker_thread(int idx, int numThreads);
+    void worker_thread(int idx, int numThreads, RaytracerStats *stats);
 
 public:
 
@@ -84,7 +143,7 @@ public:
      * @param[in] waitUntilFinished Whether to wait until the raytracer has finished rendering
      *                              (true) or to abort immediately (false)
      */
-    void shutdown(bool waitUntilFinished);
+    void shutdown(bool waitUntilFinished, RaytracerStats *stats = NULL);
 };
 
 inline bool Raytracer::finished() {

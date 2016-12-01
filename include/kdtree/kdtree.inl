@@ -221,7 +221,13 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 #endif
 
 template<unsigned int N>
-vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem, const Packet<N> & packet, THREAD PacketCollision<N> & result)
+vector<bmask, N> KDTree::intersectPacket(
+	THREAD KDPacketStackFrame<N> *stackMem,
+	THREAD const vector<float, N> (&origin)[3],
+	THREAD const vector<float, N> (&direction)[3],
+	THREAD const vector<float, N> & maxDist,
+	bool occlusionOnly,
+	THREAD PacketCollision<N> & result)
 {
 	// http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
@@ -237,16 +243,16 @@ vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem,
 
 	// TODO: Can precompute inv_direction when ray is created, along with ray.direction[i] < 0
 	vector<float, N> inv_direction[3] = {
-		vector<float, N>(1.0f) / packet.direction[0],
-		vector<float, N>(1.0f) / packet.direction[1],
-		vector<float, N>(1.0f) / packet.direction[2]
+		vector<float, N>(1.0f) / direction[0],
+		vector<float, N>(1.0f) / direction[1],
+		vector<float, N>(1.0f) / direction[2]
 	};
 
-	if (!any(_bounds.intersectsPacket(packet.origin, inv_direction, entry, exit)))
+	if (!any(_bounds.intersectsPacket(origin, inv_direction, entry, exit)))
 		return vector<bmask, N>(0x00000000);
 
 	entry = max(entry, vector<float, N>(0.0001f));
-	exit = min(exit, packet.maxDist);
+	exit = min(exit, maxDist);
 
 	if (all(entry > exit))
 		return vector<bmask, N>(0x00000000);
@@ -264,14 +270,13 @@ vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem,
 
 		while (type != KD_LEAF) {
 			vector<float, N> split = currentNode->split_dist;
-			vector<float, N> origin = packet.origin[type];
 
-			vector<float, N> t = (split - origin) * inv_direction[type];
+			vector<float, N> t = (split - origin[type]) * inv_direction[type];
 
 			GLOBAL KDNode *nearNode = currentNode->left(nodes);
 			GLOBAL KDNode *farNode = currentNode->right(nodes);
 
-			if (packet.direction[type][0] < 0.0f) {
+			if (direction[type][0] < 0.0f) {
 				GLOBAL KDNode *temp = nearNode;
 				nearNode = farNode;
 				farNode = temp;
@@ -294,14 +299,21 @@ vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem,
 		}
 
 		// TODO: inlining this function may help
+		// Note: some rays may not have wanted to traverse this branch because they would not have hit anything. Therefore,
+		// there is no need to mask out the inactive rays' hit results.
 		hit = hit | intersectsPacket(
-			packet,
+			origin,
+			direction,
 			currentNode->triangles(triangles),
 			currentNode->count,
 			entry,
 			exit,
+			occlusionOnly,
 			result);
 
+		// TODO: If a ray has hit something, should we invalidate it so it doesn't impact future branching tests?
+
+		// We traverse nodes in near to far order, so if all rays have hit something there won't be anything closer
 		if (all(hit))
 			return vector<bmask, N>(0xFFFFFFFF);
 	}
@@ -309,6 +321,12 @@ vector<bmask, N> KDTree::intersectPacket(THREAD KDPacketStackFrame<N> *stackMem,
 	return hit;
 }
 
-template vector<bmask, SIMD> KDTree::intersectPacket(THREAD KDPacketStackFrame<SIMD> *stackMem, const Packet<SIMD> & packet, THREAD PacketCollision<SIMD> & result);
+template vector<bmask, SIMD> KDTree::intersectPacket(
+	THREAD KDPacketStackFrame<SIMD> *stackMem,
+	THREAD const vector<float, SIMD> (&origin)[3],
+	THREAD const vector<float, SIMD> (&direction)[3],
+	THREAD const vector<float, SIMD> & maxDist,
+	bool occlusionOnly, // TODO: could templatize
+	THREAD PacketCollision<SIMD> & result);
 
 #endif

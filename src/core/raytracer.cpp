@@ -40,7 +40,7 @@ void Raytracer::render() {
 
 		const util::vector<Triangle, 16> & triangles = scene->getTriangles();
 
-		tree = builder.build(&triangles[0], triangles.size(), &nodeAllocator, &triangleAllocator, &stats);
+		tree = builder.build(&triangles[0], triangles.size(), &nodeAllocator, &triangleAllocator, &_treeStats);
     }
 
     nBlocksW = (scene->getOutput()->getWidth() + BLOCKW - 1) / BLOCKW;
@@ -56,25 +56,48 @@ void Raytracer::render() {
 
     numThreadsAlive = nThreads;
 
-    for (int i = 0; i < nThreads; i++)
-        workers.push_back(std::make_shared<std::thread>(std::bind(&Raytracer::worker_thread,
-            this, i, nThreads)));
+	for (int i = 0; i < nThreads; i++)
+		workerStats.push_back(RaytracerStats());
+
+	for (int i = 0; i < nThreads; i++) {
+		workers.push_back(std::make_shared<std::thread>(std::bind(&Raytracer::worker_thread,
+			this, i, nThreads, &workerStats[i])));
+	}
 
     printf("Started %d worker threads\n", nThreads);
 }
 
-void Raytracer::shutdown(bool waitUntilFinished) {
+void Raytracer::shutdown(bool waitUntilFinished, RaytracerStats *stats) {
     if (!waitUntilFinished)
         shouldShutdown = true;
 
     for (auto& worker : workers)
         worker->join();
 
+	if (stats) {
+		memset(stats, 0, sizeof(RaytracerStats));
+
+		int nThreads = workers.size();
+
+		for (int i = 0; i < nThreads; i++) {
+			for (int j = 0; j < RaytracerStatCount; j++)
+				stats->stat[j] += workerStats[i].stat[j];
+		}
+
+		stats->stat[RaytracerStatUnaccountedCycles] = stats->stat[RaytracerStatTotalCycles];
+
+		for (int j = 1; j < RaytracerStatCount - 1; j++)
+			stats->stat[RaytracerStatUnaccountedCycles] -= stats->stat[j];
+	}
+
+	workerStats.clear();
     workers.clear();
 }
 
-void Raytracer::worker_thread(int idx, int numThreads) {
-    int width = scene->getOutput()->getWidth();
+void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
+	memset(stats, 0, sizeof(RaytracerStats));
+
+	int width = scene->getOutput()->getWidth();
     int height = scene->getOutput()->getHeight();
 
     float2 invImageSize = float2(1.0f / (float)width, 1.0f / (float)height);
@@ -82,7 +105,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
     int blockID = idx;
 
-	assert(stats.max_depth < 64);
+	assert(_treeStats.max_depth < 64);
 	KDPacketStackFrame<4> stack[64]; // TODO
 
 	struct RayStackFrame {
@@ -100,19 +123,18 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 	RayStack radianceStack[8];
 	RayStack shadowStack[8];
 
-	int numPrimaryRays = BLOCKW * BLOCKH * settings.pixelSamples * settings.pixelSamples;
-	int numShadowRays = numPrimaryRays * scene->getNumLights();
+	int numRays = BLOCKW * BLOCKH * settings.pixelSamples * settings.pixelSamples;
 
 	for (int i = 0; i < sizeof(radianceStack) / sizeof(radianceStack[0]); i++) {
-		radianceStack[i].frame.reserve(numPrimaryRays);
+		radianceStack[i].frame.reserve(numRays);
 
-		radianceStack[i].origin[0].reserve(numPrimaryRays);
-		radianceStack[i].origin[1].reserve(numPrimaryRays);
-		radianceStack[i].origin[2].reserve(numPrimaryRays);
+		radianceStack[i].origin[0].reserve(numRays);
+		radianceStack[i].origin[1].reserve(numRays);
+		radianceStack[i].origin[2].reserve(numRays);
 
-		radianceStack[i].direction[0].reserve(numPrimaryRays);
-		radianceStack[i].direction[1].reserve(numPrimaryRays);
-		radianceStack[i].direction[2].reserve(numPrimaryRays);
+		radianceStack[i].direction[0].reserve(numRays);
+		radianceStack[i].direction[1].reserve(numRays);
+		radianceStack[i].direction[2].reserve(numRays);
 
 		// Max dist is not used
 	}
@@ -125,20 +147,20 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 	util::vector<ShadingWorkItem, 16> shadingBuff;
 
-	shadingBuff.reserve(numPrimaryRays);
+	shadingBuff.reserve(numRays);
 
 	for (int i = 0; i < sizeof(shadowStack) / sizeof(shadowStack[0]); i++) {
-		shadowStack[i].frame.reserve(numShadowRays);
+		shadowStack[i].frame.reserve(numRays);
 
-		shadowStack[i].origin[0].reserve(numShadowRays);
-		shadowStack[i].origin[1].reserve(numShadowRays);
-		shadowStack[i].origin[2].reserve(numShadowRays);
+		shadowStack[i].origin[0].reserve(numRays);
+		shadowStack[i].origin[1].reserve(numRays);
+		shadowStack[i].origin[2].reserve(numRays);
 
-		shadowStack[i].direction[0].reserve(numShadowRays);
-		shadowStack[i].direction[1].reserve(numShadowRays);
-		shadowStack[i].direction[2].reserve(numShadowRays);
+		shadowStack[i].direction[0].reserve(numRays);
+		shadowStack[i].direction[1].reserve(numRays);
+		shadowStack[i].direction[2].reserve(numRays);
 
-		shadowStack[i].maxDist.reserve(numShadowRays);
+		shadowStack[i].maxDist.reserve(numRays);
 	}
 
 	float3 min = tree->bounds().min;
@@ -150,6 +172,8 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
         if (blockID >= nBlocks)
             break;
+
+		StatTimer totalCycles = startStatTimer(RaytracerStatTotalCycles);
 
         int y = blockID / nBlocksW;
         int x = blockID % nBlocksW;
@@ -172,6 +196,8 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 				for (int p = 0; p < settings.pixelSamples; p++) {
 					for (int q = 0; q < settings.pixelSamples; q++) {
+						StatTimer primaryEmit = startStatTimer(RaytracerStatPrimaryEmitCycles);
+
 						// Take jittered sampled to reduce variance and move from stairstepping
 						// artifacts to noise
 						float2 uv = (xy + randJittered2D(settings.pixelSamples, p, q)) * invImageSize;
@@ -180,6 +206,9 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 						// float3 sampleColor = getEnvironment(r.direction); TODO
 						float3 weight(1.0f / (settings.pixelSamples * settings.pixelSamples));
+
+						endStatTimer(stats, primaryEmit);
+						StatTimer primaryPack = startStatTimer(RaytracerStatPrimaryPackCycles);
 
 						RayStackFrame frame;
 						frame.pixel = int2(x, y);
@@ -198,6 +227,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 						radianceStack[c].direction[2].push_back_inbounds(r.direction.z);
 
 						// Max dist is unused for primary rays
+						endStatTimer(stats, primaryPack);
 					}
 				}
 			}
@@ -209,23 +239,33 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 			for (int i = 0; i < 8; i++)
 				for (int j = 0; j < (radianceStack[i].frame.size() & ~(SIMD - 1)); j += SIMD) { // TODO: handle last elements
+					StatTimer pack = startStatTimer(generation == 0 ? RaytracerStatPrimaryPackCycles : RaytracerStatSecondaryPackCycles);
+
 					PacketCollision<SIMD> result;
-					Packet<SIMD> packet;
 
-					// TODO: Avoid this copy by passing registers directly
-					packet.origin[0] = *(vector<float, SIMD> *)&radianceStack[i].origin[0][j];
-					packet.origin[1] = *(vector<float, SIMD> *)&radianceStack[i].origin[1][j];
-					packet.origin[2] = *(vector<float, SIMD> *)&radianceStack[i].origin[2][j];
+					const vector<float, SIMD> (&origin)[3] = {
+						*(vector<float, SIMD> *)&radianceStack[i].origin[0][j],
+						*(vector<float, SIMD> *)&radianceStack[i].origin[1][j],
+						*(vector<float, SIMD> *)&radianceStack[i].origin[2][j]
+					};
 
-					packet.direction[0] = *(vector<float, SIMD> *)&radianceStack[i].direction[0][j];
-					packet.direction[1] = *(vector<float, SIMD> *)&radianceStack[i].direction[1][j];
-					packet.direction[2] = *(vector<float, SIMD> *)&radianceStack[i].direction[2][j];
+					const vector<float, SIMD> (&direction)[3] = {
+						*(vector<float, SIMD> *)&radianceStack[i].direction[0][j],
+						*(vector<float, SIMD> *)&radianceStack[i].direction[1][j],
+						*(vector<float, SIMD> *)&radianceStack[i].direction[2][j]
+					};
 
 					// Max dist is unused for primary rays
-					packet.maxDist = vector<float, SIMD>(INFINITY); // TODO: does passing these as args work better?
+					const vector<float, SIMD> & maxDist = vector<float, SIMD>(INFINITY); // TODO: does passing these as args work better?
+
+					endStatTimer(stats, pack);
+					StatTimer trace = startStatTimer(generation == 0 ? RaytracerStatPrimaryTraceCycles : RaytracerStatSecondaryTraceCycles);
 
 					vector<bmask, SIMD> hit = tree->intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
-						packet, result);
+						origin, direction, maxDist, false, result);
+
+					endStatTimer(stats, trace);
+					StatTimer shadingPack = startStatTimer(RaytracerStatShadingPackCycles);
 
 					// TODO: Might be useful to pass in active mask
 
@@ -251,6 +291,8 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 							shadingBuff.push_back_inbounds(item);
 						}
 					}
+
+					endStatTimer(stats, shadingPack);
 				}
 
 			for (int i = 0; i < 8; i++) {
@@ -267,6 +309,8 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 				// Max dist is unused for primary rays
 			}
 
+			StatTimer shadingSort = startStatTimer(RaytracerStatShadingSortCycles);
+
 #if 1
 			// TODO: Better sorting is probably possible
 			// Ideas: * Insert into buckets or sorted array or hash table
@@ -279,7 +323,11 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 			});
 #endif
 
+			endStatTimer(stats, shadingSort);
+
 			for (auto & item : shadingBuff) {
+				StatTimer shading = startStatTimer(RaytracerStatShadingCycles);
+
 				const Triangle *triangle = scene->getTriangle(item.collision.triangle_id);
 
 				// TODO: Significant cache miss here pulling vertex data in from memory. Try sorting shading work by
@@ -304,7 +352,16 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 				float3 wo = -item.ray.direction;
 
-				for (int l = 0; l < scene->getNumLights(); l++) {
+				endStatTimer(stats, shading);
+
+#if 0
+				for (int l = 0; l < scene->getNumLights(); l++)
+#else
+				int l = (int)(rand1D() * scene->getNumLights() * 0.999f);
+#endif
+				{
+					StatTimer shading = startStatTimer(RaytracerStatShadingCycles);
+
 					const Light *light = scene->getLight(l);
 
 					float3 wi, Li;
@@ -317,7 +374,11 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
 					RayStackFrame shadow;
 					shadow.pixel = item.frame.pixel;
-					shadow.weight = item.frame.weight * Li * material->f(interp, wo, wi) * ndotl;
+					// TODO: * 20 doesn't account for forced termination?
+					shadow.weight = item.frame.weight * Li * material->f(interp, wo, wi) * ndotl * scene->getNumLights();
+
+					endStatTimer(stats, shading);
+					StatTimer shadowPack = startStatTimer(RaytracerStatShadowPackCycles);
 
 					int c = (signbit(shadowRay.direction.x) << 2) | (signbit(shadowRay.direction.y) << 1) | (signbit(shadowRay.direction.z) << 0);
 
@@ -334,24 +395,26 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 					shadowStack[c].maxDist.push_back_inbounds(r);
 
 					// TODO: If light does not cast shadows, return color immediately
+					endStatTimer(stats, shadowPack);
 				}
+				
+				if (rand1D() > 0.75f && generation < settings.maxDepth - 1) {
+					// TODO: take probability into account?
+					StatTimer secondaryEmit = startStatTimer(RaytracerStatSecondaryEmitCycles);
 
-				if (generation < settings.maxDepth - 1) {
 					Ray indirectRay;
 					RayStackFrame indirect;
 
 					indirectRay.origin = interp.position + triangle->normal * 0.001f;
 
-					float secondary = rand1D();
-
-					if (secondary < 0.5f || material->getReflectivity() == 0.0f) {
+					if (true) { // TODO
 						float2 rand = rand2D();
 
 						indirectRay.direction = mapCosHemisphere(1.0f, rand);
 						indirectRay.direction = alignHemisphere(indirectRay.direction, triangle->normal);
 
 						// Importance sampling: n dot l term cancels out
-						indirect.weight = item.frame.weight * material->f(interp, wo, indirectRay.direction) * (float)M_PI;
+						indirect.weight = item.frame.weight * material->f(interp, wo, indirectRay.direction) * (float)M_PI * 1.33333f;
 					}
 					else {
 						indirectRay.direction = reflect(wo, interp.normal);
@@ -359,6 +422,9 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 						//float ndotl = saturate(dot(r.direction, interp.normal));
 						//weight *= material->f(interp, wo, r.direction) * ndotl;
 					}
+
+					endStatTimer(stats, secondaryEmit);
+					StatTimer secondaryPack = startStatTimer(RaytracerStatSecondaryPackCycles);
 
 					indirect.pixel = item.frame.pixel;
 
@@ -375,6 +441,7 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 					radianceStack[c].direction[2].push_back_inbounds(indirectRay.direction.z);
 
 					// Max dist is unused for primary rays
+					endStatTimer(stats, secondaryPack);
 				}
 			}
 
@@ -384,21 +451,29 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 			for (int i = 0; i < 8; i++)
 				for (int j = 0; j < (shadowStack[i].frame.size() & ~(SIMD - 1)); j += SIMD) { // TODO: handle last elements
 					PacketCollision<SIMD> result;
-					Packet<SIMD> packet;
 
 					// TODO: Avoid this copy by passing registers directly
-					packet.origin[0] = *(vector<float, SIMD> *)&shadowStack[i].origin[0][j];
-					packet.origin[1] = *(vector<float, SIMD> *)&shadowStack[i].origin[1][j];
-					packet.origin[2] = *(vector<float, SIMD> *)&shadowStack[i].origin[2][j];
+					const vector<float, SIMD> (&origin)[3] = {
+						*(vector<float, SIMD> *)&shadowStack[i].origin[0][j],
+						*(vector<float, SIMD> *)&shadowStack[i].origin[1][j],
+						*(vector<float, SIMD> *)&shadowStack[i].origin[2][j]
+					};
 
-					packet.direction[0] = *(vector<float, SIMD> *)&shadowStack[i].direction[0][j];
-					packet.direction[1] = *(vector<float, SIMD> *)&shadowStack[i].direction[1][j];
-					packet.direction[2] = *(vector<float, SIMD> *)&shadowStack[i].direction[2][j];
+					const vector<float, SIMD> (&direction)[3] = {
+						*(vector<float, SIMD> *)&shadowStack[i].direction[0][j],
+						*(vector<float, SIMD> *)&shadowStack[i].direction[1][j],
+						*(vector<float, SIMD> *)&shadowStack[i].direction[2][j]
+					};
 
-					packet.maxDist = *(vector<float, SIMD> *)&shadowStack[i].maxDist[j];
+					const vector<float, SIMD> & maxDist = *(vector<float, SIMD> *)&shadowStack[i].maxDist[j];
+
+					StatTimer shadowTrace = startStatTimer(RaytracerStatShadowTraceCycles);
 
 					vector<bmask, SIMD> hit = tree->intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
-						packet, result);
+						origin, direction, maxDist, true, result);
+
+					endStatTimer(stats, shadowTrace);
+					StatTimer updateFramebuffer = startStatTimer(RaytracerStatUpdateFramebufferCycles);
 
 					// TODO: Might be useful to pass in active mask
 
@@ -413,6 +488,8 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 							scene->getOutput()->setPixel(frame.pixel.x, frame.pixel.y, float4(color, 1.0f));
 						}
 					}
+
+					endStatTimer(stats, updateFramebuffer);
 				}
 
 			for (int i = 0; i < 8; i++) {
@@ -432,6 +509,8 @@ void Raytracer::worker_thread(int idx, int numThreads) {
 
         // TODO: Flushing one tile at a time keeps the tile in the cache probably, but might
         // not get the most coherence. Adjusting the tile size would affect this probably.
+
+		endStatTimer(stats, totalCycles);
     }
 
     //std::cout << "Ray buffer size: " << rayBuff.capacity() << " (" << (rayBuff.capacity() * sizeof(Ray) + 1024 - 1) / 1024 << "kb)" << std::endl;

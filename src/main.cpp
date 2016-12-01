@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
     settings.height = 1080;
     settings.pixelSamples = 8;
     settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
-	settings.maxDepth = 1;
+	settings.maxDepth = 4;
 
     float aspect = (float)settings.width / (float)settings.height;
 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
 	mat.specularPower = 256.0f;
 	mat.specularColor = 1.0f;
 	mat.reflectivity = 1.0f;
-	//loadMesh(mesh, scene, float3(4.0f, 1.0f, 0.0f), float3(0.0f), float3(1.0f));
+	loadMesh(mesh, scene, float3(4.0f, 1.0f, 0.0f), float3(0.0f), float3(1.0f));
 
 #if 0
 	auto light1 = std::make_shared<PointLight>(float3(0, 30, 0), 1500.0f, true);
@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
 	scene->addLight(light1.get());
 #else
 	for (int x = -1; x <= 1; x++) {
-		auto light = new PointLight(float3(x * 10.0f, 3.0f, 0), 20.0f, true);
+		auto light = new PointLight(float3(x * 10.0f, 5.0f, 0.0f), 20.0f, true);
 		scene->addLight(light);
 	}
 #endif
@@ -198,11 +198,30 @@ int main(int argc, char *argv[]) {
 
             printf("Done: %f seconds (total), %f seconds (CPU), speedup: %.02f\n",
                 elapsed, cpu, cpu / elapsed);
+
+			RaytracerStats stats;
+			rt->shutdown(true, &stats);
+
+			int longestName = 0;
+
+			for (int i = 0; i < RaytracerStatCount; i++)
+				longestName = max(strlen(RaytracerStatNames[i]), longestName);
+
+			for (int i = 0; i < RaytracerStatCount; i++) {
+				printf("%s:", RaytracerStatNames[i]);
+
+				int len = strlen(RaytracerStatNames[i]);
+
+				for (int j = 0; j < longestName - len; j++)
+					printf(" ");
+
+				printf("%16llu (%6.02f %%)\n", stats.stat[i], (float)stats.stat[i] / (float)stats.stat[0] * 100);
+			}
         }
     }
 
-    rt->shutdown(false);
-    disp->refresh();
+	if (!finished)
+		rt->shutdown(false);
 
     return 0;
 }

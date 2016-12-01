@@ -219,11 +219,13 @@ bool intersects(
 
 template<unsigned int N>
 vector<bmask, N> intersectsPacket(
-	const Packet<N> & packet,
+	THREAD const vector<float, N> (&origin)[3],
+	THREAD const vector<float, N> (&direction)[3],
 	GLOBAL SetupTriangle * data,
 	int                    count,
 	const vector<float, N> & min,
 	const vector<float, N> & max,
+	bool occlusionOnly,
 	THREAD PacketCollision<N>     & result);
 
 #if !GPU
