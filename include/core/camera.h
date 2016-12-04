@@ -10,10 +10,10 @@
 #define __CAMERA_H
 
 #include <math/ray.h>
-#if 0
 #include <math/sampling.h>
-#endif
 #include <rt_defs.h>
+
+// TODO: fast path for pinhole camera
 
 /*
  * @brief Perspective projection camera. TODO: other types: fisheye, ortho, etc.
@@ -38,6 +38,12 @@ private:
     /** @brief Field of view */
     float fov;
 
+    float focalLength;
+    float aperture;
+
+    float halfWidth;
+    float halfHeight;
+
     /** @brief Aspect ratio */
     float aspect;
 
@@ -59,7 +65,9 @@ public:
     Camera(
         const float3 & position,
         const float3 & target,
-        float          fov);
+        float          fov,
+        float          aperture,
+        float          focalLength);
 
     /**
      * @brief Get a ray from the camera sensor through the image plane
@@ -71,7 +79,7 @@ public:
      * @param[in] py     Output image Y pixel coordinate
      * @param[in] depth  Raytracing recursion depth
      */
-    Ray getViewRay(const float2 &uv) const;
+    Ray getViewRay(const float2 & uv, const float2 &xy) const;
 
     /**
      * @brief Get the camera position
@@ -130,20 +138,20 @@ public:
 
 };
 
-inline Ray Camera::getViewRay(const float2 & uv) const {
+inline Ray Camera::getViewRay(const float2 & uv, const float2 & xy) const {
 	// TODO: This tries to use SIMD efficiently, but the only way to get full SIMD utilization would be to
 	// compute N samples at once and transpose the math operations
 
-	// TODO: operation to swizzle x and y into all channels
-    float2 xy = uv * 2.0f - 1.0f;
+    float2 xy2 = xy * 2.0f - 1.0f;
 	
-	// TODO: FMA
-    float3 targ = forward + right * shuffle<3, 0, 0, 0, 0>(xy) + up * shuffle<3, 1, 1, 1, 1>(xy);
+    float3 target = forward * focalLength + right * halfWidth * xy2.x + up * halfHeight * xy2.y + position;
 
-	// TODO: Is there a cheaper closed form for the reciprocal length?
-    targ = normalize(targ);
+    float2 disk = mapDisk(uv) * aperture;
 
-    return Ray(position, targ);
+    float3 origin = position + disk.x * right + disk.y * up;
+    float3 direction2 = normalize(target - origin);
+
+    return Ray(origin, direction2);
 }
 
 inline float3 Camera::getPosition() const {

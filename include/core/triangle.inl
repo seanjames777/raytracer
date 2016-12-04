@@ -51,7 +51,7 @@ bool intersects(
                          - tri.n_u * ray.origin[u] - tri.n_v * ray.origin[v]) * nd;
         
         // Behind camera or further
-        if ((found && t_plane >= result.distance) || t_plane < 0.0f)
+        if ((found && t_plane >= result.distance) || t_plane < min || t_plane > max)
             continue;
         
         float hu = ray.origin[u] + t_plane * ray.direction[u];
@@ -103,7 +103,7 @@ bool intersects(
 			- tri.n_u * ray.origin[u] - tri.n_v * ray.origin[v]) * nd;
 
 		// Behind camera or further
-		hit = hit && !((found && t_plane >= result.distance) || t_plane < 0.0f);
+		hit = hit && !((found && t_plane >= result.distance) || t_plane < min || t_plane > max);
 
 		float hu = ray.origin[u] + t_plane * ray.direction[u];
 		float hv = ray.origin[v] + t_plane * ray.direction[v];
@@ -157,7 +157,7 @@ bool intersects(
         
         float t = f * dot(tri.e2, q);
         
-        if ((found && t >= result.distance) || t < 0.0f)
+        if ((found && t >= result.distance) || t < min || t > max)
             continue;
         
         result.distance = t;
@@ -218,7 +218,7 @@ vector<bmask, N> intersectsPacket(
 			- vector<float, N>(tri.n_u) * origin[u] - vector<float, N>(tri.n_v) * origin[v]) * nd;
 
 		// Behind camera or further
-		hit = hit & ~((found & (t_plane >= result.distance)) | (t_plane < vector<float, N>(0.0f)));
+		hit = hit & ~((found & (t_plane >= result.distance)) | (t_plane < vector<float, N>(min)) | (t_plane > vector<float, N>(max)));
 
 		if (none(hit))
 			continue;

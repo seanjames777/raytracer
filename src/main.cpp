@@ -27,9 +27,9 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 2;
+    settings.pixelSamples = 16;
     settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
-	settings.maxDepth = 1;
+	settings.maxDepth = 20;
 
     auto output = new Image<float, 4>(settings.width, settings.height);
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
         float2 cursor = disp->getCursorPos() / float2(settings.width, settings.height);
 
         if (rt->intersect(cursor, result))
-            std::cout << result.triangle_id << " " << scene->getTriangle(result.triangle_id)->material_id << std::endl;
+            std::cout << result.triangle_id << " " << scene->getTriangle(result.triangle_id)->material_id << " " << result.distance << std::endl;
         else
             std::cout << "miss" << std::endl;
 #endif

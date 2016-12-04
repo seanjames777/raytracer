@@ -63,7 +63,7 @@ void KDBuilder<T>::partition(
             right.push_back(tri);
         }
         else {
-#if 1
+#if 0
             float3 positions[3] = { tri.v[0].position, tri.v[1].position, tri.v[2].position };
             
             float3 bary_r[6];

@@ -7,15 +7,19 @@
 #include <light/pointlight.h>
 #include <math/sampling.h>
 
-PointLight::PointLight(float3 position, float3 radiance, bool shadow)
+PointLight::PointLight(const float3 & position, float radius, const float3 & radiance, bool shadow)
     : position(position),
+      radius(radius),
       radiance(radiance),
       shadow(shadow)
 {
 }
 
-void PointLight::sample(const float3 & p, float3 & wo, float & r, float3 & Lo) const {
-	wo = position - p;
+// TODO: Shortcut for delta distributions
+void PointLight::sample(const float3 & uv, const float3 & p, float3 & wo, float & r, float3 & Lo) const {
+    float3 samplePosition = radius * normalize(uv) + position;
+
+	wo = samplePosition - p;
 	r = length(wo);
 	wo = wo / r; // TODO /=
 
@@ -24,19 +28,4 @@ void PointLight::sample(const float3 & p, float3 & wo, float & r, float3 & Lo) c
 
 bool PointLight::castsShadows() const {
     return shadow;
-}
-
-void PointLight::getShadowDir(const float3 & at, float3 *samples, int nSamples) {
-#if 0
-    if (radius == 0.0f || nSamples == 0) {
-        float3 dir = this->position - at;
-        samples[0] = dir;
-        return;
-    }
-
-    rand3D(nSamples, samples);
-
-    for (int i = 0; i < nSamples; i++)
-        samples[i] = radius * samples[i] + position - at;
-#endif
 }

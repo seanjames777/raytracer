@@ -188,9 +188,10 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
 						// Take jittered sampled to reduce variance and move from stairstepping
 						// artifacts to noise
-						float2 uv = (xy + randJittered2D(settings.pixelSamples, p, q)) * invImageSize;
+						float2 xy2 = (xy + randJittered2D(settings.pixelSamples, p, q)) * invImageSize;
 
-						Ray r = scene->getCamera()->getViewRay(uv);
+						float2 uv = rand2D();
+						Ray r = scene->getCamera()->getViewRay(uv, xy2);
 
 						// float3 sampleColor = getEnvironment(r.direction); TODO
 						float3 weight(1.0f / (settings.pixelSamples * settings.pixelSamples));
@@ -352,9 +353,13 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
 					const Light *light = scene->getLight(l);
 
+					// TODO: Can we jitter in more than one dimensin
+					// TODO: importance sampling, multiple importance sampling (need PDF probably)
+					float3 lightUV = rand3D();
+
 					float3 wi, Li;
 					float r;
-					light->sample(interp.position, wi, r, Li);
+					light->sample(lightUV, interp.position, wi, r, Li);
 
 					float ndotl = saturate(dot(wi, interp.normal)); // TODO: normal mapping
 
@@ -380,7 +385,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 					shadowStack[c].direction[1].push_back_inbounds(shadowRay.direction.y);
 					shadowStack[c].direction[2].push_back_inbounds(shadowRay.direction.z);
 
-					shadowStack[c].maxDist.push_back_inbounds(r);
+					shadowStack[c].maxDist.push_back_inbounds(r * 0.999f);
 
 					// TODO: If light does not cast shadows, return color immediately
 					endStatTimer(stats, shadowPack);
@@ -509,7 +514,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 bool Raytracer::intersect(float2 uv, Collision & result) {
 	KDStackFrame stack[64];
 
-	Ray r = scene->getCamera()->getViewRay(uv);
+	Ray r = scene->getCamera()->getViewRay(float2(0, 0), uv);
 
 	return tree.intersect(stack, r, INFINITY, result);
 }

@@ -90,7 +90,7 @@ bool KDSAHBuilder::shouldSplitNode(
             float tri_min = fminf(fminf(tri.v[0].position[axis], tri.v[1].position[axis]), tri.v[2].position[axis]);
             float tri_max = fmaxf(fmaxf(tri.v[0].position[axis], tri.v[1].position[axis]), tri.v[2].position[axis]);
 
-#if 0
+#if 1
             // Clip triangle bounding box to voxel bounding box
             // TODO: This generates weirdness for triangles outside the box
             tri_min = fmax(min, tri_min);

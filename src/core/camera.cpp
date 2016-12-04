@@ -9,11 +9,15 @@
 Camera::Camera(
     const float3 & position,
     const float3 & target,
-    float fov)
+    float fov,
+    float aperture,
+    float focalLength)
     : position(position),
       target(target),
       aspect(1.0f),
-      fov(fov)
+      fov(fov),
+      aperture(aperture),
+      focalLength(focalLength)
 {
     refresh();
 }
@@ -21,16 +25,11 @@ Camera::Camera(
 void Camera::refresh() {
     forward = normalize(target - position);
 
+    // TODO: Handle pointing along axes
     float3 gup = float3(0, 1, 0);
-
     right = normalize(-cross(forward, gup));
     up = normalize(cross(right, forward));
 
-    // TODO: Handle pointing along axes
-
-    float halfWidth  = tanf(fov / 2.0f);
-    float halfHeight = halfWidth / aspect;
-
-	right = right * halfWidth;
-	up = up * halfHeight;
+    halfWidth  = focalLength * tanf(fov / 2.0f);
+    halfHeight = halfWidth / aspect;
 }
