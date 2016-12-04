@@ -14,9 +14,12 @@
 
 using namespace simd;
 #else
+#include <rt_defs.h>
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <algorithm>
+#include <immintrin.h>
 
 using std::min;
 using std::max;
@@ -34,7 +37,7 @@ inline T saturate(T val) {
 }
 
 template<typename T, unsigned int N>
-struct vector {
+struct ALIGN(16) vector {
     T _v[N];
     
     vector<T, N>()
@@ -645,7 +648,7 @@ inline float schlick(const vector<T, 3> & n, const vector<T, 3> & v, float n1, f
 #endif
 
 template<>
-struct __declspec(align(16)) vector<float, 2> {
+struct ALIGN(16) vector<float, 2> {
 	union {
 		float _v[4];
 		struct {
@@ -735,7 +738,7 @@ inline vector<float, 2> normalize(const vector<float, 2> & vec) {
 }
 
 template<>
-struct __declspec(align(16)) vector<float, 3> {
+struct ALIGN(16) vector<float, 3> {
 	union {
 		float _v[4];
 		struct {
@@ -1011,7 +1014,7 @@ inline vector<bmask, N> operator!(const vector<T, N> & v) {
 #endif
 
 template<>
-struct __declspec(align(16)) vector<float, 4> {
+struct ALIGN(16) vector<float, 4> {
 	union {
 		float _v[4];
 		struct {
@@ -1135,7 +1138,7 @@ inline vector<T, N> blend(const vector<B, N> & mask, const vector<T, N> & lhs, c
 #endif
 
 template<>
-struct __declspec(align(16)) vector<bmask, 2> {
+struct ALIGN(16) vector<bmask, 2> {
 	union {
 		bmask _v[4];
 		struct {
@@ -1190,7 +1193,7 @@ struct __declspec(align(16)) vector<bmask, 2> {
 };
 
 template<>
-struct __declspec(align(16)) vector<bmask, 3> {
+struct ALIGN(16) vector<bmask, 3> {
 	union {
 		bmask _v[4];
 		struct {
@@ -1245,7 +1248,7 @@ struct __declspec(align(16)) vector<bmask, 3> {
 };
 
 template<>
-struct __declspec(align(16)) vector<bmask, 4> {
+struct ALIGN(16) vector<bmask, 4> {
 	union {
 		bmask _v[4];
 		struct {
@@ -1508,7 +1511,7 @@ inline bool all(const vector<bmask, 4> & v) {
 }
 
 template<>
-struct __declspec(align(16)) vector<int, 2> {
+struct ALIGN(16) vector<int, 2> {
 	union {
 		int _v[4];
 		struct {
@@ -1550,7 +1553,7 @@ struct __declspec(align(16)) vector<int, 2> {
 };
 
 template<>
-struct __declspec(align(16)) vector<int, 3> {
+struct ALIGN(16) vector<int, 3> {
 	union {
 		int _v[4];
 		struct {
@@ -1592,7 +1595,7 @@ struct __declspec(align(16)) vector<int, 3> {
 };
 
 template<>
-struct __declspec(align(16)) vector<int, 4> {
+struct ALIGN(16) vector<int, 4> {
 	union {
 		int _v[4];
 		struct {

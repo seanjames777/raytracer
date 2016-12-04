@@ -59,25 +59,7 @@ public:
     Camera(
         const float3 & position,
         const float3 & target,
-        float        aspect,
-        float        fov);
-
-    // TODO
-#if 0
-    /**
-     * @brief Get samples on virtual sensor, jittered across a sample range.
-     *
-     * @param[in]  nSamples Square root of number of samples to get
-     * @param[out] samples  Output samples
-     * @param[in]  min      Minimum
-     * @param[in]  max
-     *
-     * @return Returns false if this is a pinhole camera, in which case there will only be one
-     * output sample at the center of the sample range. Otherwise, returns true and fills in
-     * nSamples * nSamples output samples.
-     */
-    bool getSamples(int nSamples, float2 *samples, const float2 & min, const float2 & max);
-#endif
+        float          fov);
 
     /**
      * @brief Get a ray from the camera sensor through the image plane

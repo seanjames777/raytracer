@@ -1,5 +1,6 @@
 #include "math/vector.h"
 #include <cassert>
+#include <iostream>
 
 void testVectors() {
 	// 2D float vector
@@ -53,7 +54,8 @@ void testVectors() {
 	{
 		float2 x = float2(2.0f, 3.0f);
 		float z = length(x);
-		assert(z == sqrt((2.0f * 2.0f) + (3.0f * 3.0f)));
+
+		assert(fabs(z - sqrt((2.0f * 2.0f) + (3.0f * 3.0f))) < 0.0001f);
 	}
 	{
 		float2 x = float2(2.0f, 3.0f);
@@ -157,7 +159,7 @@ void testVectors() {
 	{
 		float3 x = float3(2.0f, 3.0f, 4.0f);
 		float z = length(x);
-		assert(z == sqrt((2.0f * 2.0f) + (3.0f * 3.0f) + (4.0f * 4.0f)));
+		assert(fabs(z - sqrt((2.0f * 2.0f) + (3.0f * 3.0f) + (4.0f * 4.0f))) < 0.0001f);
 	}
 	{
 		float3 x = float3(2.0f, 3.0f, 4.0f);
@@ -254,7 +256,7 @@ void testVectors() {
 	{
 		float4 x = float4(2.0f, 3.0f, 4.0f, 5.0f);
 		float z = length(x);
-		assert(z == sqrt((2.0f * 2.0f) + (3.0f * 3.0f) + (4.0f * 4.0f) + (5.0f * 5.0f)));
+		assert(fabs(z - sqrt((2.0f * 2.0f) + (3.0f * 3.0f) + (4.0f * 4.0f) + (5.0f * 5.0f))) < 0.0001f);
 	}
 	{
 		float4 x = float4(2.0f, 3.0f, 4.0f, 5.0f);

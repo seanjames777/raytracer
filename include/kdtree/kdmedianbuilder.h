@@ -11,31 +11,34 @@
 
 #include <kdtree/kdbuilder.h>
 
+struct KDMedianBuilderThreadCtx {
+};
+
 /**
  * @brief KD-tree builder which splits nodes along their spatial median. The split
  * axis is chosen by round-robin or by choosing the longest dimension.
  */
-class KDMedianBuilder : public KDBuilder {
+class KDMedianBuilder : public KDBuilder<KDMedianBuilderThreadCtx> {
 protected:
 
     /**
      * @copydoc KDBuilder::splitNode
      */
-    virtual bool splitNode(
-        void                          * threadCtx,
-        const AABB                    & bounds,
-        const std::vector<Triangle *> & triangles,
-        int                             depth,
-        float                         & split,
-        int                           & dir,
-        enum KDBuilderPlanarMode      & planarMode) override;
+    virtual bool shouldSplitNode(
+        KDMedianBuilderThreadCtx         & threadCtx,
+        const AABB                       & bounds,
+        const util::vector<Triangle, 16> & triangles,
+        int                                depth,
+        float                            & split,
+        int                              & dir,
+        enum KDBuilderPlanarMode         & planarMode) override;
 
 public:
 
     /**
      * @brief Constructor
      */
-    KDMedianBuilder();
+    KDMedianBuilder(KDTree & tree, util::vector<Triangle, 16> & triangles);
 
     /**
      * @brief Destructor

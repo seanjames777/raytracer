@@ -16,6 +16,8 @@
 #include <light/light.h>
 #include <core/material.h>
 #include <util/vector.h>
+#include <util/meshloader.h>
+#include <util/path.h>
 #include <vector>
 
 // TODO: Might want to make some of the pointers not-pointers, i.e. just copy
@@ -28,128 +30,79 @@
 class RT_EXPORT Scene {
 private:
 
-    /** @brief Materials */
-    std::vector<Material *> materials;
-
-    /** @brief Triangles */
-    util::vector<Triangle, 16> triangles;
-
-    /** @brief Lights */
-    std::vector<Light *> lights;
-
-    /** @brief Camera */
-    Camera *camera;
-
-    /** @brief Output image */
-    Image<float, 4> *output;
-
-    /** @brief Environment image */
-    Image<float, 4> *environment;
-
-    /** @brief Environment image sampler */
-    Sampler *environmentSampler;
+    std::vector<Material *>     materials;
+    util::vector<Triangle, 16>  triangles;
+    std::vector<Light *>        lights;
+    Camera                     *camera;
+    Image<float, 4>            *environment;
+    Sampler                    *environmentSampler;
 
 public:
 
-    /**
-     * @brief Constructor
-     *
-     * @param camera Camera
-     * @param output Output image
-     */
-    Scene(
-        Camera          *camera,
-        Image<float, 4> *output,
-        Sampler         *environmentSampler,
-        Image<float, 4> *environment);
+    Scene();
 
-    /**
-     * @brief Add a light to the scene
-     *
-     * @param light Light to add
-     */
+    virtual ~Scene();
+
     void addLight(Light *light);
 
-    /**
-     * @brief Add a polygon to the scene
-     */
-    void addPoly(Triangle triangle);
+    void addMesh(Mesh *mesh,
+        const float3 & translation,
+        const float3 & rotation,
+        float          scale);
 
-	/**
-	 * @brief Add a material to the scene
-	 */
-	void addMaterial(Material *material);
+    void setCamera(Camera *camera);
 
-    /**
-     * @brief Get a material by ID
-     */
+    void setEnvironment(Image<float, 4> *environment);
+
+    void setEnvironmentSampler(Sampler *sampler);
+
+    Image<float, 4> *addTexture(std::string name);
+
     Material *getMaterial(unsigned int id) const;
 
-	unsigned int getNumMaterials() const;
+    unsigned int getNumMaterials() const;
 
-    /**
-     * @brief Get vector of triangles
-     */
-    const util::vector<Triangle, 16> & getTriangles() const;
+    util::vector<Triangle, 16> & getTriangles();
 
-    /**
-     * @brief Get a triangle by ID
-     */
     const Triangle *getTriangle(unsigned int id) const;
 
-    /**
-     * @brief Get output image
-     */
-    Image<float, 4> *getOutput() const;
-
-    /**
-     * @brief Get environment image
-     */
     const Image<float, 4> *getEnvironment() const;
 
-    /**
-     * @brief Get environment image sampler
-     */
     const Sampler *getEnvironmentSampler() const;
 
-    /**
-     * @brief Get camera
-     */
-    const Camera *getCamera() const;
+    Camera *getCamera() const;
 
 	unsigned int getNumLights() const;
 
-    /**
-     * @brief Get lights
-     */
     const Light *getLight(unsigned int light) const;
 
 };
 
-inline Scene::Scene(
-    Camera          *camera,
-    Image<float, 4> *output,
-    Sampler         *environmentSampler,
-    Image<float, 4> *environment)
-    : camera(camera),
-      output(output),
-      environmentSampler(environmentSampler),
-      environment(environment),
-	  triangles(16) // TODO: might not be necessary because alignof(Triangle) should be 16
+inline Scene::Scene()
+    : camera(nullptr),
+      environmentSampler(nullptr),
+      environment(nullptr)
 {
 }
 
-inline void Scene::addPoly(Triangle poly) {
-    poly.triangle_id = triangles.size();
-    triangles.push_back(poly);
+inline Scene::~Scene() {
+    
 }
 
 inline void Scene::addLight(Light *light) {
     lights.push_back(light);
 }
 
-inline void Scene::addMaterial(Material *material) {
-	materials.push_back(material);
+inline void Scene::setCamera(Camera *camera) {
+    this->camera = camera;
+}
+
+inline void Scene::setEnvironment(Image<float, 4> *environment) {
+    this->environment = environment;
+}
+
+inline void Scene::setEnvironmentSampler(Sampler *sampler) {
+    this->environmentSampler = sampler;
 }
 
 inline Material *Scene::getMaterial(unsigned int id) const {
@@ -160,16 +113,12 @@ inline unsigned int Scene::getNumMaterials() const {
 	return materials.size();
 }
 
-inline const util::vector<Triangle, 16> & Scene::getTriangles() const {
+inline util::vector<Triangle, 16> & Scene::getTriangles() {
     return triangles;
 }
 
 inline const Triangle *Scene::getTriangle(unsigned int id) const {
     return &triangles[id];
-}
-
-inline Image<float, 4> *Scene::getOutput() const {
-    return output;
 }
 
 inline const Image<float, 4> *Scene::getEnvironment() const {
@@ -180,7 +129,7 @@ inline const Sampler *Scene::getEnvironmentSampler() const {
     return environmentSampler;
 }
 
-inline const Camera *Scene::getCamera() const {
+inline Camera *Scene::getCamera() const {
     return camera;
 }
 

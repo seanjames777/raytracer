@@ -12,7 +12,8 @@ message("System: ${CMAKE_SYSTEM_NAME}")
 
 if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
     message("Unix")
-    add_definitions(-fno-rtti -fno-exceptions -Wno-comment -Wno-unused-value -msse4.1 -std=c++11)
+    add_definitions(-mavx -std=c++11)
+    add_definitions(-fno-rtti -fno-exceptions -Wno-comment -Wno-unused-value)
 
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
         message("Debug build")
@@ -20,8 +21,10 @@ if(NOT(${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
     else()
         # TODO: -Ofast may be faster if it can be made to work correctly
         message("Release build")
-        add_definitions(-O3 -fomit-frame-pointer)
+        add_definitions(-Ofast -fomit-frame-pointer)
     endif()
+
+    # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
 else()
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GS-")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /GS-")
@@ -56,6 +59,8 @@ add_executable(raytracer
     src/util/meshloader.cpp
     src/util/path.cpp
     src/util/timer.cpp
+    src/scenes/sponzascene.cpp
+    src/scenes/simplescene.cpp
 
     include/core/camera.h
     include/core/material.h
@@ -91,6 +96,8 @@ add_executable(raytracer
     include/util/stack.h
     include/util/timer.h
     include/util/vector.h
+    include/scenes/sponzascene.h
+    include/scenes/simplescene.h
 )
 
 FIND_PACKAGE(OpenGL REQUIRED)

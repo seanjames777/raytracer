@@ -17,8 +17,8 @@
 
 namespace MeshLoader {
 
-void processSubmesh(aiMesh *mesh, const aiScene *scene, std::shared_ptr<Mesh> loadMesh) {
-	std::shared_ptr<Submesh> submesh = std::make_shared<Submesh>(mesh->mMaterialIndex);
+void processSubmesh(aiMesh *mesh, const aiScene *scene, Mesh *loadMesh) {
+	auto submesh = new Submesh(mesh->mMaterialIndex);
 
 	for (int i = 0; i < mesh->mNumFaces; i++) {
 		aiFace face = mesh->mFaces[i];
@@ -49,7 +49,7 @@ void processSubmesh(aiMesh *mesh, const aiScene *scene, std::shared_ptr<Mesh> lo
 	loadMesh->addSubmesh(submesh);
 }
 
-void processNode(aiNode *node, const aiScene *scene, std::shared_ptr<Mesh> mesh) {
+void processNode(aiNode *node, const aiScene *scene, Mesh *mesh) {
 	for (int i = 0; i < node->mNumMeshes; i++)
 		processSubmesh(scene->mMeshes[node->mMeshes[i]], scene, mesh);
 
@@ -57,7 +57,7 @@ void processNode(aiNode *node, const aiScene *scene, std::shared_ptr<Mesh> mesh)
 		processNode(node->mChildren[i], scene, mesh);
 }
 
-void processMaterial(aiMaterial *material, std::shared_ptr<Mesh> mesh) {
+void processMaterial(aiMaterial *material, Mesh *mesh) {
 	MaterialProperties props;
 
 	aiColor3D diffuse;
@@ -100,7 +100,7 @@ void processMaterial(aiMaterial *material, std::shared_ptr<Mesh> mesh) {
 	mesh->addMaterial(props);
 }
 
-std::shared_ptr<Mesh> load(std::string filename) {
+Mesh *load(std::string filename) {
 	Assimp::Importer importer;
 
 	const aiScene *scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
@@ -108,7 +108,7 @@ std::shared_ptr<Mesh> load(std::string filename) {
 	if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		return nullptr;
 
-	std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+	auto mesh = new Mesh();
 
 	processNode(scene->mRootNode, scene, mesh);
 

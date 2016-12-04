@@ -62,7 +62,7 @@ struct MaterialProperties {
 class Mesh {
 private:
 
-	std::vector<std::shared_ptr<Submesh>> submeshes;
+	std::vector<Submesh *> submeshes;
 	util::vector<MaterialProperties, 16> materials;
 
 public:
@@ -73,7 +73,7 @@ public:
 	~Mesh() {
 	}
 
-	void addSubmesh(std::shared_ptr<Submesh> submesh) {
+	void addSubmesh(Submesh *submesh) {
 		submeshes.push_back(submesh);
 	}
 
@@ -81,7 +81,7 @@ public:
 		return submeshes.size();
 	}
 
-	std::shared_ptr<Submesh> getSubmesh(unsigned int i) const {
+	Submesh *getSubmesh(unsigned int i) const {
 		return submeshes[i];
 	}
 
@@ -93,8 +93,8 @@ public:
 		return materials.size();
 	}
 
-	MaterialProperties & getMaterial(unsigned int i) {
-		return materials[i];
+	MaterialProperties *getMaterial(unsigned int i) {
+		return &materials[i];
 	}
 };
 
@@ -107,7 +107,7 @@ namespace MeshLoader {
  * @param polys     Vector to which polygons will be added
  * @param transform Transformation matrix to apply to vertices
  */
-RT_EXPORT std::shared_ptr<Mesh> load(std::string filename);
+RT_EXPORT Mesh *load(std::string filename);
 
 };
 

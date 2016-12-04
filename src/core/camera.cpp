@@ -9,11 +9,10 @@
 Camera::Camera(
     const float3 & position,
     const float3 & target,
-    float aspect,
     float fov)
     : position(position),
       target(target),
-      aspect(aspect),
+      aspect(1.0f),
       fov(fov)
 {
     refresh();
@@ -35,20 +34,3 @@ void Camera::refresh() {
 	right = right * halfWidth;
 	up = up * halfHeight;
 }
-
-// TODO
-#if 0
-bool Camera::getSamples(int nSamples, float2 *samples, const float2 & min, const float2 & max) {
-    // TODO: Make sure samples align with pixel grid in a nice way
-
-    if (aperture == 0.0f) {
-        samples[0] = (min + max) * 0.5f;
-        return false;
-    }
-
-    randJittered2D(nSamples, samples);
-    mapSamplesDisk(nSamples, samples);
-
-    return true;
-}
-#endif

@@ -68,33 +68,12 @@ struct KDPacketStackFrame {
  * @brief KD-Tree acceleration structure
  */
 class KDTree {
-private:
-
-    GLOBAL KDNode *root;   //!< Root node
-    GLOBAL KDNode *nodes;
-    GLOBAL SetupTriangle *triangles;    
-    AABB    _bounds; //!< Bounding box for entire tree
-
 public:
 
-    /**
-     * @brief Constructor
-     *
-     * @param[in] root   Root node
-     * @param[in] bounds Bounding box for entire tree
-     */
-
-    KDTree(GLOBAL KDNode *root, GLOBAL KDNode *nodes, GLOBAL SetupTriangle *triangles, AABB bounds)
-		: root(root),
-		  nodes(nodes),
-		  triangles(triangles),
-		  _bounds(bounds)
-	{
-	}
-
-    AABB bounds() {
-        return _bounds;
-    }
+    KDNode                          *root;
+    util::vector<KDNode, 8>          nodes;
+    util::vector<SetupTriangle, 16>  triangles;
+    AABB                             bounds;
 
     /**
      * @brief Intersect a ray against the KD-Tree

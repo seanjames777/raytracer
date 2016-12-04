@@ -14,7 +14,7 @@
 #include <mutex>
 #include <thread>
 #include <util/queue.h>
-#include <vector>
+#include <util/vector.h>
 
 // TODO: Queue node might have some false sharing/atomic contention
 // TODO: Pool or something of queue nodes might be better than new/delete constantly.
@@ -35,19 +35,29 @@ enum KDBuilderPlanarMode {
 /**
  * @brief Node in a KDBuilder's work queue
  */
-struct KDBuilderQueueNode {
-    KDNode                   *node;      //!< KD-tree node to build
-    AABB                      bounds;    //!< Bounds of all triangles
-    std::vector<Triangle *>  triangles; //!< Triangles to place in node
-    int                       depth;     //!< Node depth in KD-tree
-    std::atomic_int           refCount;  //!< Number of references to queue node
-    KDBuilderQueueNode       *parent;    //!< Parent node
+struct KDBuilderNode {
+    uint32_t                    depth;     //!< Node depth in KD-tree
+    AABB                        bounds;    //!< Bounds of all triangles
+    util::vector<Triangle, 16>  triangles; //!< Triangles to place in node
+    KDBuilderNode              *left;
+    KDBuilderNode              *right;
+    int                         dir;
+    float                       split;
+
+    KDBuilderNode()
+        : depth(0),
+          left(nullptr),
+          right(nullptr),
+          dir(0),
+          split(0.0f)
+    {
+    }
 };
 
 /**
  * @brief Statistics about a KD-tree
  */
-struct KDBuilderTreeStatistics {
+struct KDTreeStats {
     int num_nodes;       //!< Number of nodes
     int num_leaves;      //!< Number of leaf nodes
     int num_internal;    //!< Number of non-leaf nodes
@@ -59,132 +69,59 @@ struct KDBuilderTreeStatistics {
     int tree_mem;        //!< Approximate amount of memory used by the tree
 };
 
-class KDAllocator {
-private:
-    
-    void *_memory;
-    uint32_t _capacity;
-    std::atomic<uint32_t> _offset;
-
-public:
-    
-    KDAllocator(void *memory, uint32_t capacity)
-        : _memory(memory),
-          _capacity(capacity),
-          _offset(0)
-    {
-    }
-    
-    void *memory() {
-        return _memory;
-    }
-    
-    uint32_t alloc(uint32_t size, uint32_t align) {
-        uint32_t original = _offset;
-        uint32_t aligned = original;
-        uint32_t offset = original;
-        
-        do {
-            original = _offset;
-            aligned = (original + align - 1) & ~(align - 1);
-            offset = aligned + size;
-        } while (!_offset.compare_exchange_weak(original, offset));
-        
-        assert (_offset + size <= _capacity);
-        
-        return aligned;
-    }
-};
-
+template<typename T>
 class KDBuilder {
 private:
 
     // Note: We need a dynamic queue here because we don't know how deep we're going
     // to go while building the tree
-    util::queue<KDBuilderQueueNode *> node_queue;        //!< Work queue
-    std::mutex                        queue_lock;        //!< Work queue lock
-    std::atomic_int                   outstanding_nodes; //!< Number of unfinished nodes
-    KDAllocator                      *_nodeAllocator;
-    KDAllocator                      *_triangleAllocator;
+    util::queue<KDBuilderNode *, 8> node_queue;
+    std::mutex                      queue_lock;        //!< Work queue lock
+    std::atomic_int                 outstanding_nodes; //!< Number of unfinished nodes
+
+    KDTree                          & tree;
+    util::vector<Triangle, 16>      & triangles;
+    uint32_t                          numUnclippedTriangles;
+    std::atomic_int                   triangleID;
 
     /**
      * @brief KD-builder worker THREAD entrypoint
      */
-    void worker_thread();
+    void builder_thread();
 
-    /**
-     * @brief Split triangles into two child bounding boxes
-     *
-     * @param[in]  split      Split plane location
-     * @param[in]  dir        Split plane axis
-     * @param[in]  triangles  Input triangles
-     * @param[in]  planarMode How to treat triangles that lie in the split plane
-     * @param[out] left       Triangles to the left of the split plane
-     * @param[out] right      Trianlges to the right of the split plane
-     */
     void partition(
-        float                           split,
-        int                             dir,
-        enum KDBuilderPlanarMode      & planarMode,
-        const std::vector<Triangle *> & triangles,
-		std::vector<Triangle *>       & left,
-		std::vector<Triangle *>       & right);
+        float                              split,
+        int                                dir,
+        enum KDBuilderPlanarMode         & planarMode,
+        const util::vector<Triangle, 16> & triangles,
+        util::vector<Triangle, 16>       & left,
+        util::vector<Triangle, 16>       & right);
 
-    /**
-     * @brief Build a leaf node
-     *
-     * @param[in] q_node Queue node to process
-     */
-    void buildLeafNode(KDBuilderQueueNode *q_node);
+    void splitNode(
+        KDBuilderNode            & builderNode,
+        float                      split,
+        int                        dir,
+        enum KDBuilderPlanarMode   planarMode);
 
-    /**
-     * @brief Build an inner node
-     *
-     * @param[in] q_node     Queue node to process
-     * @param[in] split      Split plane location
-     * @param[in] dir        Split plane axis
-     * @param[in] planarMode How to treat triangles that lie in the split plane
-     * @param[in] depth      Tree depth
-     */
-    void buildInnerNode(
-        KDBuilderQueueNode       *q_node,
-        float                     split,
-        int                       dir,
-        enum KDBuilderPlanarMode  planarMode,
-        int                       depth);
+    void finalizeLeafNode(
+        const KDBuilderNode             & builderNode,
+        KDNode                          & node);
 
-    /**
-     * @brief Build a KD node
-     *
-     * @param[in] threadCtx Worker THREAD context
-     * @param[in] q_node    Queue node to process
-     */
-    void buildNode(void *threadCtx, KDBuilderQueueNode *q_node);
+    void finalizeInnerNode(
+        const KDBuilderNode             & builderNode,
+        KDNode                          & node);
 
-    /**
-     * @brief Compute a bounding box for a set of triangles
-     */
-    AABB buildAABB(const std::vector<Triangle *> & triangles);
+    void finalizeNode(
+        const KDBuilderNode             & builderNode,
+        KDNode                          & node);
+
+    void buildNode(
+        T & threadCtx,
+        KDBuilderNode & builderNode);
+
+    AABB buildAABB(const util::vector<Triangle, 16> & triangles);
 
 protected:
-
-    /**
-     * @brief Should be overriden by builder implementations to construct a THREAD context
-     * storing whatever information they would like to maintain during construction.
-     *
-     * @param[in] idx THREAD index
-     *
-     * @return THREAD context object
-     */
-    virtual void *prepareWorkerThread(int idx);
-
-    /**
-     * @brief Should be overriden by builder implementations to destroy the THREAD context
-     * object for a worker thread.
-     *
-     * @param[in] threadCtx Worker THREAD context object
-     */
-    virtual void destroyWorkerThread(void *threadCtx);
 
     /**
      * @brief Should be overriden by builder implementations to decide how split a KD-tree
@@ -200,38 +137,24 @@ protected:
      *
      * @return True if the node should be split, or false to create a leaf node
      */
-    virtual bool splitNode(
-        void                          * threadCtx,
-        const AABB                    & bounds,
-        const std::vector<Triangle *> & triangles,
-        int                             depth,
-        float                         & split,
-        int                           & dir,
-        enum KDBuilderPlanarMode      & planarMode) = 0;
+    virtual bool shouldSplitNode(
+        T                                & threadCtx,
+        const AABB                       & bounds,
+        const util::vector<Triangle, 16> & triangles,
+        int                                depth,
+        float                            & split,
+        int                              & dir,
+        enum KDBuilderPlanarMode         & planarMode) = 0;
     
-    void computeStats(KDNode *root, KDBuilderTreeStatistics *stats, int depth);
+    void computeStats(KDNode *root, KDTreeStats *stats, int depth);
 
 public:
 
-    /**
-     * @brief Constructor
-     */
-    KDBuilder();
+    KDBuilder(KDTree & tree, util::vector<Triangle, 16> & triangles);
 
-    /**
-     * @brief Destructor
-     */
     virtual ~KDBuilder();
 
-    /**
-     * @brief Build a KD tree for a list of triangles
-     *
-     * @param[in]  triangles List of input triangles
-     * @param[out] stats     If non-null, will be filled with information about constructed tree
-     *
-     * @return KD tree for input triangles
-     */
-    KDTree *build(const Triangle *triangles, int num_triangles, KDAllocator *nodeAllocator, KDAllocator *triangleAllocator, KDBuilderTreeStatistics *stats = nullptr);
+    void build(KDTreeStats *stats);
 
 };
 

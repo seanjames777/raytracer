@@ -51,7 +51,7 @@ bool intersects(
                          - tri.n_u * ray.origin[u] - tri.n_v * ray.origin[v]) * nd;
         
         // Behind camera or further
-        if ((found && t_plane >= result.distance) || t_plane < min || t_plane > max)
+        if ((found && t_plane >= result.distance) || t_plane < 0.0f)
             continue;
         
         float hu = ray.origin[u] + t_plane * ray.direction[u];
@@ -103,7 +103,7 @@ bool intersects(
 			- tri.n_u * ray.origin[u] - tri.n_v * ray.origin[v]) * nd;
 
 		// Behind camera or further
-		hit = hit && !((found && t_plane >= result.distance) || t_plane < min || t_plane > max);
+		hit = hit && !((found && t_plane >= result.distance) || t_plane < 0.0f);
 
 		float hu = ray.origin[u] + t_plane * ray.direction[u];
 		float hv = ray.origin[v] + t_plane * ray.direction[v];
@@ -131,6 +131,7 @@ bool intersects(
     
     for (int i = 0; i < count; i++) {
         const SetupTriangle & tri = data[i];
+
         float3 p = cross(ray.direction, tri.e2);
         
         float det = dot(tri.e1, p);
@@ -156,7 +157,7 @@ bool intersects(
         
         float t = f * dot(tri.e2, q);
         
-        if (t < 0.0f || (found && t >= result.distance) || t < min || t > max)
+        if ((found && t >= result.distance) || t < 0.0f)
             continue;
         
         result.distance = t;
@@ -217,7 +218,7 @@ vector<bmask, N> intersectsPacket(
 			- vector<float, N>(tri.n_u) * origin[u] - vector<float, N>(tri.n_v) * origin[v]) * nd;
 
 		// Behind camera or further
-		hit = hit & ~((found & (t_plane >= result.distance)) | (t_plane < min) | (t_plane > max));
+		hit = hit & ~((found & (t_plane >= result.distance)) | (t_plane < vector<float, N>(0.0f)));
 
 		if (none(hit))
 			continue;
@@ -270,4 +271,4 @@ template vector<bmask, SIMD> intersectsPacket(
 	bool occlusionOnly,
 	THREAD PacketCollision<SIMD> & result);
 
-#endif /* triangle_h */
+#endif

@@ -216,7 +216,7 @@ void ImageDisplay::refresh() {
 	int windowWidth, windowHeight;
 	int imageWidth = image->getWidth();
 	int imageHeight = image->getHeight();
-	glfwGetWindowSize(window, &windowWidth, &windowHeight);
+	glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 
 	float imageAspect = (float)imageWidth / (float)imageHeight;
 
@@ -242,4 +242,11 @@ void ImageDisplay::refresh() {
 
     glfwSwapBuffers(window);
     glfwPollEvents();
+}
+
+float2 ImageDisplay::getCursorPos() {
+    double x, y;
+    glfwGetCursorPos(window, &x, &y);
+
+    return float2(x, y);
 }

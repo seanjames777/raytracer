@@ -102,6 +102,8 @@ public:
 
     bool shouldClose();
 
+    float2 getCursorPos();
+
 };
 
 #endif

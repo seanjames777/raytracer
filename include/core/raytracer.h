@@ -64,7 +64,8 @@ static const char *RaytracerStatNames[] = {
 	"Stat Count"
 };
 
-struct __declspec(align(64)) RaytracerStats {
+// TODO: align this to prevent false sharing, add option to turn it off
+struct RaytracerStats {
 	uint64_t stat[RaytracerStatCount];
 };
 
@@ -76,14 +77,19 @@ struct StatTimer {
 inline StatTimer startStatTimer(uint16_t stat) {
 	StatTimer timer;
 
+#if WIN32
 	timer.startTime = __rdtsc();
-	timer.statIndex = stat;
+#endif
+
+    timer.statIndex = stat;
 
 	return timer;
 }
 
 inline void endStatTimer(RaytracerStats *stats, StatTimer timer) {
+#if WIN32
 	stats->stat[timer.statIndex] += __rdtsc() - timer.startTime;
+#endif
 }
 
 /**
@@ -95,8 +101,9 @@ private:
 
     typedef std::vector<std::shared_ptr<std::thread>> threadVector;
 
-    KDTree                  *tree;            //!< Ray/triangle intersection acceleration tree
-    KDBuilderTreeStatistics  _treeStats;           //!< Tree statistics
+    Image<float, 4>         *output;
+    KDTree                   tree;            //!< Ray/triangle intersection acceleration tree
+    KDTreeStats  _treeStats;           //!< Tree statistics
     Scene                   *scene;           //!< Scene to render
     int                      nBlocks;         //!< Total number of blocks to render
     int                      nBlocksW;        //!< Number of blocks horizontally
@@ -120,7 +127,7 @@ public:
      *
      * @param scene Scene to render
      */
-    Raytracer(RaytracerSettings settings, Scene *scene);
+    Raytracer(RaytracerSettings settings, Scene *scene, Image<float, 4> *output);
 
     /**
      * @brief Destructor
@@ -144,6 +151,8 @@ public:
      *                              (true) or to abort immediately (false)
      */
     void shutdown(bool waitUntilFinished, RaytracerStats *stats = NULL);
+
+    bool intersect(float2 uv, Collision & result);
 };
 
 inline bool Raytracer::finished() {

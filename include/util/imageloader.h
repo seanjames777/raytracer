@@ -24,7 +24,7 @@ namespace ImageLoader {
  * @return Loaded image, or null if there is an error
  */
 // TODO: Alpha channel is wasted, but needed for alignment
-RT_EXPORT std::shared_ptr<Image<float, 4>> load(std::string filename);
+RT_EXPORT Image<float, 4> *load(std::string filename);
 
 };
 

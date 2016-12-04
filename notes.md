@@ -1,4 +1,4 @@
-# Radiometry Notes
+# Pysically Based Rendering Notes
 
 Partially summarized from Physically Based Rendering: From Theory to Implementation.
 
@@ -359,6 +359,87 @@ Assuming a Lambertian surface:
 $$L_o(p, \omega_o) = \frac{D}{\pi} \int_\Omega L_i(p, \omega_i) \cos{\theta_i}\ d\omega_i$$
 
 This integral can be precomputed for all values of $n$.
+
+## Probability
+
+### Random Variables
+
+Given a random variable $X$, the cumulative distribution function (CDF) $P(x)$ is the probability that a value from the variable's distribution is less than or equal to $x$:
+
+$$P(x) = Pr\{ X \leq x \}$$
+
+The probability density function describes the probability of a random variable taking a particular value:
+
+$$P(x \in \{a, b\}) = \int_a^b p(x)\ dx$$
+
+The canonical uniform random variable $\xi$ takes a value from $[0, 1)$ with equal probability. The PDF of a uniform random variable is:
+
+$$
+p(x) =
+\begin{cases}
+1 & x \in [0, 1) \\
+0 & \text{otherwise}
+\end{cases}
+$$
+
+The expected value of a random variable is the average value of the variable over its domain weighted by the probability density function:
+
+$$E[f(x)] = \int_D f(x)\ p(x)\ dx$$
+
+The variance of a random variable is the expected deviation from the expected value:
+
+$$V[f(x)] = E[(f(x) - E[f(x)])^2] = E[f(x)^2] - E[f(x)]^2$$
+
+### Inversion Method
+
+The inversion method allows samples drawn from a uniform random distribution to be mapped to samples drawn from another distribution given its PDF. First, find the CDF $P(x) = \int_0^x p(x')\ dx'$. Then, compute the inverse $P^{-1}(x)$. Finally, given a uniform random variable $\xi$, $X_i = P^{-1}(\xi)$.
+
+For example, consider the power distribution. The PDF is proportional to $x^n$, so $p(x) = cx^n$ for some constant $c$. Because $\int_0^1 p(x)\ dx = 1$:
+
+$$
+\begin{align}
+\int_0^1 cx^n\ dx &= 1 \\
+c \frac{1}{n+1} x^{n+1} \big|_0^1 &= 1 \\
+c (\frac{1}{n+1}) &= 1 \\
+c                 &= n+1 \\
+\end{align}
+$$
+
+So $p(x) = (n + 1)x^n$. Integrating to find the CDF:
+
+$$P(X) = \int_0^x p(x)\ dx = \int_0^x (n + 1)x^n\ dx = x^{n+1}$$
+
+Therefore, given a uniformly distributed random variable $\xi$:
+
+$$x = P^{-1}(\xi) = \sqrt[n+1]{\xi}$$
+
+### Monte Carlo Integration
+
+Let $X_i \in [a, b]$. Then the integral of a function $f(x)$ can be approximated by sampling the function:
+
+$$F_N = \frac{b-a}{N} \sum_{i=1}^{N} f(X_i) \approx \int_a^b f(x)\ dx$$
+
+Because $X_i$ is uniform distributed, $p(x) = \frac{1}{b-a}$. So:
+
+$$
+\begin{align}
+E[F_N] &= E[\frac{b-a}{N} \sum_{i=1}^{N} f(X_i)] \\
+       &= \frac{b-a}{N} \sum_{i=1}^{N} E[f(X_i)]] \\
+       &= \frac{b-a}{N} \sum_{i=1}^{N} \int_a^b f(x)\ p(x)\ dx \\
+       &= \frac{1}{N} \sum_{i=1}^{N} \int_a^b f(x)\ dx \\
+       &= \int_a^b f(x)\ dx
+\end{align}
+$$
+
+### Importance Sampling
+
+The variance of a Monte Carlo estimator can be reduced by choosing samples distributed according to the PDF and weighting samples according to the PDF:
+
+$$F_N = \frac{1}{N} \sum_{i=1}^{N} \frac{f(X_i)}{p(X_i)} \approx \int_a^b f(x)\ dx$$
+
+As described above, to sample a cosine weighted hemisphere we should choose samples distributed according to $\cos^n{(\theta)}$.
+
+### Multiple Importance Sampling
 
 ### References
 

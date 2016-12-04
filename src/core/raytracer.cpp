@@ -7,44 +7,36 @@
 #include <core/raytracer.h>
 
 #include <iostream>
+#include <cassert>
 
 // TODO: Increasing tile size seems to make the computer happy
 #define BLOCKW 32
 #define BLOCKH 32
 
-Raytracer::Raytracer(RaytracerSettings settings, Scene *scene)
+Raytracer::Raytracer(RaytracerSettings settings, Scene *scene, Image<float, 4> *output)
     : settings(settings),
       scene(scene),
-      tree(nullptr)
+      output(output)
 {
+    // TODO: make these runtime errors
+    assert(scene->getCamera());
+
+    scene->getCamera()->setAspectRatio((float)output->getWidth() / (float)output->getHeight());
+
     srand((unsigned)time(0));
 }
 
 Raytracer::~Raytracer() {
-    if(tree)
-        delete tree;
 }
 
 void Raytracer::render() {
     shouldShutdown = false;
 
-    if (!tree) {
-        KDSAHBuilder builder;
+    KDSAHBuilder builder(tree, scene->getTriangles(), 12.0f, 1.0f);
+    builder.build(&_treeStats);
 
-        // TODO
-		void *nodeMem = aligned_alloc(1024 * 1024 * 100, 8);
-		void *triangleMem = aligned_alloc(1024 * 1024 * 100, 8);
-
-		KDAllocator nodeAllocator(nodeMem, 1024 * 1024 * 100);
-		KDAllocator triangleAllocator(triangleMem, 1024 * 1024 * 100);
-
-		const util::vector<Triangle, 16> & triangles = scene->getTriangles();
-
-		tree = builder.build(&triangles[0], triangles.size(), &nodeAllocator, &triangleAllocator, &_treeStats);
-    }
-
-    nBlocksW = (scene->getOutput()->getWidth() + BLOCKW - 1) / BLOCKW;
-    nBlocksH = (scene->getOutput()->getHeight() + BLOCKH - 1) / BLOCKH;
+    nBlocksW = (output->getWidth() + BLOCKW - 1) / BLOCKW;
+    nBlocksH = (output->getHeight() + BLOCKH - 1) / BLOCKH;
     nBlocks = nBlocksW * nBlocksH;
 
     currBlockID = 0;
@@ -97,8 +89,8 @@ void Raytracer::shutdown(bool waitUntilFinished, RaytracerStats *stats) {
 void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 	memset(stats, 0, sizeof(RaytracerStats));
 
-	int width = scene->getOutput()->getWidth();
-    int height = scene->getOutput()->getHeight();
+	int width = output->getWidth();
+    int height = output->getHeight();
 
     float2 invImageSize = float2(1.0f / (float)width, 1.0f / (float)height);
     float sampleContrib = 1.0f / (float)(settings.pixelSamples * settings.pixelSamples);
@@ -162,10 +154,6 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
 		shadowStack[i].maxDist.reserve(numRays);
 	}
-
-	float3 min = tree->bounds().min;
-	float3 max = tree->bounds().max;
-	float3 minMaxDenom = 1.0f / (max - min);
 
     while(!shouldShutdown) {
         blockID = currBlockID++;
@@ -261,7 +249,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 					endStatTimer(stats, pack);
 					StatTimer trace = startStatTimer(generation == 0 ? RaytracerStatPrimaryTraceCycles : RaytracerStatSecondaryTraceCycles);
 
-					vector<bmask, SIMD> hit = tree->intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
+					vector<bmask, SIMD> hit = tree.intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
 						origin, direction, maxDist, false, result);
 
 					endStatTimer(stats, trace);
@@ -469,7 +457,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
 					StatTimer shadowTrace = startStatTimer(RaytracerStatShadowTraceCycles);
 
-					vector<bmask, SIMD> hit = tree->intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
+					vector<bmask, SIMD> hit = tree.intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
 						origin, direction, maxDist, true, result);
 
 					endStatTimer(stats, shadowTrace);
@@ -483,9 +471,9 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 							const RayStackFrame & frame = shadowStack[i].frame[j + k];
 
 							// TODO
-							float3 color = scene->getOutput()->getPixel(frame.pixel.x, frame.pixel.y).xyz();
+							float3 color = output->getPixel(frame.pixel.x, frame.pixel.y).xyz();
 							color = color + frame.weight; // TODO
-							scene->getOutput()->setPixel(frame.pixel.x, frame.pixel.y, float4(color, 1.0f));
+							output->setPixel(frame.pixel.x, frame.pixel.y, float4(color, 1.0f));
 						}
 					}
 
@@ -516,4 +504,12 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
     //std::cout << "Ray buffer size: " << rayBuff.capacity() << " (" << (rayBuff.capacity() * sizeof(Ray) + 1024 - 1) / 1024 << "kb)" << std::endl;
 
     numThreadsAlive--;
+}
+
+bool Raytracer::intersect(float2 uv, Collision & result) {
+	KDStackFrame stack[64];
+
+	Ray r = scene->getCamera()->getViewRay(uv);
+
+	return tree.intersect(stack, r, INFINITY, result);
 }

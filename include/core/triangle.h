@@ -12,6 +12,7 @@
 
 #include <rt_defs.h>
 #include <math/ray.h>
+#include <util/vector.h>
 
 // TODO: Moller Trumbore 2D?
 // TOOD: Plucker
@@ -83,6 +84,14 @@ struct Triangle {
      */
     Vertex interpolate(float beta, float gamma) const GLOBAL;
 };
+
+#if !GPU
+int clip(float3 *input,
+         float3 *output,
+         float   plane,
+         int     axis,
+         int     keep);
+#endif
 
 /**
  * @brief Ray/triangle intersection data
@@ -156,7 +165,10 @@ inline Vertex::Vertex(
 {
 }
 
-inline Triangle::Triangle() {
+inline Triangle::Triangle()
+    : triangle_id(-1),
+      material_id(-1)
+{
 }
 
 inline Triangle::Triangle(
@@ -235,7 +247,9 @@ vector<bmask, N> intersectsPacket(
  * @param[in] triangles     An array of pointers to unpacked triangles
  * @param[in] num_triangles Number of triangles to pack
  */
-void setupTriangles(Triangle **triangles, SetupTriangle *data, int num_triangles);
+void setupTriangles(
+    const util::vector<Triangle, 16> & triangles, 
+    util::vector<SetupTriangle, 16>  & setupTriangles);
 #endif
 
 #endif

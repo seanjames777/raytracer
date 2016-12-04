@@ -6,20 +6,22 @@
 
 #include <kdtree/kdmedianbuilder.h>
 
-KDMedianBuilder::KDMedianBuilder() {
+KDMedianBuilder::KDMedianBuilder(KDTree & tree, util::vector<Triangle, 16> & triangles)
+    : KDBuilder(tree, triangles)
+{
 }
 
 KDMedianBuilder::~KDMedianBuilder() {
 }
 
-bool KDMedianBuilder::splitNode(
-    void                          * threadCtx,
-    const AABB                    & bounds,
-    const std::vector<Triangle *> & triangles,
-    int                             depth,
-    float                         & split,
-    int                           & dir,
-    enum KDBuilderPlanarMode      & planarMode)
+bool KDMedianBuilder::shouldSplitNode(
+    KDMedianBuilderThreadCtx         & threadCtx,
+    const AABB                       & bounds,
+    const util::vector<Triangle, 16> & triangles,
+    int                                depth,
+    float                            & split,
+    int                              & dir,
+    enum KDBuilderPlanarMode         & planarMode)
 {
     if (depth >= 25 || triangles.size() < 4)
         return false;

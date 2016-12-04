@@ -32,14 +32,13 @@ struct SAHEvent {
  * @brief KD-tree SAH builder THREAD context object
  */
 struct KDSAHBuilderThreadCtx {
-    SAHEvent *events;         //!< Reuseable event list. One THREAD processes one list at a time.
-    int       event_capacity; //!< Capacity of event list
+    util::vector<SAHEvent, 8> events;
 };
 
 /**
  * @brief KD-tree builder which splits nodes according to the Surface Area Heuristic
  */
-class KDSAHBuilder : public KDBuilder {
+class KDSAHBuilder : public KDBuilder<KDSAHBuilderThreadCtx> {
 private:
 
     float k_traversal; //!< Cost of traversing a KD-tree node
@@ -48,26 +47,16 @@ private:
 protected:
 
     /**
-     * @copydoc KDBuilder::prepareWorkerThread
-     */
-    virtual void *prepareWorkerThread(int idx) override;
-
-    /**
-     * @copydoc KDBuilder::destroyWorkerThread
-     */
-    virtual void destroyWorkerThread(void *threadCtx) override;
-
-    /**
      * @copydoc KDBuilder::splitNode
      */
-    virtual bool splitNode(
-        void                          * threadCtx,
-        const AABB                    & bounds,
-        const std::vector<Triangle *> & triangles,
-        int                             depth,
-        float                         & split,
-        int                           & dir,
-        enum KDBuilderPlanarMode      & planarMode) override;
+    virtual bool shouldSplitNode(
+        KDSAHBuilderThreadCtx            & threadCtx,
+        const AABB                       & bounds,
+        const util::vector<Triangle, 16> & triangles,
+        int                                depth,
+        float                            & split,
+        int                              & dir,
+        enum KDBuilderPlanarMode         & planarMode) override;
 
 public:
 
@@ -77,7 +66,7 @@ public:
      * @param[in] k_traversal Cost of traversing a KD-tree node
      * @param[in] k_intersect Cost of intersecting a KD-tree node
      */
-    KDSAHBuilder(float k_traversal = 1.0f, float k_intersect = 0.5f);
+    KDSAHBuilder(KDTree & tree, util::vector<Triangle, 16> & triangles, float k_traversal = 1.0f, float k_intersect = 0.5f);
 
     /**
      * @brief Destructor

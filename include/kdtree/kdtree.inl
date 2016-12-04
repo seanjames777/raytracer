@@ -45,7 +45,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 	// TODO: Can precompute inv_direction when ray is created, along with ray.direction[i] < 0
 	float3 inv_direction = ray.invDirection();
     
-    if (!_bounds.intersects(ray.origin, inv_direction, entry, exit))
+    if (!bounds.intersects(ray.origin, inv_direction, entry, exit))
         return false;
 
 	entry = max(entry, 0.0001f);
@@ -71,8 +71,8 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
             
             float t = (split - origin) * inv_direction[type];
             
-            GLOBAL KDNode *nearNode = currentNode->left(nodes);
-            GLOBAL KDNode *farNode = currentNode->right(nodes);
+            GLOBAL KDNode *nearNode = currentNode->left(&nodes[0]);
+            GLOBAL KDNode *farNode = currentNode->right(&nodes[0]);
             
 			if (ray.direction[type] < 0.0f) {
 				GLOBAL KDNode *temp = nearNode;
@@ -99,7 +99,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 		// TODO: inlining this function may help
 		hit = hit || intersects(
 			ray,
-			currentNode->triangles(triangles),
+			currentNode->triangles(&triangles[0]),
 			currentNode->count,
 			entry,
 			exit,
@@ -152,7 +152,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 	// TODO: Can precompute inv_direction when ray is created, along with ray.direction[i] < 0
 	float3 inv_direction = ray.invDirection();
 
-	if (!_bounds.intersects(ray.origin, inv_direction, entry, exit))
+	if (!bounds.intersects(ray.origin, inv_direction, entry, exit))
 		return false;
 
 	entry = max(entry, 0.0001f);
@@ -248,7 +248,7 @@ vector<bmask, N> KDTree::intersectPacket(
 		vector<float, N>(1.0f) / direction[2]
 	};
 
-	if (!any(_bounds.intersectsPacket(origin, inv_direction, entry, exit)))
+	if (!any(bounds.intersectsPacket(origin, inv_direction, entry, exit)))
 		return vector<bmask, N>(0x00000000);
 
 	entry = max(entry, vector<float, N>(0.0001f));
@@ -273,8 +273,8 @@ vector<bmask, N> KDTree::intersectPacket(
 
 			vector<float, N> t = (split - origin[type]) * inv_direction[type];
 
-			GLOBAL KDNode *nearNode = currentNode->left(nodes);
-			GLOBAL KDNode *farNode = currentNode->right(nodes);
+			GLOBAL KDNode *nearNode = currentNode->left(&nodes[0]);
+			GLOBAL KDNode *farNode = currentNode->right(&nodes[0]);
 
 			if (direction[type][0] < 0.0f) {
 				GLOBAL KDNode *temp = nearNode;
@@ -282,10 +282,12 @@ vector<bmask, N> KDTree::intersectPacket(
 				farNode = temp;
 			}
 
+			vector<bmask, 4> inactive = exit < entry;
+
 			// TODO: Avoid doing all the work for empty leaves
-			if (all((t > exit) | (exit < entry)))
+			if (all((t > exit) | inactive))
 				currentNode = nearNode;
-			else if (all((t < entry) | (exit < entry)))
+			else if (all((t < entry) | inactive))
 				currentNode = farNode;
 			else {
 				stack.push(KDPacketStackFrame<N>(farNode, max(t, entry), exit));
@@ -304,7 +306,7 @@ vector<bmask, N> KDTree::intersectPacket(
 		hit = hit | intersectsPacket(
 			origin,
 			direction,
-			currentNode->triangles(triangles),
+			currentNode->triangles(&triangles[0]),
 			currentNode->count,
 			entry,
 			exit,

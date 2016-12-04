@@ -32,4 +32,10 @@
 
 #define SIMD 4
 
+#ifdef WIN32
+#define ALIGN(N) __declspec(align(N))
+#else
+#define ALIGN(N) __attribute__((aligned(N)))
+#endif
+
 #endif

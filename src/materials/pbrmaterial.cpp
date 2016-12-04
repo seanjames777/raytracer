@@ -13,12 +13,12 @@
 // TODO: maybe interpolate less. there's a cheap way to get position
 
 PBRMaterial::PBRMaterial()
-	: diffuseColor(1.0f),
-	  specularColor(1.0f),
-	  specularPower(8.0f),
-	  reflectivity(0.0f),
-	  diffuseTexture(nullptr),
-	  roughnessTexture(nullptr)
+    : diffuseColor(1.0f),
+      specularColor(1.0f),
+      specularPower(8.0f),
+      reflectivity(0.0f),
+      diffuseTexture(nullptr),
+      roughnessTexture(nullptr)
 {
 }
 
@@ -27,13 +27,13 @@ PBRMaterial::~PBRMaterial() {
 
 #if 0
 float3 PBRMaterial::f_delta(
-	const Vertex & interp,
-	const float3 & wo,
-	float3 & wi) const
+    const Vertex & interp,
+    const float3 & wo,
+    float3 & wi) const
 {
-	wo = 
+    wo = 
 
-	return reflectivity;
+    return reflectivity;
 }
 #endif
 
@@ -42,29 +42,29 @@ float3 PBRMaterial::f(
     const float3 & wo,
     const float3 & wi) const
 {
-	float3 n = interp.normal;
-	float3 diffuse = diffuseColor;
+    float3 n = interp.normal;
+    float3 diffuse = diffuseColor;
 
-	Sampler sampler(Bilinear, Wrap);
+    Sampler sampler(Bilinear, Wrap);
 
-	// TODO: Big cache miss on texture sampling due to incoherent rays. Try sorting by material?
-	if (diffuseTexture)
-		diffuse = sampler.sample(diffuseTexture, interp.uv).xyz() / (float)M_PI;
+    // TODO: Big cache miss on texture sampling due to incoherent rays. Try sorting by material?
+    if (diffuseTexture)
+        diffuse = sampler.sample(diffuseTexture, interp.uv).xyz() / (float)M_PI;
 
-	float3 ks = specularColor;
-	float a = specularPower;
+    float3 ks = specularColor;
+    float a = specularPower;
 
-	if (roughnessTexture) {
-		float shininess = sampler.sample(roughnessTexture, interp.uv).x;
-		a = exp2(3.0f + shininess * 5.0f); // TODO: approximate pow
-	}
+    if (roughnessTexture) {
+        float shininess = sampler.sample(roughnessTexture, interp.uv).x;
+        a = exp2(3.0f + shininess * 5.0f); // TODO: approximate pow
+    }
 
-	float3 h = (wi + wo) / 2.0f;
-	float ndoth = saturate(dot(n, h));
+    float3 h = (wi + wo) / 2.0f;
+    float ndoth = saturate(dot(n, h));
 
-	float3 specular = specularColor * (a + 8.0f) / (8.0f * (float)M_PI) * powf(ndoth, a);
+    float3 specular = specularColor * (a + 8.0f) / (8.0f * (float)M_PI) * powf(ndoth, a);
 
-	return diffuse + specular;
+    return diffuse + specular;
 
 #if 0
     float3 lp = float3(0.0f, 50.0f, 0.0f);
@@ -99,11 +99,11 @@ float3 PBRMaterial::f(
 
         Ray shadowRay(interp.position + dir * 0.001f, dir);
 
-		Collision result;
+        Collision result;
 
-		//if (!tree->intersect(stack, shadowRay, true, result)) {
-			output += light * sampleWeight;
-		//}
+        //if (!tree->intersect(stack, shadowRay, true, result)) {
+            output += light * sampleWeight;
+        //}
     }
 #endif
 
