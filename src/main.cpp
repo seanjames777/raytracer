@@ -27,9 +27,9 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 16;
+    settings.pixelSamples = 4;
     settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
-	settings.maxDepth = 20;
+	settings.maxDepth = 1;
 
     auto output = new Image<float, 4>(settings.width, settings.height);
 
