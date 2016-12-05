@@ -56,6 +56,7 @@ void KDBuilder<T>::partition(
                 right.push_back(tri);
             }
         }
+#if 0 // Clipping
         else if (max <= split) {
             left.push_back(tri);
         }
@@ -63,7 +64,6 @@ void KDBuilder<T>::partition(
             right.push_back(tri);
         }
         else {
-#if 0
             float3 positions[3] = { tri.v[0].position, tri.v[1].position, tri.v[2].position };
             
             float3 bary_r[6];
@@ -111,11 +111,16 @@ void KDBuilder<T>::partition(
             }
 
             // TODO: Original triangle is now dead
-#else
-            left.push_back(tri);
-            right.push_back(tri);
-#endif
         }
+#else
+        else {
+            if (min < split)
+                left.push_back(tri);
+
+            if (max > split)
+                right.push_back(tri);
+        }
+#endif
     }
 }
 

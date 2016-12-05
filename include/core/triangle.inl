@@ -81,12 +81,10 @@ bool intersects(
     return found;
 #else
 	// http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
-	bool found = false;
+	bool found = false; // TODO: pass in found?
 	const int mod_table[5] = { 0, 1, 2, 0, 1 };
 
 	for (int i = 0; i < count; i++) {
-		bool hit = true;
-
 		GLOBAL const SetupTriangle & tri = data[i];
 
 		int u = mod_table[tri.k + 1];
@@ -96,7 +94,7 @@ bool intersects(
 			ray.direction[v]);
 
 		// TODO: necessary?
-		hit = hit && (dot != 0.0f);
+		bool hit = (dot != 0.0f);
 
 		float nd = 1.0f / dot;
 		float t_plane = (tri.n_d - ray.origin[tri.k]
@@ -187,6 +185,8 @@ vector<bmask, N> intersectsPacket(
 	bool                        occlusionOnly,
 	THREAD PacketCollision<N> & result)
 {
+    // TODO: pass in active mask? could bail early if only one ray needs testing and it hits something
+
 	// http://www.sci.utah.edu/~wald/PhD/wald_phd.pdf
 	vector<bmask, N> found = vector<bmask, N>(0x00000000);
 	const int mod_table[5] = { 0, 1, 2, 0, 1 };
@@ -199,8 +199,6 @@ vector<bmask, N> intersectsPacket(
 
 		// TODO: Some of these broadcast to 4 channels, which could be done earlier at the cost of
 		// bigger triangle data
-
-		// TODO: Can bail early if all of the rays miss a triangle
 
 		// TODO: Big cache miss here due to loading triangle data
 		// TODO: Can use shuffle if we construct the mask at runtime
@@ -218,7 +216,10 @@ vector<bmask, N> intersectsPacket(
 			- vector<float, N>(tri.n_u) * origin[u] - vector<float, N>(tri.n_v) * origin[v]) * nd;
 
 		// Behind camera or further
-		hit = hit & ~((found & (t_plane >= result.distance)) | (t_plane < vector<float, N>(min)) | (t_plane > vector<float, N>(max)));
+        // TODO: min and result.distance can be baked into one
+        // TODO: do we *really* need max distance? probably, for rays that get dragged in for no reason, but we
+        // could also discard them via 'hit'
+		hit = hit & ~((t_plane >= result.distance) | (t_plane < vector<float, N>(min)) | (t_plane > vector<float, N>(max)));
 
 		if (none(hit))
 			continue;

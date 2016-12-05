@@ -239,7 +239,7 @@ vector<bmask, N> KDTree::intersectPacket(
 	vector<float, N> entry, exit;
 
 	result.distance = INFINITY;
-	vector<bmask, N> hit = vector<bmask, N>(false);
+	vector<bmask, N> hit = vector<bmask, N>(0x00000000);
 
 	// TODO: Can precompute inv_direction when ray is created, along with ray.direction[i] < 0
 	vector<float, N> inv_direction[3] = {
@@ -269,7 +269,7 @@ vector<bmask, N> KDTree::intersectPacket(
 		uint32_t type = currentNode->type();
 
 		while (type != KD_LEAF) {
-			vector<float, N> split = currentNode->split_dist;
+			vector<float, N> split(currentNode->split_dist);
 
 			vector<float, N> t = (split - origin[type]) * inv_direction[type];
 
@@ -282,12 +282,10 @@ vector<bmask, N> KDTree::intersectPacket(
 				farNode = temp;
 			}
 
-			vector<bmask, 4> inactive = exit < entry;
-
 			// TODO: Avoid doing all the work for empty leaves
-			if (all((t > exit) | inactive))
+			if (all((t > exit) | (exit < entry)))
 				currentNode = nearNode;
-			else if (all((t < entry) | inactive))
+			else if (all((t < entry) | (exit < entry)))
 				currentNode = farNode;
 			else {
 				stack.push(KDPacketStackFrame<N>(farNode, max(t, entry), exit));

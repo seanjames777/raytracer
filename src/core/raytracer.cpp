@@ -97,6 +97,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
     int blockID = idx;
 
+    // TODO: the depth is bounded to 24... no need for such a big stack?
 	assert(_treeStats.max_depth < 64);
 	KDPacketStackFrame<4> stack[64]; // TODO
 

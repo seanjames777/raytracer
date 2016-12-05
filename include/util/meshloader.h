@@ -85,8 +85,8 @@ public:
 		return submeshes[i];
 	}
 
-	void addMaterial(MaterialProperties material) {
-		materials.push_back(material);
+	void addMaterial(const MaterialProperties & material) {
+		materials.push_back(material); // TODO: move?
 	}
 
 	unsigned int getNumMaterials() const {
