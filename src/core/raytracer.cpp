@@ -103,20 +103,18 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 	assert(_treeStats.max_depth < 64);
 	KDPacketStackFrame<4> stack[64]; // TODO
 
-	class RayBuffer {
-		struct RayStackFrame {
-			int2 pixel;
-			float3 weight;
-			float maxDist;
-		};
+	struct RayStackFrame {
+		int2 pixel;
+		float3 weight;
+		float maxDist;
+	};
 
-		struct RayStack {
-			util::vector<RayStackFrame, 16> frame;
-			util::vector<float, 16> origin[3];
-			util::vector<float, 16> direction[3];
-			util::vector<float, 16> maxDist;
-		};
-	}
+	struct RayStack {
+		util::vector<RayStackFrame, 16> frame;
+		util::vector<float, 16> origin[3];
+		util::vector<float, 16> direction[3];
+		util::vector<float, 16> maxDist;
+	};
 
 	RayStack radianceStack[8];
 	RayStack shadowStack[8];
