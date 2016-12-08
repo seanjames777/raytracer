@@ -27,9 +27,9 @@ int main(int argc, char *argv[]) {
     RaytracerSettings settings;
     settings.width = 1920;
     settings.height = 1080;
-    settings.pixelSamples = 4;
+    settings.pixelSamples = 16;
     settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
-	settings.maxDepth = 1;
+	settings.maxDepth = 20;
 
     auto output = new Image<float, 4>(settings.width, settings.height);
 
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 
     while (!disp->shouldClose()) {
         disp->refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
 
 #if 0
         Collision result;

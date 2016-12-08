@@ -53,10 +53,12 @@ struct MaterialProperties {
 	float3 specularColor;
 	float  specularPower;
 	float  reflectivity;
+	float  transparency;
 
 	std::string diffuseTexture;
 	std::string normalTexture;
 	std::string specularTexture;
+	std::string transparentTexture;
 };
 
 class Mesh {

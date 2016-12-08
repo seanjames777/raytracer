@@ -68,6 +68,7 @@ void processMaterial(aiMaterial *material, Mesh *mesh) {
 	props.specularColor = 0.8f; // TODO
 	props.specularPower = 8.0f; // TODO
 	props.reflectivity = 0.0f; // TODO
+	props.transparency = 0.0f;
 
 	aiString path;
 
@@ -95,6 +96,11 @@ void processMaterial(aiMaterial *material, Mesh *mesh) {
 	if (material->GetTextureCount(aiTextureType_SHININESS)) {
 		material->GetTexture(aiTextureType_SHININESS, 0, &path);
 		props.specularTexture = std::string(path.C_Str());
+	}
+
+	if (material->GetTextureCount(aiTextureType_OPACITY)) {
+		material->GetTexture(aiTextureType_OPACITY, 0, &path);
+		props.transparentTexture = std::string(path.C_Str());
 	}
 
 	mesh->addMaterial(props);

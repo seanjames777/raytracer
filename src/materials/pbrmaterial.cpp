@@ -43,7 +43,7 @@ float3 PBRMaterial::f(
     const float3 & wi) const
 {
     float3 n = interp.normal;
-    float3 diffuse = diffuseColor;
+    float3 diffuse = diffuseColor / (float)M_PI;
 
     Sampler sampler(Bilinear, Wrap);
 

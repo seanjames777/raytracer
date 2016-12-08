@@ -19,6 +19,8 @@ class RT_EXPORT Material {
 private:
 
 	Image<float, 4> *normalTexture;
+    Image<float, 4> *transparentTexture;
+    float            opacity;
 
 public:
 
@@ -49,10 +51,28 @@ public:
 	void setNormalTexture(Image<float, 4> *texture) {
 		normalTexture = texture;
 	}
+
+    Image<float, 4> *getTransparentTexture() const {
+        return transparentTexture;
+    }
+
+    void setTransparentTexture(Image<float, 4> *texture) {
+        transparentTexture = texture;
+    }
+
+    float getOpacity() const {
+        return opacity;
+    }
+
+    void setOpacity(float opacity) {
+        this->opacity = opacity;
+    }
 };
 
 inline Material::Material()
-	: normalTexture(nullptr)
+	: normalTexture(nullptr),
+      transparentTexture(nullptr),
+      opacity(1.0f)
 {
 }
 

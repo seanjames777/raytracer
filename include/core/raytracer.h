@@ -20,6 +20,11 @@
 #include <util/timer.h>
 #include <math/sampling.h>
 
+// TODO: Move this
+#if !WIN32
+#include <x86intrin.h>
+#endif
+
 // TODO:
 //     - Tiled backbuffer
 //     - Lock-free indexing
@@ -77,19 +82,14 @@ struct StatTimer {
 inline StatTimer startStatTimer(uint16_t stat) {
 	StatTimer timer;
 
-#if WIN32
 	timer.startTime = __rdtsc();
-#endif
-
     timer.statIndex = stat;
 
 	return timer;
 }
 
 inline void endStatTimer(RaytracerStats *stats, StatTimer timer) {
-#if WIN32
 	stats->stat[timer.statIndex] += __rdtsc() - timer.startTime;
-#endif
 }
 
 /**

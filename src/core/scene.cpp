@@ -103,6 +103,13 @@ void Scene::addMesh(Mesh *mesh,
             material->setRoughnessTexture(texture);
         }
 
+        if (props.transparentTexture != "") {
+            auto texture = loadTexture(props.transparentTexture);
+            assert(texture);
+
+            material->setTransparentTexture(texture);
+        }
+
         materials.push_back(material);
     }
 }

@@ -10,13 +10,18 @@ SponzaScene::SponzaScene() {
     auto mesh = MeshLoader::load(relToExeDir("content/models/sponza.obj"));
     addMesh(mesh, float3(0.0f, 0.0f, 0.0f), float3(0.0f), 0.02f);
 
+    int dragonMatID = getNumMaterials();
+
     auto mesh2 = MeshLoader::load(relToExeDir("content/models/dragon.fbx"));
     addMesh(mesh2, float3(0.0f, 0.0f, -0.9f), float3(0.0f, -(float)M_PI / 2.0f, 0.0f), 0.47f);
 
+    Material *mat = getMaterial(dragonMatID);
+    //mat->setOpacity(0.10f);
+
     if (true) {
-        addLight(new PointLight(float3(-10.0f, 5.0f, 0.0f), 0.8f, 20.0f, true));
-        addLight(new PointLight(float3( -1.0f, 7.0f, 0.0f), 0.8f, 20.0f, true));
-        addLight(new PointLight(float3( 10.0f, 5.0f, 0.0f), 0.8f, 20.0f, true));
+        addLight(new PointLight(float3(-10.0f, 5.0f, 0.0f), 0.8f, 30.0f, true));
+        addLight(new PointLight(float3( -1.0f, 7.0f, 0.0f), 0.8f, 30.0f, true));
+        addLight(new PointLight(float3( 10.0f, 5.0f, 0.0f), 0.8f, 30.0f, true));
     }
     else {
         addLight(new PointLight(float3(  0.0f, 5.0f, -10.0f), 0.5f, 40.0f, true));
