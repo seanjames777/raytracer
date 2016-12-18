@@ -40,17 +40,17 @@ struct KDNode {
         return offset & 0x00000003;
     }
     
-    inline GLOBAL KDNode *left(GLOBAL KDNode *nodes) const GLOBAL {
+    inline GLOBAL KDNode *left(const GLOBAL KDNode *nodes) const GLOBAL {
         GLOBAL KDNode *children = (GLOBAL KDNode *)((GLOBAL char *)nodes + (offset & 0xFFFFFFFC));
         return &children[0];
     }
     
-    inline GLOBAL KDNode *right(GLOBAL KDNode *nodes) const GLOBAL {
+    inline GLOBAL KDNode *right(const GLOBAL KDNode *nodes) const GLOBAL {
         GLOBAL KDNode *children = (GLOBAL KDNode *)((GLOBAL char *)nodes + (offset & 0xFFFFFFFC));
         return &children[1];
     }
     
-    inline GLOBAL SetupTriangle *triangles(GLOBAL SetupTriangle *triangles) const GLOBAL {
+    inline GLOBAL SetupTriangle *triangles(const GLOBAL SetupTriangle *triangles) const GLOBAL {
         return (GLOBAL SetupTriangle *)((GLOBAL char *)triangles + (offset & 0xFFFFFFFC));
     }
 };

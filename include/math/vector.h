@@ -20,6 +20,7 @@ using namespace simd;
 #include <math.h>
 #include <algorithm>
 #include <immintrin.h>
+#include <iostream>
 
 using std::min;
 using std::max;
@@ -1640,6 +1641,19 @@ inline vector<int, 4> blend(const vector<bmask, 4> & mask, const vector<int, 4> 
 	// TODO: Conversion between float and int vector pipes may be a problem
 	// TODO: make sure the masking is compatible
 	return _mm_blendv_epi8(lhs._s, rhs._s, _mm_castps_si128(mask._s));
+}
+
+template<typename T, unsigned int N>
+inline std::ostream & operator<<(std::ostream & os, const vector<T, N> & v) {
+    os << "<";
+
+    for (unsigned int i = 0; i < N - 1; i++)
+        os << v[i] << ", ";
+
+    os << v[N - 1];
+    os << ">";
+
+    return os;
 }
 
 #endif

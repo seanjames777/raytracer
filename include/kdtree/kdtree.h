@@ -25,7 +25,7 @@
  * @brief KD-tree traversal stack frame
  */
 struct KDStackFrame {
-    GLOBAL KDNode *node; //!< KD-node to traverse
+    const GLOBAL KDNode *node; //!< KD-node to traverse
     float enter;  //!< Distance from ray origin to bounding box entry point
     float exit;   //!< Distance from ray origin to bounding box exit point
     
@@ -39,7 +39,7 @@ struct KDStackFrame {
      * @param[in] enter Distance from ray origin to bounding box entry point
      * @param[in] exit  Distance from ray origin to bounding box exit point
      */
-    KDStackFrame(GLOBAL KDNode *node, float enter, float exit)
+    KDStackFrame(const GLOBAL KDNode *node, float enter, float exit)
         : node(node),
           enter(enter),
           exit(exit)
@@ -49,14 +49,14 @@ struct KDStackFrame {
 
 template<unsigned int N>
 struct KDPacketStackFrame {
-	GLOBAL KDNode *node;
+	const GLOBAL KDNode *node;
 	vector<float, N> enter;
 	vector<float, N> exit;
 	
 	KDPacketStackFrame() {
 	}
 
-	KDPacketStackFrame(GLOBAL KDNode *node, vector<float, N> enter, vector<float, N> exit)
+	KDPacketStackFrame(const GLOBAL KDNode *node, vector<float, N> enter, vector<float, N> exit)
 		: node(node),
 		  enter(enter),
 		  exit(exit)
@@ -84,15 +84,15 @@ public:
      *
      * @return True if there is a collision, or false if there is not
      */
-    bool intersect(THREAD KDStackFrame *stack, Ray ray, float max, THREAD Collision & result);
+    bool intersect(const Ray & ray, float max, THREAD Collision & result) const;
 
 	template<unsigned int N>
-	vector<bmask, N> intersectPacket(THREAD KDPacketStackFrame<N> *stackMem,
+	vector<bmask, N> intersectPacket(
 		THREAD const vector<float, N> (&origin)[3],
 		THREAD const vector<float, N> (&direction)[3],
 		THREAD const vector<float, N> & maxDist,
 		bool occlusionOnly,
-		THREAD PacketCollision<N> & result);
+		THREAD PacketCollision<N> & result) const;
 
 };
 

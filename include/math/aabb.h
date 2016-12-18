@@ -34,13 +34,13 @@ public:
     /**
      * @brief Constructor
      */
-    AABB() {
+    explicit AABB() {
     }
 
     /**
      * @brief Constructor
      */
-    AABB(float3 pt)
+    explicit AABB(const float3 & pt)
         : min(pt),
           max(pt)
     {
@@ -49,7 +49,7 @@ public:
     /**
      * @brief Constructor
      */
-    AABB(float3 min, float3 max)
+    explicit AABB(const float3 & min, const float3 & max)
         : min(min),
           max(max)
     {
@@ -58,7 +58,7 @@ public:
     /**
      * @brief Extend the bounds of the box to contain a new point
      */
-    inline void join(float3 pt) {
+    inline void join(const float3 & pt) {
         min.x = fmin(min.x, pt.x);
         min.y = fmin(min.y, pt.y);
         min.z = fmin(min.z, pt.z);
@@ -71,7 +71,7 @@ public:
     /**
      * @brief Extend the bounds of the box to contain another box
      */
-    inline void join(AABB box) {
+    inline void join(const AABB & box) {
         join(box.min);
         join(box.max);
     }
@@ -239,5 +239,9 @@ public:
     }
 
 };
+
+inline std::ostream & operator<<(std::ostream & os, const AABB & aabb) {
+    return os << "{ min: " << aabb.min << ", max: " << aabb.max << " }";
+}
 
 #endif

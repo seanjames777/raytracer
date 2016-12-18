@@ -152,7 +152,7 @@ public:
     inline vector<T, C> sample(const Image<T, C> *image, const float3 & norm) const
     {
         // TODO: This atan2 and acosf is super expensive
-        float2 uv = (float2){ atan2f(norm.z, norm.x) + (float)M_PI, acosf(-norm.y) };
+        float2 uv = (float2){ atan2f(norm.z, norm.x) + (float)M_PI, acosf(norm.y) };
         uv = uv / (float2){ 2.0f * (float)M_PI, (float)M_PI };
 
         return sample(image, uv);

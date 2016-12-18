@@ -14,17 +14,20 @@
 #include <util/vector.h>
 #include <memory>
 #include <vector>
+#include <math/aabb.h>
 
 class Submesh {
 private:
 
 	util::vector<Triangle, 16> triangles;
 	unsigned int materialID;
+	AABB bounds;
 
 public:
 
 	Submesh(unsigned int materialID)
-		: materialID(materialID)
+		: materialID(materialID),
+		  bounds(float3(INFINITY, INFINITY, INFINITY), float3(-INFINITY, -INFINITY, -INFINITY))
 	{
 	}
 
@@ -43,8 +46,27 @@ public:
 		return triangles[i];
 	}
 
+	void eraseTriangles(unsigned int i, unsigned int count) {
+		// TODO: vector erase
+		util::vector<Triangle, 16> newTriangles;
+
+		for (unsigned int j = 0; j < triangles.size(); j++)
+			if (j < i || j >= i + count)
+				newTriangles.push_back(triangles[j]);
+		
+		// TODO: copy assignment
+		triangles.clear();
+
+		for (auto & tri : newTriangles)
+			triangles.push_back(tri);
+	}
+
 	unsigned int getMaterialID() const {
 		return materialID;
+	}
+
+	AABB & getBounds() {
+		return bounds;
 	}
 };
 
@@ -66,10 +88,13 @@ private:
 
 	std::vector<Submesh *> submeshes;
 	util::vector<MaterialProperties, 16> materials;
+	AABB bounds;
 
 public:
 
-	Mesh() {
+	Mesh()
+		: bounds(float3(INFINITY, INFINITY, INFINITY), float3(-INFINITY, -INFINITY, -INFINITY))
+	{
 	}
 
 	~Mesh() {
@@ -97,6 +122,10 @@ public:
 
 	MaterialProperties *getMaterial(unsigned int i) {
 		return &materials[i];
+	}
+
+	AABB & getBounds() {
+		return bounds;
 	}
 };
 

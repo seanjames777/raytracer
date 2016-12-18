@@ -10,32 +10,59 @@
 #include <util/imagedisplay.h>
 #include <scenes/sponzascene.h>
 #include <scenes/simplescene.h>
+#include <scenes/cornellscene.h>
 
 extern void testVectors();
 
 int main(int argc, char *argv[]) {
-#ifndef NDEBUG
+    RaytracerSettings settings;
+    settings.width = 1920;
+    settings.height = 1080;
+    settings.pixelSamples = 4;
+    settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
+	settings.maxDepth = 20;
+
+    int sceneIndex = 0;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            printf("Usage: %s [--width <width>] [--height <height>] [--samples <samples>] [--scene <scene>]\n", argv[0]);
+            printf("\n");
+            printf("Scenes:\n");
+            printf("    0: Sponza\n");
+            printf("    1: Simple\n");
+            printf("    2: Cornell\n");
+            return 0;
+        }
+        else if (strcmp(argv[i], "--width") == 0)
+            settings.width = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--height") == 0)
+            settings.height = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--samples") == 0)
+            settings.pixelSamples = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--scene") == 0)
+            sceneIndex = atoi(argv[++i]);
+        else {
+            printf("Unknown argument '%s'\n", argv[i]);
+            return 1;
+        }
+    }
+
+    #ifndef NDEBUG
     printf("DEBUG build\n");
 #else
     printf("RELEASE build\n");
 #endif
 
-	testVectors();
+    testVectors();
 
     printf("Loading scene...\n");
-
-    RaytracerSettings settings;
-    settings.width = 1920;
-    settings.height = 1080;
-    settings.pixelSamples = 16;
-    settings.numThreads = std::thread::hardware_concurrency() - 1; // TODO
-	settings.maxDepth = 20;
 
     auto output = new Image<float, 4>(settings.width, settings.height);
 
     Scene *scene = nullptr;
 
-    switch (0) {
+    switch (sceneIndex) {
     case 0:
     default:
         scene = new SponzaScene();
@@ -43,17 +70,30 @@ int main(int argc, char *argv[]) {
     case 1:
         scene = new SimpleScene();
         break;
+    case 2:
+        scene = new CornellScene();
+        break;
     }
 
     printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getNumLights());
 
     auto rt = new Raytracer(settings, scene, output);
-	auto disp = new ImageDisplay(1920, 1080, output);
+	auto disp = new ImageDisplay(settings.width, settings.height, output);
 
     printf("Rendering\n");
 
     Timer timer;
     timer.reset();
+
+    PVScene pvscene(scene);
+
+    while (!disp->shouldClose()) {
+        disp->drawPreviewScene(&pvscene);
+        disp->swap();
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+
+    getchar();
 
     rt->render();
 
@@ -61,11 +101,14 @@ int main(int argc, char *argv[]) {
 
     while (!disp->shouldClose()) {
         disp->refresh();
+        disp->swap();
+
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
 
 #if 0
         Collision result;
         float2 cursor = disp->getCursorPos() / float2(settings.width, settings.height);
+        std::cout << disp->getCursorPos() << std::endl;
 
         if (rt->intersect(cursor, result))
             std::cout << result.triangle_id << " " << scene->getTriangle(result.triangle_id)->material_id << " " << result.distance << std::endl;

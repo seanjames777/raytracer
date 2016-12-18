@@ -36,6 +36,18 @@ public:
      */
     PointLight(const float3 & position, float radius, const float3 & radiance, bool shadow);
 
+    float3 getPosition() const {
+        return position;
+    }
+
+    float getRadius() const {
+        return radius;
+    }
+
+    float3 getRadiance() const {
+        return radiance;
+    }
+
 	virtual void sample(const float3 & uv, const float3 & p, float3 & wo, float & r, float3 & Lo) const;
 
 	/**

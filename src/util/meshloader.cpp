@@ -41,12 +41,16 @@ void processSubmesh(aiMesh *mesh, const aiScene *scene, Mesh *loadMesh) {
 				v.uv = float2(0.0f, 0.0f);
 
 			tri.v[j] = v;
+
+			submesh->getBounds().join(v.position);
 		}
 
 		submesh->addTriangle(tri);
 	}
 
 	loadMesh->addSubmesh(submesh);
+
+	loadMesh->getBounds().join(submesh->getBounds());
 }
 
 void processNode(aiNode *node, const aiScene *scene, Mesh *mesh) {

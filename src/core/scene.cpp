@@ -43,12 +43,13 @@ Vertex transformVertex(const Vertex & vertex, const float4x4 & transform,
 void Scene::addMesh(Mesh *mesh,
     const float3 & translation,
     const float3 & rotation,
-    float          scale)
+    const float3 & scale,
+    bool           reverseWinding)
 {
     float4x4 transform =
         ::translation(translation.x, translation.y, translation.z) *
         ::yawPitchRoll(rotation.y, rotation.x, rotation.z) *
-        ::scale(scale, scale, scale);
+        ::scale(scale.x, scale.y, scale.z);
 
     float4x4 transformInverseTranspose = transpose(inverse(transform));
 
@@ -60,15 +61,31 @@ void Scene::addMesh(Mesh *mesh,
         for (int j = 0; j < submesh->getNumTriangles(); j++) {
             const Triangle & tri = submesh->getTriangle(j);
 
-            Triangle transformed(
-                transformVertex(tri.v[0], transform, transformInverseTranspose),
-                transformVertex(tri.v[1], transform, transformInverseTranspose),
-                transformVertex(tri.v[2], transform, transformInverseTranspose),
-                triangles.size(),
-                submesh->getMaterialID() + materialOffset
-            );
+            if (!reverseWinding) {
+                Triangle transformed(
+                    transformVertex(tri.v[0], transform, transformInverseTranspose),
+                    transformVertex(tri.v[1], transform, transformInverseTranspose),
+                    transformVertex(tri.v[2], transform, transformInverseTranspose),
+                    triangles.size(),
+                    submesh->getMaterialID() + materialOffset
+                );
 
-            triangles.push_back(transformed);
+                triangles.push_back(transformed);
+            }
+            else {
+                Triangle transformed(
+                    transformVertex(tri.v[2], transform, transformInverseTranspose),
+                    transformVertex(tri.v[1], transform, transformInverseTranspose),
+                    transformVertex(tri.v[0], transform, transformInverseTranspose),
+                    triangles.size(),
+                    submesh->getMaterialID() + materialOffset
+                );
+
+                for (int k = 0; k < 3; k++)
+                    transformed.v[k].normal = -transformed.v[k].normal;
+
+                triangles.push_back(transformed);
+            }
         }
     }
 

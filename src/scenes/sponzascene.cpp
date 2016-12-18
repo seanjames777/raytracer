@@ -27,6 +27,8 @@ SponzaScene::SponzaScene() {
         addLight(new PointLight(float3(  0.0f, 5.0f, -10.0f), 0.5f, 40.0f, true));
         addLight(new PointLight(float3(  0.0f, 5.0f,  10.0f), 0.5f, 40.0f, true));
     }
+
+    setEnvironmentColor(float3(1.0f, 1.0f, 1.0f));
 }
 
 SponzaScene::~SponzaScene() {

@@ -13,9 +13,10 @@
 #include <GL/glew.h>
 #include <glfw/glfw3.h>
 #include <image/image.h>
-#include <memory>
 #include <rt_defs.h>
-#include <thread>
+#include <core/scene.h>
+#include <math/matrix.h>
+#include <preview/preview.h>
 
 /**
  * @brief Convert an OpenGL error code to a string
@@ -100,9 +101,15 @@ public:
 
     void refresh();
 
+    void swap();
+
     bool shouldClose();
 
     float2 getCursorPos();
+
+    void drawPreviewScene(PVScene *scene);
+
+    void getViewport(int & x, int & y, int & w, int & h);
 
 };
 

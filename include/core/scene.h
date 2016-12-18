@@ -17,6 +17,7 @@
 #include <core/material.h>
 #include <util/vector.h>
 #include <util/meshloader.h>
+#include <util/imageloader.h>
 #include <util/path.h>
 #include <vector>
 
@@ -34,8 +35,9 @@ private:
     util::vector<Triangle, 16>  triangles;
     std::vector<Light *>        lights;
     Camera                     *camera;
-    Image<float, 4>            *environment;
-    Sampler                    *environmentSampler;
+    float3                      environmentColor;
+    Image<float, 4>            *environmentMap;
+    Sampler                    *environmentMapSampler;
 
 public:
 
@@ -48,13 +50,18 @@ public:
     void addMesh(Mesh *mesh,
         const float3 & translation,
         const float3 & rotation,
-        float          scale);
+        const float3 & scale,
+        bool           reverseWinding = false);
 
     void setCamera(Camera *camera);
 
-    void setEnvironment(Image<float, 4> *environment);
+    void setEnvironmentColor(const float3 & color);
 
-    void setEnvironmentSampler(Sampler *sampler);
+    void setEnvironmentMap(Image<float, 4> *environment);
+
+    void setEnvironmentMapSampler(Sampler *sampler);
+
+    float3 getEnvironmentColor() const;
 
     Image<float, 4> *addTexture(std::string name);
 
@@ -66,9 +73,9 @@ public:
 
     const Triangle *getTriangle(unsigned int id) const;
 
-    const Image<float, 4> *getEnvironment() const;
+    const Image<float, 4> *getEnvironmentMap() const;
 
-    const Sampler *getEnvironmentSampler() const;
+    const Sampler *getEnvironmentMapSampler() const;
 
     Camera *getCamera() const;
 
@@ -80,8 +87,8 @@ public:
 
 inline Scene::Scene()
     : camera(nullptr),
-      environmentSampler(nullptr),
-      environment(nullptr)
+      environmentMapSampler(nullptr),
+      environmentMap(nullptr)
 {
 }
 
@@ -97,12 +104,16 @@ inline void Scene::setCamera(Camera *camera) {
     this->camera = camera;
 }
 
-inline void Scene::setEnvironment(Image<float, 4> *environment) {
-    this->environment = environment;
+inline void Scene::setEnvironmentColor(const float3 & color) {
+    environmentColor = color;
 }
 
-inline void Scene::setEnvironmentSampler(Sampler *sampler) {
-    this->environmentSampler = sampler;
+inline void Scene::setEnvironmentMap(Image<float, 4> *environmentMap) {
+    this->environmentMap = environmentMap;
+}
+
+inline void Scene::setEnvironmentMapSampler(Sampler *sampler) {
+    this->environmentMapSampler = sampler;
 }
 
 inline Material *Scene::getMaterial(unsigned int id) const {
@@ -121,12 +132,16 @@ inline const Triangle *Scene::getTriangle(unsigned int id) const {
     return &triangles[id];
 }
 
-inline const Image<float, 4> *Scene::getEnvironment() const {
-    return environment;
+inline float3 Scene::getEnvironmentColor() const {
+    return environmentColor;
 }
 
-inline const Sampler *Scene::getEnvironmentSampler() const {
-    return environmentSampler;
+inline const Image<float, 4> *Scene::getEnvironmentMap() const {
+    return environmentMap;
+}
+
+inline const Sampler *Scene::getEnvironmentMapSampler() const {
+    return environmentMapSampler;
 }
 
 inline Camera *Scene::getCamera() const {

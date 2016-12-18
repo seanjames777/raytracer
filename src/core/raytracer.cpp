@@ -101,66 +101,166 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
     // TODO: the depth is bounded to 24... no need for such a big stack?
 	assert(_treeStats.max_depth < 64);
-	KDPacketStackFrame<4> stack[64]; // TODO
 
-	struct RayStackFrame {
-		int2 pixel;
-		float3 weight;
-		float maxDist;
+	// TODO: specialized version which doesn't take max distance
+	class RayBuffer {
+	private:
+
+		const KDTree & tree;
+		util::vector<int2, 16>   pixels[8];
+		util::vector<float3, 16> weights[8];
+		util::vector<float, 16>  origins[8][3];
+		util::vector<float, 16>  directions[8][3];
+		util::vector<float, 16>  maxDists[8];
+		size_t                   count;
+		size_t                   capacity;
+
+	public:
+
+		RayBuffer(const KDTree & tree, size_t capacity)
+			: tree(tree),
+			  capacity(capacity),
+			  count(0)
+		{
+			for (int i = 0; i < 8; i++) {
+				pixels[i].reserve(capacity);
+				weights[i].reserve(capacity);
+				maxDists[i].reserve(capacity);
+
+				for (int j = 0; j < 3; j++) {
+					origins[i][j].reserve(capacity);
+					directions[i][j].reserve(capacity);
+				}
+			}
+		}
+
+		void push(const Ray & ray, const int2 & pixel, const float3 & weight, float maxDist) {
+			assert(count < capacity);
+			
+			int c = (signbit(ray.direction.x) << 2) | (signbit(ray.direction.y) << 1) | (signbit(ray.direction.z) << 0);
+
+			pixels[c].push_back_inbounds(pixel);
+			weights[c].push_back_inbounds(weight);
+
+			origins[c][0].push_back_inbounds(ray.origin.x);
+			origins[c][1].push_back_inbounds(ray.origin.y);
+			origins[c][2].push_back_inbounds(ray.origin.z);
+
+			directions[c][0].push_back_inbounds(ray.direction.x);
+			directions[c][1].push_back_inbounds(ray.direction.y);
+			directions[c][2].push_back_inbounds(ray.direction.z);
+
+			maxDists[c].push_back_inbounds(maxDist);
+
+			count++;
+		}
+
+		void flush(
+			bool anyCollision,
+			std::function<void(const Ray &, const int2 &, const float3 &, float, const Collision &)> hitFunc,
+			std::function<void(const Ray &, const int2 &, const float3 &, float)> missFunc)
+		{
+			// Note: rays now have same sign bits in each direction
+
+			for (int i = 0; i < 8; i++) {
+				for (int j = 0; j < (pixels[i].size() & ~(SIMD - 1)); j += SIMD) { // TODO: handle last elements
+					PacketCollision<SIMD> result;
+
+					const vector<float, SIMD> (&origin)[3] = {
+						*(vector<float, SIMD> *)&origins[i][0][j],
+						*(vector<float, SIMD> *)&origins[i][1][j],
+						*(vector<float, SIMD> *)&origins[i][2][j]
+					};
+
+					const vector<float, SIMD> (&direction)[3] = {
+						*(vector<float, SIMD> *)&directions[i][0][j],
+						*(vector<float, SIMD> *)&directions[i][1][j],
+						*(vector<float, SIMD> *)&directions[i][2][j]
+					};
+
+					// Max dist is unused for primary rays
+					const vector<float, SIMD> & maxDist = *(vector<float, SIMD> *)&maxDists[i][j]; // TODO: does passing these as args work better?
+
+					vector<bmask, SIMD> hit = tree.intersectPacket(
+						origin, direction, maxDist, anyCollision, result);
+
+					StatTimer shadingPack = startStatTimer(RaytracerStatShadingPackCycles);
+
+					// TODO: Might be useful to pass in active mask
+
+					for (int k = 0; k < SIMD; k++) {
+						Ray ray;
+
+						ray.origin[0] = origins[i][0][j + k];
+						ray.origin[1] = origins[i][1][j + k];
+						ray.origin[2] = origins[i][2][j + k];
+
+						ray.direction[0] = directions[i][0][j + k];
+						ray.direction[1] = directions[i][1][j + k];
+						ray.direction[2] = directions[i][2][j + k];
+
+						float maxDist = maxDists[i][j + k];
+						int2 pixel = pixels[i][j + k];
+						float3 weight = weights[i][j + k];
+
+						if (hit[k]) {
+							Collision collision;
+
+							collision.beta = result.beta[k];
+							collision.gamma = result.gamma[k];
+							collision.distance = result.distance[k];
+							collision.triangle_id = result.triangle_id[k];
+
+							collision.beta = result.beta[k];
+							collision.gamma = result.gamma[k];
+							collision.distance = result.distance[k];
+							collision.triangle_id = result.triangle_id[k];
+
+							hitFunc(ray, pixel, weight, maxDist, collision);
+						}
+						else {
+							missFunc(ray, pixel, weight, maxDist);
+						}
+					}
+				}
+			}
+
+			for (int i = 0; i < 8; i++) {
+				pixels[i].clear();
+				weights[i].clear();
+
+				origins[i][0].clear();
+				origins[i][1].clear();
+				origins[i][2].clear();
+
+				directions[i][0].clear();
+				directions[i][1].clear();
+				directions[i][2].clear();
+
+				maxDists[i].clear();
+			}
+
+			count = 0;
+		}
 	};
-
-	struct RayStack {
-		util::vector<RayStackFrame, 16> frame;
-		util::vector<float, 16> origin[3];
-		util::vector<float, 16> direction[3];
-		util::vector<float, 16> maxDist;
-	};
-
-	RayStack radianceStack[8];
-	RayStack shadowStack[8];
 
 	int numRays = BLOCKW * BLOCKH * settings.pixelSamples * settings.pixelSamples;
 
-	for (int i = 0; i < sizeof(radianceStack) / sizeof(radianceStack[0]); i++) {
-		radianceStack[i].frame.reserve(numRays);
-
-		radianceStack[i].origin[0].reserve(numRays);
-		radianceStack[i].origin[1].reserve(numRays);
-		radianceStack[i].origin[2].reserve(numRays);
-
-		radianceStack[i].direction[0].reserve(numRays);
-		radianceStack[i].direction[1].reserve(numRays);
-		radianceStack[i].direction[2].reserve(numRays);
-
-		// Max dist is not used
-	}
+	RayBuffer radianceBuffer(tree, numRays);
+	RayBuffer shadowBuffer(tree, numRays);
 
 	struct ShadingWorkItem {
 		Ray ray;
-		RayStackFrame frame;
+		int2 pixel;
+		float3 weight;
+		float maxDist;
 		Collision collision; // TODO: mess with offset of triangle ID
 	};
 
 	util::vector<ShadingWorkItem, 16> shadingBuff;
-
 	shadingBuff.reserve(numRays);
 
-	for (int i = 0; i < sizeof(shadowStack) / sizeof(shadowStack[0]); i++) {
-		shadowStack[i].frame.reserve(numRays);
-
-		shadowStack[i].origin[0].reserve(numRays);
-		shadowStack[i].origin[1].reserve(numRays);
-		shadowStack[i].origin[2].reserve(numRays);
-
-		shadowStack[i].direction[0].reserve(numRays);
-		shadowStack[i].direction[1].reserve(numRays);
-		shadowStack[i].direction[2].reserve(numRays);
-
-		shadowStack[i].maxDist.reserve(numRays);
-	}
-
 	util::vector<ShadingWorkItem, 16> shadowBuff;
-
 	shadowBuff.reserve(numRays);
 
     while(!shouldShutdown) {
@@ -177,11 +277,8 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
         int x0 = BLOCKW * x;
         int y0 = BLOCKH * y;
 
-		for (int y = y0; y < y0 + BLOCKH; y++) {
-			for (int x = x0; x < x0 + BLOCKW; x++) {
-				if (x >= width || y >= height)
-					continue;
-
+		for (int y = y0; y < y0 + BLOCKH && y < height; y++) {
+			for (int x = x0; x < x0 + BLOCKW && x < width; x++) {
 				float3 color(0.0f);
 
 				// TODO: Is the pointer chasing through scene bad?
@@ -201,112 +298,50 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 						float2 uv = rand2D();
 						Ray r = scene->getCamera()->getViewRay(uv, xy2);
 
-						// float3 sampleColor = getEnvironment(r.direction); TODO
 						float3 weight(1.0f / (settings.pixelSamples * settings.pixelSamples));
 
 						endStatTimer(stats, primaryEmit);
+
 						StatTimer primaryPack = startStatTimer(RaytracerStatPrimaryPackCycles);
-
-						RayStackFrame frame;
-						frame.pixel = int2(x, y);
-						frame.weight = weight;
-
-						int c = (signbit(r.direction.x) << 2) | (signbit(r.direction.y) << 1) | (signbit(r.direction.z) << 0);
-
-						radianceStack[c].frame.push_back_inbounds(frame);
-
-						radianceStack[c].origin[0].push_back_inbounds(r.origin.x);
-						radianceStack[c].origin[1].push_back_inbounds(r.origin.y);
-						radianceStack[c].origin[2].push_back_inbounds(r.origin.z);
-
-						radianceStack[c].direction[0].push_back_inbounds(r.direction.x);
-						radianceStack[c].direction[1].push_back_inbounds(r.direction.y);
-						radianceStack[c].direction[2].push_back_inbounds(r.direction.z);
-
-						// Max dist is unused for primary rays
+						radianceBuffer.push(r, int2(x, y), weight, INFINITY);
 						endStatTimer(stats, primaryPack);
 					}
 				}
 			}
 		}
 
+		auto primaryHitFunc = [&](const Ray & ray, const int2 & pixel, const float3 & weight, float maxDist, const Collision & collision)
+		{
+			ShadingWorkItem item;
+			item.ray = ray;
+			item.pixel = pixel;
+			item.weight = weight;
+			item.maxDist = maxDist;
+			item.collision = collision;
+
+			assert(shadingBuff.size() < numRays);
+			shadingBuff.push_back_inbounds(item);
+		};
+
+		auto primaryMissFunc = [&](const Ray & ray, const int2 & pixel, const float3 & weight, float maxDist)
+		{
+			float3 environmentColor = scene->getEnvironmentColor();
+			const Image<float, 4> *environmentMap = scene->getEnvironmentMap();
+
+			if (environmentMap)
+				environmentColor = scene->getEnvironmentMapSampler()->sample(environmentMap, ray.direction).xyz();
+
+			float3 color = output->getPixel(pixel.x, pixel.y).xyz();
+			color = color + weight * environmentColor; // TODO
+			output->setPixel(pixel.x, pixel.y, float4(color, 1.0f));
+		};
+
 		// Alternate between tree traversal and shading. Shading may produce more traversal work.
 		for (int generation = 0; generation < settings.maxDepth; generation++) {
-			// Note: rays now have same sign bits in each direction
-
-			for (int i = 0; i < 8; i++)
-				for (int j = 0; j < (radianceStack[i].frame.size() & ~(SIMD - 1)); j += SIMD) { // TODO: handle last elements
-					StatTimer pack = startStatTimer(generation == 0 ? RaytracerStatPrimaryPackCycles : RaytracerStatSecondaryPackCycles);
-
-					PacketCollision<SIMD> result;
-
-					const vector<float, SIMD> (&origin)[3] = {
-						*(vector<float, SIMD> *)&radianceStack[i].origin[0][j],
-						*(vector<float, SIMD> *)&radianceStack[i].origin[1][j],
-						*(vector<float, SIMD> *)&radianceStack[i].origin[2][j]
-					};
-
-					const vector<float, SIMD> (&direction)[3] = {
-						*(vector<float, SIMD> *)&radianceStack[i].direction[0][j],
-						*(vector<float, SIMD> *)&radianceStack[i].direction[1][j],
-						*(vector<float, SIMD> *)&radianceStack[i].direction[2][j]
-					};
-
-					// Max dist is unused for primary rays
-					const vector<float, SIMD> & maxDist = vector<float, SIMD>(INFINITY); // TODO: does passing these as args work better?
-
-					endStatTimer(stats, pack);
-					StatTimer trace = startStatTimer(generation == 0 ? RaytracerStatPrimaryTraceCycles : RaytracerStatSecondaryTraceCycles);
-
-					vector<bmask, SIMD> hit = tree.intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
-						origin, direction, maxDist, false, result);
-
-					endStatTimer(stats, trace);
-					StatTimer shadingPack = startStatTimer(RaytracerStatShadingPackCycles);
-
-					// TODO: Might be useful to pass in active mask
-
-					for (int k = 0; k < SIMD; k++) {
-						if (hit[k]) {
-							ShadingWorkItem item;
-
-							item.ray.origin[0] = radianceStack[i].origin[0][j + k];
-							item.ray.origin[1] = radianceStack[i].origin[1][j + k];
-							item.ray.origin[2] = radianceStack[i].origin[2][j + k];
-
-							item.ray.direction[0] = radianceStack[i].direction[0][j + k];
-							item.ray.direction[1] = radianceStack[i].direction[1][j + k];
-							item.ray.direction[2] = radianceStack[i].direction[2][j + k];
-
-							item.frame.maxDist = INFINITY;
-
-							item.frame = radianceStack[i].frame[j + k];
-
-							item.collision.beta = result.beta[k];
-							item.collision.gamma = result.gamma[k];
-							item.collision.distance = result.distance[k];
-							item.collision.triangle_id = result.triangle_id[k];
-
-							shadingBuff.push_back_inbounds(item);
-						}
-					}
-
-					endStatTimer(stats, shadingPack);
-				}
-
-			for (int i = 0; i < 8; i++) {
-				radianceStack[i].frame.clear();
-
-				radianceStack[i].origin[0].clear();
-				radianceStack[i].origin[1].clear();
-				radianceStack[i].origin[2].clear();
-
-				radianceStack[i].direction[0].clear();
-				radianceStack[i].direction[1].clear();
-				radianceStack[i].direction[2].clear();
-
-				// Max dist is unused for primary rays
-			}
+			radianceBuffer.flush(
+				false,
+				primaryHitFunc,
+				primaryMissFunc);
 
 			StatTimer shadingSort = startStatTimer(RaytracerStatShadingSortCycles);
 
@@ -363,52 +398,40 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
 				endStatTimer(stats, shading);
 
+				if (scene->getNumLights() > 0) {
 #if 0
-				for (int l = 0; l < scene->getNumLights(); l++)
+					for (int l = 0; l < scene->getNumLights(); l++)
 #else
-				int l = (int)(rand1D() * scene->getNumLights() * 0.999f);
+					int l = (int)(rand1D() * scene->getNumLights() * 0.999f);
 #endif
-				{
-					StatTimer shading = startStatTimer(RaytracerStatShadingCycles);
+					{
+						StatTimer shading = startStatTimer(RaytracerStatShadingCycles);
 
-					const Light *light = scene->getLight(l);
+						const Light *light = scene->getLight(l);
 
-					// TODO: Can we jitter in more than one dimensin
-					// TODO: importance sampling, multiple importance sampling (need PDF probably)
-					float3 lightUV = rand3D();
+						// TODO: Can we jitter in more than one dimensin
+						// TODO: importance sampling, multiple importance sampling (need PDF probably)
+						float3 lightUV = rand3D();
 
-					float3 wi, Li;
-					float r;
-					light->sample(lightUV, interp.position, wi, r, Li);
+						float3 wi, Li;
+						float r;
+						light->sample(lightUV, interp.position, wi, r, Li);
 
-					float ndotl = std::abs(dot(wi, interp.normal)); // TODO: normal mapping
+						float ndotl = std::abs(dot(wi, interp.normal)); // TODO: normal mapping
 
-					Ray shadowRay(interp.position + triangle->normal * 0.001f, wi);
+						Ray shadowRay(interp.position + triangle->normal * 0.001f, wi);
 
-					RayStackFrame shadow;
-					shadow.pixel = item.frame.pixel;
-					// TODO: * 20 doesn't account for forced termination?
-					shadow.weight = item.frame.weight * Li * material->f(interp, wo, wi) * ndotl * scene->getNumLights() * opacity;
+						float3 weight = item.weight * Li * material->f(interp, wo, wi) * ndotl * scene->getNumLights() * opacity;
 
-					endStatTimer(stats, shading);
-					StatTimer shadowPack = startStatTimer(RaytracerStatShadowPackCycles);
+						endStatTimer(stats, shading);
 
-					int c = (signbit(shadowRay.direction.x) << 2) | (signbit(shadowRay.direction.y) << 1) | (signbit(shadowRay.direction.z) << 0);
+						StatTimer shadowPack = startStatTimer(RaytracerStatShadowPackCycles);
 
-					shadowStack[c].frame.push_back_inbounds(shadow);
+						shadowBuffer.push(shadowRay, item.pixel, weight, r * 0.999f);
 
-					shadowStack[c].origin[0].push_back_inbounds(shadowRay.origin.x);
-					shadowStack[c].origin[1].push_back_inbounds(shadowRay.origin.y);
-					shadowStack[c].origin[2].push_back_inbounds(shadowRay.origin.z);
-
-					shadowStack[c].direction[0].push_back_inbounds(shadowRay.direction.x);
-					shadowStack[c].direction[1].push_back_inbounds(shadowRay.direction.y);
-					shadowStack[c].direction[2].push_back_inbounds(shadowRay.direction.z);
-
-					shadowStack[c].maxDist.push_back_inbounds(r * 0.999f);
-
-					// TODO: If light does not cast shadows, return color immediately
-					endStatTimer(stats, shadowPack);
+						// TODO: If light does not cast shadows, return color immediately
+						endStatTimer(stats, shadowPack);
+					}
 				}
 
 				float pdf = 1.0f;
@@ -424,7 +447,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 				
 				if (!kill) {
 					Ray indirectRay;
-					RayStackFrame indirect;
+					float3 indirectWeight;
 
 					float p_transparent = 0.0f;
 					float p_indirect = 1.0f;
@@ -450,7 +473,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 							indirectRay.direction = item.ray.direction;
 
 							// Importance sampling: n dot l term cancels out
-							indirect.weight = item.frame.weight * (1.0f - opacity) / pdf;
+							indirectWeight = item.weight * (1.0f - opacity) / pdf;
 						}
 						else if (x - p_transparent <= p_indirect) {
 							pdf *= p_indirect;
@@ -462,34 +485,21 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 							indirectRay.direction = alignHemisphere(indirectRay.direction, triangle->normal);
 
 							// Importance sampling: n dot l term cancels out
-							indirect.weight = item.frame.weight * material->f(interp, wo, indirectRay.direction) * (float)M_PI / pdf;
+							indirectWeight = item.weight * material->f(interp, wo, indirectRay.direction) * (float)M_PI / pdf;
 						}
 						else if (false) {
 							indirectRay.origin = interp.position + triangle->normal * 0.001f;
 							indirectRay.direction = reflect(wo, interp.normal);
-							indirect.weight = item.frame.weight * material->getReflectivity(); // TODO: hack
+							indirectWeight = item.weight * material->getReflectivity(); // TODO: hack
 							//float ndotl = saturate(dot(r.direction, interp.normal));
 							//weight *= material->f(interp, wo, r.direction) * ndotl;
 						}
 
 						endStatTimer(stats, secondaryEmit);
+
 						StatTimer secondaryPack = startStatTimer(RaytracerStatSecondaryPackCycles);
 
-						indirect.pixel = item.frame.pixel;
-
-						int c = (signbit(indirectRay.direction.x) << 2) | (signbit(indirectRay.direction.y) << 1) | (signbit(indirectRay.direction.z) << 0);
-
-						radianceStack[c].frame.push_back_inbounds(indirect);
-
-						radianceStack[c].origin[0].push_back_inbounds(indirectRay.origin.x);
-						radianceStack[c].origin[1].push_back_inbounds(indirectRay.origin.y);
-						radianceStack[c].origin[2].push_back_inbounds(indirectRay.origin.z);
-
-						radianceStack[c].direction[0].push_back_inbounds(indirectRay.direction.x);
-						radianceStack[c].direction[1].push_back_inbounds(indirectRay.direction.y);
-						radianceStack[c].direction[2].push_back_inbounds(indirectRay.direction.z);
-
-						// Max dist is unused for primary rays
+						radianceBuffer.push(indirectRay, item.pixel, indirectWeight, INFINITY);
 
 						endStatTimer(stats, secondaryPack);
 					}
@@ -498,88 +508,30 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
 			shadingBuff.clear();
 
-			for (int p = 0; p < 3; p++) { // TODO: 3
-				// TODO: Shadow rays do not generate new rays, so we only need to iterate once
-				for (int i = 0; i < 8; i++)
-					for (int j = 0; j < (shadowStack[i].frame.size() & ~(SIMD - 1)); j += SIMD) { // TODO: handle last elements
-						PacketCollision<SIMD> result;
+			for (int k = 0; k < 3; k++) {
+				shadowBuffer.flush(
+					true, 
+					[&](const Ray & ray, const int2 & pixel, const float3 & weight, float maxDist, const Collision & collision) {
+						// TODO: Terminate eventually
 
-						// TODO: Avoid this copy by passing registers directly
-						const vector<float, SIMD> (&origin)[3] = {
-							*(vector<float, SIMD> *)&shadowStack[i].origin[0][j],
-							*(vector<float, SIMD> *)&shadowStack[i].origin[1][j],
-							*(vector<float, SIMD> *)&shadowStack[i].origin[2][j]
-						};
+						if (k < 2) {
+							ShadingWorkItem item;
 
-						const vector<float, SIMD> (&direction)[3] = {
-							*(vector<float, SIMD> *)&shadowStack[i].direction[0][j],
-							*(vector<float, SIMD> *)&shadowStack[i].direction[1][j],
-							*(vector<float, SIMD> *)&shadowStack[i].direction[2][j]
-						};
+							item.ray = ray;
+							item.pixel = pixel;
+							item.weight = weight;
+							item.maxDist = maxDist;
+							item.collision = collision;
 
-						const vector<float, SIMD> & maxDist = *(vector<float, SIMD> *)&shadowStack[i].maxDist[j];
-
-						StatTimer shadowTrace = startStatTimer(RaytracerStatShadowTraceCycles);
-
-						vector<bmask, SIMD> hit = tree.intersectPacket((KDPacketStackFrame<SIMD> *)stack, // TODO fix cast
-							origin, direction, maxDist, true, result);
-
-						endStatTimer(stats, shadowTrace);
-						StatTimer updateFramebuffer = startStatTimer(RaytracerStatUpdateFramebufferCycles);
-
-						// TODO: Might be useful to pass in active mask
-
-						// TODO: Do in SIMD
-						for (int k = 0; k < SIMD; k++) {
-							if (!hit[k]) {
-								const RayStackFrame & frame = shadowStack[i].frame[j + k];
-
-								float3 color = output->getPixel(frame.pixel.x, frame.pixel.y).xyz();
-								color = color + frame.weight; // TODO
-								output->setPixel(frame.pixel.x, frame.pixel.y, float4(color, 1.0f));
-							}
-							else {
-								// TODO: Terminate eventually
-
-								ShadingWorkItem item;
-
-								item.ray.origin[0] = shadowStack[i].origin[0][j + k];
-								item.ray.origin[1] = shadowStack[i].origin[1][j + k];
-								item.ray.origin[2] = shadowStack[i].origin[2][j + k];
-
-								item.ray.direction[0] = shadowStack[i].direction[0][j + k];
-								item.ray.direction[1] = shadowStack[i].direction[1][j + k];
-								item.ray.direction[2] = shadowStack[i].direction[2][j + k];
-
-								item.frame.maxDist = shadowStack[i].maxDist[j + k];
-
-								item.frame = shadowStack[i].frame[j + k];
-
-								item.collision.beta = result.beta[k];
-								item.collision.gamma = result.gamma[k];
-								item.collision.distance = result.distance[k];
-								item.collision.triangle_id = result.triangle_id[k];
-
-								shadowBuff.push_back_inbounds(item);
-							}
+							assert(shadowBuff.size() < numRays);
+							shadowBuff.push_back_inbounds(item);
 						}
-
-						endStatTimer(stats, updateFramebuffer);
-					}
-
-				for (int i = 0; i < 8; i++) {
-					shadowStack[i].frame.clear();
-
-					shadowStack[i].origin[0].clear();
-					shadowStack[i].origin[1].clear();
-					shadowStack[i].origin[2].clear();
-
-					shadowStack[i].direction[0].clear();
-					shadowStack[i].direction[1].clear();
-					shadowStack[i].direction[2].clear();
-
-					shadowStack[i].maxDist.clear();
-				}
+					},
+					[&](const Ray & ray, const int2 & pixel, const float3 & weight, float maxDist) {
+						float3 color = output->getPixel(pixel.x, pixel.y).xyz();
+						color = color + weight; // TODO
+						output->setPixel(pixel.x, pixel.y, float4(color, 1.0f));
+					});
 
 				for (auto & item : shadowBuff) {
 					// TODO: Only do this for transparent objects/triangles
@@ -609,29 +561,14 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
 					if (opacity < 1.0f) {
 						Ray shadowRay;
-						RayStackFrame shadow;
-
+						
 						shadowRay.origin = position + item.ray.direction * 0.01f;
 						shadowRay.direction = item.ray.direction;
 
 						// Importance sampling: n dot l term cancels out
-						shadow.weight = item.frame.weight * (1.0f - opacity);
+						float3 shadowWeight = item.weight * (1.0f - opacity);
 
-						shadow.pixel = item.frame.pixel;
-
-						int c = (signbit(shadowRay.direction.x) << 2) | (signbit(shadowRay.direction.y) << 1) | (signbit(shadowRay.direction.z) << 0);
-
-						shadowStack[c].frame.push_back_inbounds(shadow);
-
-						shadowStack[c].origin[0].push_back_inbounds(shadowRay.origin.x);
-						shadowStack[c].origin[1].push_back_inbounds(shadowRay.origin.y);
-						shadowStack[c].origin[2].push_back_inbounds(shadowRay.origin.z);
-
-						shadowStack[c].direction[0].push_back_inbounds(shadowRay.direction.x);
-						shadowStack[c].direction[1].push_back_inbounds(shadowRay.direction.y);
-						shadowStack[c].direction[2].push_back_inbounds(shadowRay.direction.z);
-
-						shadowStack[c].maxDist.push_back_inbounds(item.frame.maxDist - item.collision.distance);
+						shadowBuffer.push(shadowRay, item.pixel, shadowWeight, item.maxDist - item.collision.distance);
 					}
 				}
 
@@ -651,9 +588,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 }
 
 bool Raytracer::intersect(float2 uv, Collision & result) {
-	KDStackFrame stack[64];
-
 	Ray r = scene->getCamera()->getViewRay(float2(0, 0), uv);
 
-	return tree.intersect(stack, r, INFINITY, result);
+	return tree.intersect(r, INFINITY, result);
 }

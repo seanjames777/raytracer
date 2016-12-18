@@ -17,13 +17,13 @@ PointLight::PointLight(const float3 & position, float radius, const float3 & rad
 
 // TODO: Shortcut for delta distributions
 void PointLight::sample(const float3 & uv, const float3 & p, float3 & wo, float & r, float3 & Lo) const {
-    float3 samplePosition = radius * normalize(uv) + position;
+    float3 samplePosition = radius * normalize(uv * 2.0f - 1.0f) + position;
 
-	wo = samplePosition - p;
-	r = length(wo);
-	wo = wo / r; // TODO /=
+    wo = samplePosition - p;
+    r = length(wo);
+    wo = wo / r; // TODO /=
 
-	Lo = radiance / (r * r);
+    Lo = radiance / (r * r);
 }
 
 bool PointLight::castsShadows() const {

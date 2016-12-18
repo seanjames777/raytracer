@@ -28,15 +28,17 @@
 //       in the SAH paper. Creating empty nodes or whatever.
 // TODO: Tweak heursitic constants
 #if 1
-bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREAD Collision & result)
+bool KDTree::intersect(const Ray & ray, float tmax, THREAD Collision & result) const
 {
-    // http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
+	// http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
 	// TODO: use max to skip nodes, not just triangles
     
+    // TODO: the depth is bounded to 24... no need for such a big stack?
+	KDStackFrame stackMem[64]; // TODO
     util::stack<KDStackFrame> stack(stackMem);
     
-    GLOBAL KDNode *currentNode;
+    const GLOBAL KDNode *currentNode;
     float entry, exit;
 
 	result.distance = INFINITY;
@@ -71,11 +73,11 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
             
             float t = (split - origin) * inv_direction[type];
             
-            GLOBAL KDNode *nearNode = currentNode->left(&nodes[0]);
-            GLOBAL KDNode *farNode = currentNode->right(&nodes[0]);
+            const GLOBAL KDNode *nearNode = currentNode->left(&nodes[0]);
+            const GLOBAL KDNode *farNode = currentNode->right(&nodes[0]);
             
 			if (ray.direction[type] < 0.0f) {
-				GLOBAL KDNode *temp = nearNode;
+				const GLOBAL KDNode *temp = nearNode;
 				nearNode = farNode;
 				farNode = temp;
 			}
@@ -112,7 +114,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
     return hit;
 }
 #elif 1
-bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREAD Collision & result)
+bool KDTree::intersect(Ray ray, float tmax, THREAD Collision & result)
 {
 	Packet<1> packet;
 	
@@ -136,7 +138,7 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 	return hit[0];
 }
 #else
-bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREAD Collision & result)
+bool KDTree::intersect(Ray ray, float tmax, THREAD Collision & result)
 {
 	// http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
@@ -222,20 +224,21 @@ bool KDTree::intersect(THREAD KDStackFrame *stackMem, Ray ray, float tmax, THREA
 
 template<unsigned int N>
 vector<bmask, N> KDTree::intersectPacket(
-	THREAD KDPacketStackFrame<N> *stackMem,
 	THREAD const vector<float, N> (&origin)[3],
 	THREAD const vector<float, N> (&direction)[3],
 	THREAD const vector<float, N> & maxDist,
 	bool occlusionOnly,
-	THREAD PacketCollision<N> & result)
+	THREAD PacketCollision<N> & result) const
 {
 	// http://dcgi.felk.cvut.cz/home/havran/ARTICLES/cgf2011.pdf
 
 	// TODO: use max to skip nodes, not just triangles
 
+	// TODO: the depth is bounded to 24... no need for such a big stack?
+	KDPacketStackFrame<4> stackMem[64]; // TODO
 	util::stack<KDPacketStackFrame<N>> stack(stackMem);
 
-	GLOBAL KDNode *currentNode;
+	const GLOBAL KDNode *currentNode;
 	vector<float, N> entry, exit;
 
 	result.distance = INFINITY;
@@ -273,11 +276,11 @@ vector<bmask, N> KDTree::intersectPacket(
 
 			vector<float, N> t = (split - origin[type]) * inv_direction[type];
 
-			GLOBAL KDNode *nearNode = currentNode->left(&nodes[0]);
-			GLOBAL KDNode *farNode = currentNode->right(&nodes[0]);
+			const GLOBAL KDNode *nearNode = currentNode->left(&nodes[0]);
+			const GLOBAL KDNode *farNode = currentNode->right(&nodes[0]);
 
 			if (direction[type][0] < 0.0f) {
-				GLOBAL KDNode *temp = nearNode;
+				const GLOBAL KDNode *temp = nearNode;
 				nearNode = farNode;
 				farNode = temp;
 			}
@@ -322,11 +325,10 @@ vector<bmask, N> KDTree::intersectPacket(
 }
 
 template vector<bmask, SIMD> KDTree::intersectPacket(
-	THREAD KDPacketStackFrame<SIMD> *stackMem,
 	THREAD const vector<float, SIMD> (&origin)[3],
 	THREAD const vector<float, SIMD> (&direction)[3],
 	THREAD const vector<float, SIMD> & maxDist,
 	bool occlusionOnly, // TODO: could templatize
-	THREAD PacketCollision<SIMD> & result);
+	THREAD PacketCollision<SIMD> & result) const;
 
 #endif

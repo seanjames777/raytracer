@@ -27,9 +27,9 @@ void Camera::refresh() {
 
     // TODO: Handle pointing along axes
     float3 gup = float3(0, 1, 0);
-    right = normalize(-cross(forward, gup));
-    up = normalize(cross(right, forward));
+    right = normalize(cross(gup, forward));
+    up = normalize(cross(forward, right));
 
-    halfWidth  = focalLength * tanf(fov / 2.0f);
-    halfHeight = halfWidth / aspect;
+    halfHeight = focalLength * tanf(fov / 2.0f);
+    halfWidth = halfHeight * aspect;
 }

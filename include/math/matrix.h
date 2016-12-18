@@ -11,6 +11,8 @@
 
 #include <math/vector.h>
 
+#define NDC_ZERO_TO_ONE 0
+
 // M rows x N columns. TODO.
 template<typename T, unsigned int M, unsigned int N>
 struct matrix {
@@ -144,23 +146,23 @@ static float4x4 lookAtLH(const float3 & position, const float3 & target, const f
     float4x4 out;
 
     out.m[0][0] = xAxis.x;
-    out.m[0][1] = yAxis.x;
-    out.m[0][2] = zAxis.x;
-    out.m[0][3] = 0;
+    out.m[0][1] = xAxis.y;
+    out.m[0][2] = xAxis.z;
+    out.m[0][3] = dot(-xAxis, position);
 
-    out.m[1][0] = xAxis.y;
+    out.m[1][0] = yAxis.x;
     out.m[1][1] = yAxis.y;
-    out.m[1][2] = zAxis.y;
-    out.m[1][3] = 0;
+    out.m[1][2] = yAxis.z;
+    out.m[1][3] = dot(-yAxis, position);
 
-    out.m[2][0] = xAxis.z;
-    out.m[2][1] = yAxis.z;
+    out.m[2][0] = zAxis.x;
+    out.m[2][1] = zAxis.y;
     out.m[2][2] = zAxis.z;
-    out.m[2][3] = 0;
+    out.m[2][3] = dot(-zAxis, position);
 
-    out.m[3][0] = dot(-xAxis, position);
-    out.m[3][1] = dot(-yAxis, position);
-    out.m[3][2] = dot(-zAxis, position);
+    out.m[3][0] = 0;
+    out.m[3][1] = 0;
+    out.m[3][2] = 0;
     out.m[3][3] = 1;
 
     return out;
@@ -177,23 +179,23 @@ static float4x4 lookAtRH(const float3 & position, const float3 & target, const f
     float4x4 out;
 
     out.m[0][0] = xAxis.x;
-    out.m[1][0] = yAxis.x;
-    out.m[2][0] = zAxis.x;
-    out.m[3][0] = 0;
+    out.m[0][1] = yAxis.x;
+    out.m[0][2] = zAxis.x;
+    out.m[0][3] = 0;
 
-    out.m[0][1] = xAxis.y;
+    out.m[1][0] = xAxis.y;
     out.m[1][1] = yAxis.y;
-    out.m[2][1] = zAxis.y;
-    out.m[3][1] = 0;
+    out.m[1][2] = zAxis.y;
+    out.m[1][3] = 0;
 
-    out.m[0][2] = xAxis.z;
-    out.m[1][2] = yAxis.z;
+    out.m[2][0] = xAxis.z;
+    out.m[2][1] = yAxis.z;
     out.m[2][2] = zAxis.z;
-    out.m[3][2] = 0;
+    out.m[2][3] = 0;
 
-    out.m[0][3] = dot(xAxis, position);
-    out.m[1][3] = dot(yAxis, position);
-    out.m[2][3] = dot(zAxis, position);
+    out.m[3][0] = dot(xAxis, position);
+    out.m[3][1] = dot(yAxis, position);
+    out.m[3][2] = dot(zAxis, position);
     out.m[3][3] = 1;
 
     return out;
@@ -210,8 +212,13 @@ static float4x4 perspectiveLH(float fov, float aspect, float znear, float zfar) 
 
     out.m[0][0] = w;
     out.m[1][1] = h;
+#if NDC_ZERO_TO_ONE
     out.m[2][2] = zfar / (zfar - znear);
     out.m[2][3] = -znear * zfar / (zfar - znear);
+#else
+    out.m[2][2] = (zfar + znear) / (zfar - znear);
+    out.m[2][3] = -2 * znear * zfar / (zfar - znear);
+#endif
     out.m[3][2] = 1.0f;
 
     return out;
@@ -228,8 +235,13 @@ static float4x4 perspectiveRH(float fov, float aspect, float znear, float zfar) 
 
     out.m[0][0] = w;
     out.m[1][1] = h;
+#if NDC_ZERO_TO_ONE
     out.m[2][2] = zfar / (zfar - znear);
-    out.m[2][3] = znear * zfar / (zfar - znear);
+    out.m[2][3] = -znear * zfar / (zfar - znear);
+#else
+    out.m[2][2] = -(zfar + znear) / (zfar - znear);
+    out.m[2][3] = -2 * znear * zfar / (zfar - znear);
+#endif
     out.m[3][2] = -1.0f;
 
     return out;

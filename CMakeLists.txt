@@ -61,6 +61,8 @@ add_executable(raytracer
     src/util/timer.cpp
     src/scenes/sponzascene.cpp
     src/scenes/simplescene.cpp
+    src/scenes/cornellscene.cpp
+    src/preview/preview.cpp
 
     include/core/camera.h
     include/core/material.h
@@ -98,6 +100,7 @@ add_executable(raytracer
     include/util/vector.h
     include/scenes/sponzascene.h
     include/scenes/simplescene.h
+    include/scenes/cornellscene.h
 )
 
 FIND_PACKAGE(OpenGL REQUIRED)

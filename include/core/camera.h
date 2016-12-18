@@ -142,13 +142,16 @@ inline Ray Camera::getViewRay(const float2 & uv, const float2 & xy) const {
 	// TODO: This tries to use SIMD efficiently, but the only way to get full SIMD utilization would be to
 	// compute N samples at once and transpose the math operations
 
+    float3 origin = position - forward;
+
     float2 xy2 = xy * 2.0f - 1.0f;
 	
-    float3 target = forward * focalLength + right * halfWidth * xy2.x + up * halfHeight * xy2.y + position;
+    float3 target = forward * focalLength + right * halfWidth * xy2.x + up * halfHeight * xy2.y + origin;
 
     float2 disk = mapDisk(uv) * aperture;
 
-    float3 origin = position + disk.x * right + disk.y * up;
+    origin = origin + disk.x * right + disk.y * up;
+
     float3 direction2 = normalize(target - origin);
 
     return Ray(origin, direction2);

@@ -41,16 +41,36 @@ public:
 		return reflectivity;
 	}
 
+	Image<float, 4> *getDiffuseTexture() const {
+		return diffuseTexture;
+	}
+
+	Image<float, 4> *getRoughnessTexture() const {
+		return roughnessTexture;
+	}
+
 	void setDiffuseColor(float3 color) {
 		diffuseColor = color;
+	}
+
+	float3 getDiffuseColor() {
+		return diffuseColor;
 	}
 
 	void setSpecularColor(float3 color) {
 		specularColor = color;
 	}
 
+	float3 getSpecularColor() {
+		return specularColor;
+	}
+
 	void setSpecularPower(float power) {
 		specularPower = power;
+	}
+
+	float getSpecularPower() {
+		return specularPower;
 	}
 
 	void setDiffuseTexture(Image<float, 4> *texture) {
@@ -64,6 +84,10 @@ public:
 
 	void setReflectivity(float refl) {
 		reflectivity = refl;
+	}
+
+	float getReflectivity() {
+		return reflectivity;
 	}
 
 };
