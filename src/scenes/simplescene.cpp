@@ -9,10 +9,10 @@ SimpleScene::SimpleScene() {
         (float)M_PI / 4.0f, 0.08f * 0, 11.137f));
 
     auto mesh1 = MeshLoader::load(relToExeDir("content/models/dragon.fbx"));
-    addMesh(mesh1, spherePosition, float3(0.0f, (float)M_PI / 2.0f * 1.3f, 0.0f), 0.4f);
+    addMesh(new MeshInstance(mesh1, spherePosition, float3(0.0f, (float)M_PI / 2.0f * 1.3f, 0.0f), 0.4f));
 
     auto mesh2 = MeshLoader::load(relToExeDir("content/models/plane.fbx"));
-    addMesh(mesh2, float3(0.0f, 0.0f, 0.0f), float3(0.0f), 1.0f);
+    addMesh(new MeshInstance(mesh2, float3(0.0f, 0.0f, 0.0f), float3(0.0f), 1.0f));
 
     //addLight(new PointLight(float3(5.0f, 5.0f, 5.0f), 0.3f, 20.0f, true));
 

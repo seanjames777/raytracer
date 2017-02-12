@@ -47,6 +47,11 @@ public:
     void reset();
 
     /**
+     * @brief Get the current time in milliseconds
+     */
+    double getTime();
+
+    /**
      * @brief Get the difference between the stop and start times in milliseconds
      */
     double getElapsedMilliseconds();

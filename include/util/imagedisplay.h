@@ -11,7 +11,7 @@
 #define __GLIMAGEDISPLAY_H
 
 #include <GL/glew.h>
-#include <glfw/glfw3.h>
+#include <GLFW/glfw3.h>
 #include <image/image.h>
 #include <rt_defs.h>
 #include <core/scene.h>
@@ -39,6 +39,7 @@ inline const char *getErrorString(GLenum error) {
 /**
  * @brief Check for an OpenGL error
  */
+#ifdef DEBUG
 #define GLCHECK() {                                                           \
     GLenum error = glGetError();                                              \
     if (error != GL_NO_ERROR) {                                               \
@@ -49,6 +50,9 @@ inline const char *getErrorString(GLenum error) {
         exit(-1);                                                             \
     }                                                                         \
 }
+#else
+#define GLCHECK()
+#endif
 
 /**
  * @brief OpenGL image display utility
@@ -75,7 +79,7 @@ private:
     int height;
 
     /** @brief GLFW window */
-    GLFWwindow *window;
+    //GLFWwindow *window;
 
     /** @brief Displayed image */
     Image<float, 4> *image;
@@ -108,8 +112,6 @@ public:
     float2 getCursorPos();
 
     void drawPreviewScene(PVScene *scene);
-
-    void getViewport(int & x, int & y, int & w, int & h);
 
 };
 

@@ -154,7 +154,7 @@ public:
 
     virtual ~KDBuilder();
 
-    void build(KDTreeStats *stats);
+    void build(KDTreeStats *stats = nullptr);
 
 };
 

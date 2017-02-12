@@ -1037,6 +1037,11 @@ struct ALIGN(16) vector<float, 4> {
 	{
 	}
 
+    vector(const vector<float, 2> & xy, float z, float w)
+        : _s(_mm_setr_ps(xy.x, xy.y, z, w))
+    {
+    }
+
 	vector(const vector<float, 3> & xyz, float w)
 		: _s(_mm_setr_ps(xyz.x, xyz.y, xyz.z, w)) // TODO
 	{
@@ -1052,8 +1057,12 @@ struct ALIGN(16) vector<float, 4> {
 	{
 	}
 
+    vector<float, 2> xy() {
+        return vector<float, 2>(_s);
+    }
+
 	vector<float, 3> xyz() {
-		return vector<float, 3 >(_s);
+		return vector<float, 3>(_s);
 	}
 
 	float & operator[](unsigned int i) {

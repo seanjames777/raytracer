@@ -6,6 +6,11 @@
 
 #include <core/raytracer.h>
 
+#include <math/matrix.h>
+#include <materials/pbrmaterial.h>
+#include <util/imageloader.h>
+#include <map>
+
 #include <iostream>
 #include <cassert>
 
@@ -14,6 +19,34 @@
 // TODO: Increasing tile size seems to make the computer happy
 #define BLOCKW 32
 #define BLOCKH 32
+
+// TODO: Come up with a better workflow
+
+// TODO: Might be better to compact textures to RGB8
+std::map<std::string, Image<float, 4> *> textures;
+
+Image<float, 4> *loadTexture(std::string name) {
+    std::string filename = relToExeDir("content/textures/" + name);
+    std::cout << "Load texture " << filename << std::endl;
+
+    if (textures.find(filename) != textures.end())
+        return textures[filename];
+
+    auto image = ImageLoader::load(filename);
+    textures[filename] = image;
+
+    return image;
+}
+
+Vertex transformVertex(const Vertex & vertex, const float4x4 & transform,
+    const float4x4 & transformInverseTranspose)
+{
+    float4 position = transform * float4(vertex.position, 1.0f);
+    float4 normal = transformInverseTranspose * float4(vertex.normal, 0.0f);
+    float4 tangent = transformInverseTranspose * float4(vertex.tangent, 0.0f);
+
+    return Vertex(position.xyz(), normalize(normal.xyz()), normalize(tangent.xyz()), vertex.uv);
+}
 
 Raytracer::Raytracer(RaytracerSettings settings, Scene *scene, Image<float, 4> *output)
     : settings(settings),
@@ -26,15 +59,109 @@ Raytracer::Raytracer(RaytracerSettings settings, Scene *scene, Image<float, 4> *
     scene->getCamera()->setAspectRatio((float)output->getWidth() / (float)output->getHeight());
 
     srand((unsigned)time(0));
+
+    addMeshesFromScene();
 }
 
 Raytracer::~Raytracer() {
 }
 
+void Raytracer::addMeshesFromScene() {
+	for (int instanceIdx = 0; instanceIdx < scene->getNumMeshInstances(); instanceIdx++) {
+		const MeshInstance *instance = scene->getMeshInstance(instanceIdx);
+
+		float4x4 transform =
+	        ::translation(instance->translation.x, instance->translation.y, instance->translation.z) *
+	        ::yawPitchRoll(instance->rotation.y, instance->rotation.x, instance->rotation.z) *
+	        ::scale(instance->scale.x, instance->scale.y, instance->scale.z);
+
+	    Mesh *mesh = instance->mesh;
+
+	    float4x4 transformInverseTranspose = transpose(inverse(transform));
+
+	    unsigned int materialOffset = materials.size();
+
+	    for (int i = 0; i < mesh->getNumSubmeshes(); i++) {
+	        auto submesh = mesh->getSubmesh(i);
+
+	        for (int j = 0; j < submesh->getNumTriangles(); j++) {
+	            const Triangle & tri = submesh->getTriangle(j);
+
+	            if (!instance->reverseWinding) {
+	                Triangle transformed(
+	                    transformVertex(tri.v[0], transform, transformInverseTranspose),
+	                    transformVertex(tri.v[1], transform, transformInverseTranspose),
+	                    transformVertex(tri.v[2], transform, transformInverseTranspose),
+	                    triangles.size(),
+	                    submesh->getMaterialID() + materialOffset
+	                );
+
+	                triangles.push_back(transformed);
+	            }
+	            else {
+	                Triangle transformed(
+	                    transformVertex(tri.v[2], transform, transformInverseTranspose),
+	                    transformVertex(tri.v[1], transform, transformInverseTranspose),
+	                    transformVertex(tri.v[0], transform, transformInverseTranspose),
+	                    triangles.size(),
+	                    submesh->getMaterialID() + materialOffset
+	                );
+
+	                for (int k = 0; k < 3; k++)
+	                    transformed.v[k].normal = -transformed.v[k].normal;
+
+	                triangles.push_back(transformed);
+	            }
+	        }
+	    }
+
+	    for (int i = 0; i < mesh->getNumMaterials(); i++) {
+	        const MaterialProperties & props = *mesh->getMaterial(i);
+
+	        auto material = new PBRMaterial(); // TODO: delete
+
+	        material->setDiffuseColor(props.diffuseColor);
+	        material->setSpecularColor(props.specularColor);
+	        material->setSpecularPower(props.specularPower);
+	        material->setReflectivity(props.reflectivity);
+
+	        if (props.diffuseTexture != "") {
+	            auto texture = loadTexture(props.diffuseTexture);
+	            assert(texture);
+
+	            material->setDiffuseTexture(texture);
+	        }
+
+	        if (props.normalTexture != "") {
+	            auto texture = loadTexture(props.normalTexture);
+	            assert(texture);
+
+	            material->setNormalTexture(texture);
+	        }
+
+	        if (props.specularTexture != "") {
+	            auto texture = loadTexture(props.specularTexture);
+	            assert(texture);
+
+	            material->setRoughnessTexture(texture);
+	        }
+
+	        if (props.transparentTexture != "") {
+	            auto texture = loadTexture(props.transparentTexture);
+	            assert(texture);
+
+	            material->setTransparentTexture(texture);
+	        }
+
+	        materials.push_back(material);
+	    }
+	}
+}
+
 void Raytracer::render() {
     shouldShutdown = false;
 
-    KDSAHBuilder builder(tree, scene->getTriangles(), 12.0f, 1.0f);
+    KDSAHBuilder builder(tree, triangles, 12.0f, 1.0f);
     builder.build(&_treeStats);
 
     nBlocksW = (output->getWidth() + BLOCKW - 1) / BLOCKW;
@@ -364,14 +491,14 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 			for (auto & item : shadingBuff) {
 				StatTimer shading = startStatTimer(RaytracerStatShadingCycles);
 
-				const Triangle *triangle = scene->getTriangle(item.collision.triangle_id);
+				const Triangle *triangle = &triangles[item.collision.triangle_id];
 
 				// TODO: Significant cache miss here pulling vertex data in from memory. Try sorting shading work by
 				// triangle?
 				Vertex interp = triangle->interpolate(item.collision.beta, item.collision.gamma);
 				interp.normal = normalize(interp.normal); // TODO: do we want to do this here?
 
-				const Material *material = scene->getMaterial(triangle->material_id);
+				const Material *material = materials[triangle->material_id];
 
 				Image<float, 4> *transparentMap = material->getTransparentTexture();
 				float opacity = material->getOpacity();
@@ -535,7 +662,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 
 				for (auto & item : shadowBuff) {
 					// TODO: Only do this for transparent objects/triangles
-					const Triangle *triangle = scene->getTriangle(item.collision.triangle_id);
+					const Triangle *triangle = &triangles[item.collision.triangle_id];
 
 					// TODO: Significant cache miss here pulling vertex data in from memory. Try sorting shading work by
 					// triangle?
@@ -549,7 +676,7 @@ void Raytracer::worker_thread(int idx, int numThreads, RaytracerStats *stats) {
 					//Vertex interp = triangle->interpolate(item.collision.beta, item.collision.gamma);
 					//interp.normal = normalize(interp.normal); // TODO: do we want to do this here?
 
-					const Material *material = scene->getMaterial(triangle->material_id);
+					const Material *material = materials[triangle->material_id];
 
 					Image<float, 4> *transparentMap = material->getTransparentTexture();
 					float opacity = material->getOpacity();

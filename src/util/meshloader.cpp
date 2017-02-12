@@ -24,6 +24,8 @@ void processSubmesh(aiMesh *mesh, const aiScene *scene, Mesh *loadMesh) {
 		aiFace face = mesh->mFaces[i];
 
 		Triangle tri;
+		tri.triangle_id = i;
+		tri.material_id = 0; // TODO: could assign submesh ID
 
 		aiVector3D *texCoords = mesh->mTextureCoords[0];
 
@@ -47,6 +49,8 @@ void processSubmesh(aiMesh *mesh, const aiScene *scene, Mesh *loadMesh) {
 
 		submesh->addTriangle(tri);
 	}
+
+	submesh->setName(std::string(mesh->mName.C_Str()));
 
 	loadMesh->addSubmesh(submesh);
 

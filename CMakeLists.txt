@@ -36,6 +36,10 @@ add_executable(raytracer
     src/main.cpp
     src/testvectors.cpp # TODO
 
+    src/preview/imgui.cpp
+    src/preview/imgui_draw.cpp
+    src/preview/ImGuizmo.cpp
+
     src/core/camera.cpp
     src/core/camera.cpp
     src/core/material.cpp
@@ -116,6 +120,10 @@ target_link_libraries(raytracer
 install(TARGETS raytracer DESTINATION bin)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/content/" DESTINATION bin/content)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/pv_vertex.glsl" DESTINATION bin/)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/pv_fragment.glsl" DESTINATION bin/)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/ui_vertex.glsl" DESTINATION bin/)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/ui_fragment.glsl" DESTINATION bin/)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     install(FILES ${PROJECT_BINARY_DIR}/Debug/raytracer.pdb DESTINATION bin CONFIGURATIONS Debug)

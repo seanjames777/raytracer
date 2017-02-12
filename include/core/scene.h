@@ -21,6 +21,25 @@
 #include <util/path.h>
 #include <vector>
 
+class MeshInstance {
+public:
+
+    Mesh *mesh;
+    float3 translation;
+    float3 rotation;
+    float3 scale;
+    bool reverseWinding;
+
+    MeshInstance(Mesh *mesh, float3 translation, float3 rotation, float3 scale, bool reverseWinding = false)
+        : mesh(mesh),
+          translation(translation),
+          rotation(rotation),
+          scale(scale),
+          reverseWinding(reverseWinding)
+    {
+    }
+};
+
 // TODO: Might want to make some of the pointers not-pointers, i.e. just copy
 //       lights into scene directly. Cache benefits and easier memory
 //       management.
@@ -31,8 +50,7 @@
 class RT_EXPORT Scene {
 private:
 
-    std::vector<Material *>     materials;
-    util::vector<Triangle, 16>  triangles;
+    std::vector<MeshInstance *> meshes;
     std::vector<Light *>        lights;
     Camera                     *camera;
     float3                      environmentColor;
@@ -47,11 +65,7 @@ public:
 
     void addLight(Light *light);
 
-    void addMesh(Mesh *mesh,
-        const float3 & translation,
-        const float3 & rotation,
-        const float3 & scale,
-        bool           reverseWinding = false);
+    void addMesh(MeshInstance *instance);
 
     void setCamera(Camera *camera);
 
@@ -65,14 +79,6 @@ public:
 
     Image<float, 4> *addTexture(std::string name);
 
-    Material *getMaterial(unsigned int id) const;
-
-    unsigned int getNumMaterials() const;
-
-    util::vector<Triangle, 16> & getTriangles();
-
-    const Triangle *getTriangle(unsigned int id) const;
-
     const Image<float, 4> *getEnvironmentMap() const;
 
     const Sampler *getEnvironmentMapSampler() const;
@@ -82,6 +88,10 @@ public:
 	unsigned int getNumLights() const;
 
     const Light *getLight(unsigned int light) const;
+
+    unsigned int getNumMeshInstances() const;
+
+    const MeshInstance *getMeshInstance(unsigned int meshInstance) const;
 
 };
 
@@ -116,22 +126,6 @@ inline void Scene::setEnvironmentMapSampler(Sampler *sampler) {
     this->environmentMapSampler = sampler;
 }
 
-inline Material *Scene::getMaterial(unsigned int id) const {
-    return materials[id];
-}
-
-inline unsigned int Scene::getNumMaterials() const {
-	return materials.size();
-}
-
-inline util::vector<Triangle, 16> & Scene::getTriangles() {
-    return triangles;
-}
-
-inline const Triangle *Scene::getTriangle(unsigned int id) const {
-    return &triangles[id];
-}
-
 inline float3 Scene::getEnvironmentColor() const {
     return environmentColor;
 }
@@ -154,6 +148,18 @@ inline unsigned int Scene::getNumLights() const {
 
 inline const Light *Scene::getLight(unsigned int light) const {
     return lights[light];
+}
+
+inline void Scene::addMesh(MeshInstance *mesh) {
+    meshes.push_back(mesh);
+}
+
+inline unsigned int Scene::getNumMeshInstances() const {
+    return meshes.size();
+}
+
+inline const MeshInstance *Scene::getMeshInstance(unsigned int meshInstance) const {
+    return meshes[meshInstance];
 }
 
 #endif

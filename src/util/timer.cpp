@@ -25,6 +25,25 @@ void Timer::reset() {
 #endif
 }
 
+double Timer::getTime() {
+#ifndef _WINDOWS
+    timeval now;
+    gettimeofday(&now, nullptr);
+    double diff = 0.0;
+
+    diff += now.tv_sec * 1000.0;
+    diff += now.tv_usec / 1000.0;
+
+    return diff;
+#else
+    LARGE_INTEGER time;
+    QueryPerformanceCounter(&time);
+
+    double ticks = (double)time.QuadPart;
+    return 1000.0 * ticks / frequency;
+#endif    
+}
+
 double Timer::getElapsedMilliseconds() {
 #ifndef _WINDOWS
     timeval now;

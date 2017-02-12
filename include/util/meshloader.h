@@ -22,8 +22,12 @@ private:
 	util::vector<Triangle, 16> triangles;
 	unsigned int materialID;
 	AABB bounds;
+	std::string name;
 
 public:
+
+	// TODO
+	util::vector<Triangle, 16> & getTriangles() { return triangles; }
 
 	Submesh(unsigned int materialID)
 		: materialID(materialID),
@@ -67,6 +71,14 @@ public:
 
 	AABB & getBounds() {
 		return bounds;
+	}
+
+	const std::string & getName() const {
+		return name;
+	}
+
+	void setName(const std::string & name) {
+		this->name = name;
 	}
 };
 

@@ -101,6 +101,9 @@ private:
 
     typedef std::vector<std::shared_ptr<std::thread>> threadVector;
 
+    util::vector<Triangle, 16> triangles;
+    std::vector<Material *> materials;
+
     Image<float, 4>         *output;
     KDTree                   tree;            //!< Ray/triangle intersection acceleration tree
     KDTreeStats  _treeStats;           //!< Tree statistics
@@ -119,6 +122,8 @@ private:
      * @brief Entry point for a worker thread
      */
     void worker_thread(int idx, int numThreads, RaytracerStats *stats);
+
+    void addMeshesFromScene();
 
 public:
 

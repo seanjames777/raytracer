@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
     printf("RELEASE build\n");
 #endif
 
-    testVectors();
+    //testVectors();
 
     printf("Loading scene...\n");
 
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
         break;
     }
 
-    printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getNumLights());
+    //printf("%lu polygons, %lu lights\n", scene->getTriangles().size(), scene->getNumLights());
 
     auto rt = new Raytracer(settings, scene, output);
 	auto disp = new ImageDisplay(settings.width, settings.height, output);
@@ -90,7 +90,6 @@ int main(int argc, char *argv[]) {
     while (!disp->shouldClose()) {
         disp->drawPreviewScene(&pvscene);
         disp->swap();
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     getchar();
@@ -102,8 +101,6 @@ int main(int argc, char *argv[]) {
     while (!disp->shouldClose()) {
         disp->refresh();
         disp->swap();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
 
 #if 0
         Collision result;

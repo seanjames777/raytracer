@@ -2,20 +2,20 @@
 #include <light/pointlight.h>
 
 SponzaScene::SponzaScene() {
-    float3 cameraPosition = float3(-25.5f, 3.5f, 1.0f);
+    float3 cameraPosition = float3(-10.5f, 3.5f, 0.0f);
 
     setCamera(new Camera(cameraPosition, float3(0.0f, 2.5f, -1.0f),
-        (float)M_PI / 180.0f * 25.0f, 0.25f, 25.42f));
+        (float)M_PI / 180.0f * 60.0f, 0.25f, 25.42f));
 
     auto mesh = MeshLoader::load(relToExeDir("content/models/sponza.obj"));
-    addMesh(mesh, float3(0.0f, 0.0f, 0.0f), float3(0.0f), 0.02f);
+    addMesh(new MeshInstance(mesh, float3(0.0f, 0.0f, 0.0f), float3(0.0f), 0.02f));
 
-    int dragonMatID = getNumMaterials();
+    //int dragonMatID = getNumMaterials();
 
     auto mesh2 = MeshLoader::load(relToExeDir("content/models/dragon.fbx"));
-    addMesh(mesh2, float3(0.0f, 0.0f, -0.9f), float3(0.0f, -(float)M_PI / 2.0f, 0.0f), 0.47f);
+    addMesh(new MeshInstance(mesh2, float3(0.0f, 0.0f, -0.9f), float3(0.0f, -(float)M_PI / 2.0f, 0.0f), 0.47f));
 
-    Material *mat = getMaterial(dragonMatID);
+    //Material *mat = getMaterial(dragonMatID);
     //mat->setOpacity(0.10f);
 
     if (true) {
