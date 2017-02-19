@@ -15,6 +15,38 @@
 #include <vector>
 #include <unordered_map>
 
+inline const char *getErrorString(GLenum error) {
+    switch(error) {
+    case GL_INVALID_ENUM:
+        return "GL_INVALID_ENUM: GLenum argument out of range";
+    case GL_INVALID_VALUE:
+        return "GL_INVALID_VALUE: Numeric argument out of range";
+    case GL_INVALID_OPERATION:
+        return "GL_INVALID_OPERATION: Operation illegal in current state";
+    case GL_OUT_OF_MEMORY:
+        return "GL_OUT_OF_MEMORY: Not enough memory left to execute command";
+    }
+
+    return "Unknown error";
+}
+
+#ifdef DEBUG
+#define GLCHECK(stmt)                                                             \
+    stmt;                                                                         \
+    {                                                                             \
+        GLenum error = glGetError();                                              \
+        if (error != GL_NO_ERROR) {                                               \
+            std::cout << "GL Error check failed:" << std::endl;                   \
+            std::cout << "    At: " << __FILE__ << ":" << __LINE__ << std::endl;  \
+            std::cout << " Error: " << getErrorString(error) << std::endl;        \
+            __builtin_trap();                                                     \
+            assert(0);                                                            \
+        }                                                                         \
+    }
+#else
+#define GLCHECK(stmt) stmt;
+#endif
+
 enum PVTextureType {
     PVTextureType2D = GL_TEXTURE_2D,
     PVTextureType2DMultisample = GL_TEXTURE_2D_MULTISAMPLE,
@@ -128,6 +160,33 @@ public:
     void bind(GLenum target);
 
     void bind(GLenum target, int index);
+
+    void bind(GLenum target, int index, int offset, int length);
+};
+
+enum PVVertexFormat {
+    PVVertexFormatFloat = GL_FLOAT
+};
+
+class PVVertexArray {
+private:
+
+    GLuint vao;
+
+public:
+
+    PVVertexArray();
+
+    ~PVVertexArray();
+
+    void bind();
+
+    void setVertexBuffer(PVBuffer *buffer);
+
+    void setIndexBuffer(PVBuffer *buffer);
+
+    void setVertexAttribute(int index, int components, PVVertexFormat format, bool normalized, int stride, int offset);
+
 };
 
 class PVShader {
@@ -144,6 +203,8 @@ public:
     ~PVShader();
 
     GLuint getUniformLocation(const char *uniform);
+
+    void bindUniformBlock(const char *block, int binding);
 
     void bind();
 
@@ -178,13 +239,8 @@ public:
 
     PVTexture *getDepthAttachment();
 
-};
+    void getDimensions(int & width, int & height, int & sampleCount);
 
-struct PVVertex {
-    float position[3];
-    float normal[3];
-    float tangent[3];
-    float uv[2];
 };
 
 enum PVRenderFlags {
@@ -192,15 +248,18 @@ enum PVRenderFlags {
     PVRenderFlagEnableNormalMapping = (1 << 1),
     PVRenderFlagEnableCulling       = (1 << 2),
     PVRenderFlagEnableLighting      = (1 << 3),
+    PVRenderFlagWireframe           = (1 << 4),
 };
 
 class PVMesh {
 private:
 
-    GLuint vao;
-    int vertexCount;
+    int indexCount;
+    PVVertexArray *vertexArray;
     PVBuffer *vertexBuffer;
+    PVBuffer *indexBuffer;
     KDTree kdTree;
+    AABB bounds;
 
 public:
 
@@ -210,12 +269,37 @@ public:
 
     bool intersect(const Ray & ray, Collision & result);
 
-    PVMesh(util::vector<Triangle, 16> & triangles, bool reverseWinding, const std::string & name);
+    PVMesh(std::vector<PVVertex> & vertices, std::vector<uint32_t> & indices, bool reverseWinding, const std::string & name);
 
     ~PVMesh();
 
     void draw();
 
+    const AABB & getBounds() const;
+
+};
+
+struct PVCameraUniforms {
+    float4x4 viewProjection;
+    float3   viewPosition;
+};
+
+struct PVLightUniforms {
+    float3   lightPositions[4];
+    float3   lightColors[4];
+    int      numLights;
+    int      enableLighting;
+};
+
+struct PVMeshInstanceUniforms {
+    float4x4 transform;
+    float3x3 orientation;
+    float3   diffuseColor;
+    float3   specularColor;
+    float    specularPower;
+    float    normalMapScale;
+    int      hasDiffuseTexture; // TODO: pack the integers
+    int      hasNormalTexture;
 };
 
 class PVMeshInstance {
@@ -228,6 +312,7 @@ public:
     float3 diffuseColor;
     float3 specularColor;
     float specularPower;
+    float normalMapScale;
     std::string name;
     bool visible;
     PVTexture *diffuseTexture;
@@ -238,6 +323,7 @@ public:
         float3 diffuseColor,
         float3 specularColor,
         float specularPower,
+        float normalMapScale,
         PVTexture *diffuseTexture,
         PVTexture *normalTexture,
         float3 position,
@@ -248,6 +334,8 @@ public:
     ~PVMeshInstance();
 
     float4x4 getTransform();
+
+    void updateUniforms(PVRenderFlags flags, PVMeshInstanceUniforms & uniforms);
 
     void draw(PVRenderFlags flags, PVShader *shader);
 
@@ -294,14 +382,17 @@ private:
 
     PVSampler *meshSampler;
 
+    PVBuffer *cameraUniforms;
+    PVBuffer *lightUniforms;
+    PVBuffer *meshInstanceUniforms;
+
     void addMesh(const MeshInstance *instance);
 
-    void drawPass(PVRenderFlags flags,
+    void drawView(PVRenderFlags flags,
                   PVShader *shader,
                   float4x4 viewMatrix,
                   float4x4 projectionMatrix,
-                  float3 viewPosition,
-                  PVFramebuffer *framebuffer);
+                  float3 viewPosition);
 
 public:
 
@@ -327,8 +418,7 @@ public:
               int anisotropy,
               float4x4 viewMatrix,
               float4x4 projectionMatrix,
-              float3 viewPosition,
-              PVFramebuffer *framebuffer);
+              float3 viewPosition);
 
 };
 

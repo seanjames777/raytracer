@@ -19,42 +19,6 @@
 #include <preview/preview.h>
 
 /**
- * @brief Convert an OpenGL error code to a string
- */
-inline const char *getErrorString(GLenum error) {
-    switch(error) {
-    case GL_INVALID_ENUM:
-        return "GL_INVALID_ENUM: GLenum argument out of range";
-    case GL_INVALID_VALUE:
-        return "GL_INVALID_VALUE: Numeric argument out of range";
-    case GL_INVALID_OPERATION:
-        return "GL_INVALID_OPERATION: Operation illegal in current state";
-    case GL_OUT_OF_MEMORY:
-        return "GL_OUT_OF_MEMORY: Not enough memory left to execute command";
-    }
-
-    return "Unknown error";
-}
-
-/**
- * @brief Check for an OpenGL error
- */
-#ifdef DEBUG
-#define GLCHECK() {                                                           \
-    GLenum error = glGetError();                                              \
-    if (error != GL_NO_ERROR) {                                               \
-        std::cout << "GL Error check failed:" << std::endl;                   \
-        std::cout << "    At: " << __FILE__ << ":" << __LINE__ << std::endl;  \
-        std::cout << " Error: " << getErrorString(error) << std::endl;        \
-        getchar();                                                            \
-        exit(-1);                                                             \
-    }                                                                         \
-}
-#else
-#define GLCHECK()
-#endif
-
-/**
  * @brief OpenGL image display utility
  */
 class RT_EXPORT ImageDisplay {

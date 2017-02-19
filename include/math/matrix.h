@@ -10,6 +10,7 @@
 #define __MATH_MATRIX_H
 
 #include <math/vector.h>
+#include <math/ray.h>
 
 #define NDC_ZERO_TO_ONE 0
 
@@ -17,14 +18,14 @@
 template<typename T, unsigned int M, unsigned int N>
 struct matrix {
     
-    T m[M][N];
+    vector<T, N> rows[M];
 
     // TODO initializer list, and zero()
 
     matrix() {
         for (unsigned int j = 0; j < M; j++)
             for (unsigned int i = 0; i < N; i++)
-                m[j][i] = j == i ? (T)1 : (T)0;
+                rows[j][i] = j == i ? (T)1 : (T)0;
     }
 };
 
@@ -37,7 +38,7 @@ matrix<T, M, N> zero() {
 
     for (unsigned int j = 0; j < M; j++)
         for (unsigned int i = 0; i < N; i++)
-            mat.m[j][i] = 0;
+            mat.rows[j][i] = 0;
 
     return mat;
 }
@@ -48,7 +49,7 @@ vector<T, N> operator*(const vector<T, N> & v, const matrix<T, N, N> & m) {
 
     for (unsigned int i = 0; i < N; i++)
         for (unsigned int j = 0; j < N; j++)
-            result[i] += v[i] * m.m[j][i];
+            result[i] += v[i] * m.rows[j][i];
 
     return result;
 }
@@ -59,7 +60,7 @@ vector<T, N> operator*(const matrix<T, N, N> & m, const vector<T, N> & v) {
 
     for (unsigned int i = 0; i < N; i++)
         for (unsigned int j = 0; j < N; j++)
-            result[i] += m.m[i][j] * v[j];
+            result[i] += m.rows[i][j] * v[j];
 
     return result;
 }
@@ -71,7 +72,7 @@ matrix<T, M, P> operator*(const matrix<T, M, N> & lhs, const matrix<T, N, P> & r
     for (unsigned int j = 0; j < M; j++)
         for (unsigned int i = 0; i < P; i++)
             for (unsigned int k = 0; k < N; k++)
-                result.m[j][i] += lhs.m[j][k] * rhs.m[k][i];
+                result.rows[j][i] += lhs.rows[j][k] * rhs.rows[k][i];
 
     return result;
 }
@@ -82,7 +83,7 @@ matrix<T, N, N> transpose(const matrix<T, N, N> & mat) {
 
     for (unsigned int j = 0; j < N; j++)
         for (unsigned int i = 0; i < N; i++)
-            result.m[j][i] = mat.m[i][j];
+            result.rows[j][i] = mat.rows[i][j];
 
     return result;
 }
@@ -93,13 +94,13 @@ matrix<T, N, N> transpose(const matrix<T, N, N> & mat) {
 static float4x4 orthographicLH(float left, float right, float bottom, float top, float nearz, float farz) {
     float4x4 out;
 
-    out.m[0][0]  = 2.0f / (right - left);
-    out.m[1][1]  = 2.0f / (top - bottom);
-    out.m[2][2] = 1.0f / (farz - nearz);
-    out.m[3][0] = (left + right) / (left - right);
-    out.m[3][1] = (top + bottom) / (bottom - top);
-    out.m[3][2] = nearz / (nearz - farz);
-    out.m[3][3] = 1.0f;
+    out.rows[0][0]  = 2.0f / (right - left);
+    out.rows[1][1]  = 2.0f / (top - bottom);
+    out.rows[2][2] = 1.0f / (farz - nearz);
+    out.rows[3][0] = (left + right) / (left - right);
+    out.rows[3][1] = (top + bottom) / (bottom - top);
+    out.rows[3][2] = nearz / (nearz - farz);
+    out.rows[3][3] = 1.0f;
 
     return out;
 }
@@ -117,13 +118,13 @@ static float4x4 orthographicLH(float width, float height, float depth) {
 static float4x4 orthographicRH(float left, float right, float bottom, float top, float nearz, float farz) {
     float4x4 out;
 
-    out.m[0][0]  = 2.0f / (right - left);
-    out.m[1][1]  = 2.0f / (top - bottom);
-    out.m[2][2] = 1.0f / (farz - nearz);
-    out.m[3][0] = (left + right) / (left - right);
-    out.m[3][1] = (top + bottom) / (bottom - top);
-    out.m[3][2] = nearz / (nearz - farz);
-    out.m[3][3] = 1.0f;
+    out.rows[0][0]  = 2.0f / (right - left);
+    out.rows[1][1]  = 2.0f / (top - bottom);
+    out.rows[2][2] = 1.0f / (farz - nearz);
+    out.rows[3][0] = (left + right) / (left - right);
+    out.rows[3][1] = (top + bottom) / (bottom - top);
+    out.rows[3][2] = nearz / (nearz - farz);
+    out.rows[3][3] = 1.0f;
 
     return out;
 }
@@ -145,25 +146,25 @@ static float4x4 lookAtLH(const float3 & position, const float3 & target, const f
 
     float4x4 out;
 
-    out.m[0][0] = xAxis.x;
-    out.m[0][1] = xAxis.y;
-    out.m[0][2] = xAxis.z;
-    out.m[0][3] = dot(-xAxis, position);
+    out.rows[0][0] = xAxis.x;
+    out.rows[0][1] = xAxis.y;
+    out.rows[0][2] = xAxis.z;
+    out.rows[0][3] = dot(-xAxis, position);
 
-    out.m[1][0] = yAxis.x;
-    out.m[1][1] = yAxis.y;
-    out.m[1][2] = yAxis.z;
-    out.m[1][3] = dot(-yAxis, position);
+    out.rows[1][0] = yAxis.x;
+    out.rows[1][1] = yAxis.y;
+    out.rows[1][2] = yAxis.z;
+    out.rows[1][3] = dot(-yAxis, position);
 
-    out.m[2][0] = zAxis.x;
-    out.m[2][1] = zAxis.y;
-    out.m[2][2] = zAxis.z;
-    out.m[2][3] = dot(-zAxis, position);
+    out.rows[2][0] = zAxis.x;
+    out.rows[2][1] = zAxis.y;
+    out.rows[2][2] = zAxis.z;
+    out.rows[2][3] = dot(-zAxis, position);
 
-    out.m[3][0] = 0;
-    out.m[3][1] = 0;
-    out.m[3][2] = 0;
-    out.m[3][3] = 1;
+    out.rows[3][0] = 0;
+    out.rows[3][1] = 0;
+    out.rows[3][2] = 0;
+    out.rows[3][3] = 1;
 
     return out;
 }
@@ -178,25 +179,25 @@ static float4x4 lookAtRH(const float3 & position, const float3 & target, const f
 
     float4x4 out;
 
-    out.m[0][0] = xAxis.x;
-    out.m[0][1] = yAxis.x;
-    out.m[0][2] = zAxis.x;
-    out.m[0][3] = 0;
+    out.rows[0][0] = xAxis.x;
+    out.rows[0][1] = yAxis.x;
+    out.rows[0][2] = zAxis.x;
+    out.rows[0][3] = 0;
 
-    out.m[1][0] = xAxis.y;
-    out.m[1][1] = yAxis.y;
-    out.m[1][2] = zAxis.y;
-    out.m[1][3] = 0;
+    out.rows[1][0] = xAxis.y;
+    out.rows[1][1] = yAxis.y;
+    out.rows[1][2] = zAxis.y;
+    out.rows[1][3] = 0;
 
-    out.m[2][0] = xAxis.z;
-    out.m[2][1] = yAxis.z;
-    out.m[2][2] = zAxis.z;
-    out.m[2][3] = 0;
+    out.rows[2][0] = xAxis.z;
+    out.rows[2][1] = yAxis.z;
+    out.rows[2][2] = zAxis.z;
+    out.rows[2][3] = 0;
 
-    out.m[3][0] = dot(xAxis, position);
-    out.m[3][1] = dot(yAxis, position);
-    out.m[3][2] = dot(zAxis, position);
-    out.m[3][3] = 1;
+    out.rows[3][0] = dot(xAxis, position);
+    out.rows[3][1] = dot(yAxis, position);
+    out.rows[3][2] = dot(zAxis, position);
+    out.rows[3][3] = 1;
 
     return out;
 }
@@ -210,16 +211,16 @@ static float4x4 perspectiveLH(float fov, float aspect, float znear, float zfar) 
 
     float4x4 out;
 
-    out.m[0][0] = w;
-    out.m[1][1] = h;
+    out.rows[0][0] = w;
+    out.rows[1][1] = h;
 #if NDC_ZERO_TO_ONE
-    out.m[2][2] = zfar / (zfar - znear);
-    out.m[2][3] = -znear * zfar / (zfar - znear);
+    out.rows[2][2] = zfar / (zfar - znear);
+    out.rows[2][3] = -znear * zfar / (zfar - znear);
 #else
-    out.m[2][2] = (zfar + znear) / (zfar - znear);
-    out.m[2][3] = -2 * znear * zfar / (zfar - znear);
+    out.rows[2][2] = (zfar + znear) / (zfar - znear);
+    out.rows[2][3] = -2 * znear * zfar / (zfar - znear);
 #endif
-    out.m[3][2] = 1.0f;
+    out.rows[3][2] = 1.0f;
 
     return out;
 }
@@ -233,16 +234,16 @@ static float4x4 perspectiveRH(float fov, float aspect, float znear, float zfar) 
 
     float4x4 out;
 
-    out.m[0][0] = w;
-    out.m[1][1] = h;
+    out.rows[0][0] = w;
+    out.rows[1][1] = h;
 #if NDC_ZERO_TO_ONE
-    out.m[2][2] = zfar / (zfar - znear);
-    out.m[2][3] = -znear * zfar / (zfar - znear);
+    out.rows[2][2] = zfar / (zfar - znear);
+    out.rows[2][3] = -znear * zfar / (zfar - znear);
 #else
-    out.m[2][2] = -(zfar + znear) / (zfar - znear);
-    out.m[2][3] = -2 * znear * zfar / (zfar - znear);
+    out.rows[2][2] = -(zfar + znear) / (zfar - znear);
+    out.rows[2][3] = -2 * znear * zfar / (zfar - znear);
 #endif
-    out.m[3][2] = -1.0f;
+    out.rows[3][2] = -1.0f;
 
     return out;
 }
@@ -256,12 +257,12 @@ static float4x4 rotationX(float radians) {
 
     float4x4 out;
 
-    out.m[0][0] = 1.0f;
-    out.m[1][1] = cost;
-    out.m[1][2] = -sint;
-    out.m[2][1] = sint;
-    out.m[2][2] = cost;
-    out.m[3][3] = 1.0f;
+    out.rows[0][0] = 1.0f;
+    out.rows[1][1] = cost;
+    out.rows[1][2] = -sint;
+    out.rows[2][1] = sint;
+    out.rows[2][2] = cost;
+    out.rows[3][3] = 1.0f;
 
     return out;
 }
@@ -275,12 +276,12 @@ static float4x4 rotationY(float radians) {
 
     float4x4 out;
 
-    out.m[0][0] = cost;
-    out.m[0][2] = sint;
-    out.m[1][1] = 1.0f;
-    out.m[2][0] = -sint;
-    out.m[2][2] = cost;
-    out.m[3][3] = 1.0f;
+    out.rows[0][0] = cost;
+    out.rows[0][2] = sint;
+    out.rows[1][1] = 1.0f;
+    out.rows[2][0] = -sint;
+    out.rows[2][2] = cost;
+    out.rows[3][3] = 1.0f;
 
     return out;
 }
@@ -294,12 +295,12 @@ static float4x4 rotationZ(float radians) {
 
     float4x4 out;
 
-    out.m[0][0] = cost;
-    out.m[0][1] = -sint;
-    out.m[1][0] = sint;
-    out.m[1][1] = cost;
-    out.m[2][2] = 1.0f;
-    out.m[3][3] = 1.0f;
+    out.rows[0][0] = cost;
+    out.rows[0][1] = -sint;
+    out.rows[1][0] = sint;
+    out.rows[1][1] = cost;
+    out.rows[2][2] = 1.0f;
+    out.rows[3][3] = 1.0f;
 
     return out;
 }
@@ -307,22 +308,22 @@ static float4x4 rotationZ(float radians) {
 /**
  * Get a rotation matrix around an aritrary
  */
-static float4x4 rotation(float3 axis, float radians) {
+static float4x4 rotation(const float3 & axis, float radians) {
     float cost = cosf(radians);
     float sint = sinf(radians);
 
     float4x4 out;
 
-    out.m[0][0] = cost + axis.x * axis.x * (1 - cost);
-    out.m[0][1] = (1 - cost) - axis.x * sint;
-    out.m[0][2] = axis.x * axis.z * (1 - cost) + axis.y * sint;
-    out.m[1][0] = axis.y * axis.x * (1 - cost) + axis.x * sint;
-    out.m[1][1] = cost + axis.y * axis.y * (1 - cost);
-    out.m[1][2] = axis.y * axis.z * (1 - cost) - axis.x * sint;
-    out.m[2][0] = axis.z * axis.x * (1 - cost) - axis.y * sint;
-    out.m[2][1] = axis.z * axis.y * (1 - cost) + axis.x * sint;
-    out.m[2][2] = cost + axis.z * axis.z * (1 - cost);
-    out.m[2][3] = 1.0f;
+    out.rows[0][0] = cost + axis.x * axis.x * (1 - cost);
+    out.rows[0][1] = (1 - cost) - axis.x * sint;
+    out.rows[0][2] = axis.x * axis.z * (1 - cost) + axis.y * sint;
+    out.rows[1][0] = axis.y * axis.x * (1 - cost) + axis.x * sint;
+    out.rows[1][1] = cost + axis.y * axis.y * (1 - cost);
+    out.rows[1][2] = axis.y * axis.z * (1 - cost) - axis.x * sint;
+    out.rows[2][0] = axis.z * axis.x * (1 - cost) - axis.y * sint;
+    out.rows[2][1] = axis.z * axis.y * (1 - cost) + axis.x * sint;
+    out.rows[2][2] = cost + axis.z * axis.z * (1 - cost);
+    out.rows[2][3] = 1.0f;
 
     return out;
 }
@@ -331,49 +332,50 @@ static float4x4 rotation(float3 axis, float radians) {
  * Create a yaw, pitch, roll rotation matrix. The operations are applied
  * in the order: roll, then pitch, then yaw, around the origin
  */
-static float4x4 yawPitchRoll(float yaw, float pitch, float roll) {
-    // return rotationY(yaw) * rotationX(pitch) * rotationZ(roll);
-
+static float4x4 rotation(const float3 & xyz) {
+#if 0
     float4x4 out;
 
-    float cy = cosf(yaw);
-    float sy = sinf(yaw);
-    float cp = cosf(pitch);
-    float sp = sinf(pitch);
-    float cr = cosf(roll);
-    float sr = sinf(roll);
+    float cy = cosf(xyz.y);
+    float sy = sinf(xyz.y);
+    float cp = cosf(xyz.x);
+    float sp = sinf(xyz.x);
+    float cr = cosf(xyz.z);
+    float sr = sinf(xyz.z);
 
     // Generated by mathematica
-    out.m[0][0] = cr * cy + sp * sr * sy;
-    out.m[0][1] = -cy * sr + cr * sp * sy;
-    out.m[0][2] = cp * sy;
-    out.m[0][3] = 0.0f;
-    out.m[1][0] = cp * sr;
-    out.m[1][1] = cp * cr;
-    out.m[1][2] = -sp;
-    out.m[1][3] = 0.0f;
-    out.m[2][0] = cy * sp * sr - cr * sy;
-    out.m[2][1] = cr * cy * sp + sr * sy;
-    out.m[2][2] = cp * cy;
-    out.m[2][3] = 0.0f;
-    out.m[3][0] = 0.0f;
-    out.m[3][1] = 0.0f;
-    out.m[3][2] = 0.0f;
-    out.m[3][3] = 1.0f;
+    out.rows[0][0] = cr * cy + sp * sr * sy;
+    out.rows[0][1] = -cy * sr + cr * sp * sy;
+    out.rows[0][2] = cp * sy;
+    out.rows[0][3] = 0.0f;
+    out.rows[1][0] = cp * sr;
+    out.rows[1][1] = cp * cr;
+    out.rows[1][2] = -sp;
+    out.rows[1][3] = 0.0f;
+    out.rows[2][0] = cy * sp * sr - cr * sy;
+    out.rows[2][1] = cr * cy * sp + sr * sy;
+    out.rows[2][2] = cp * cy;
+    out.rows[2][3] = 0.0f;
+    out.rows[3][0] = 0.0f;
+    out.rows[3][1] = 0.0f;
+    out.rows[3][2] = 0.0f;
+    out.rows[3][3] = 1.0f;
 
     return out;
+#endif
+
+    return rotationZ(xyz.z) * rotationY(xyz.y) * rotationX(xyz.x);
 }
 
 /**
  * Get a scaling matrix
  */
-static float4x4 scale(float x, float y, float z) {
+static float4x4 scale(const float3 & scale) {
     float4x4 out;
 
-    out.m[0][0] = x;
-    out.m[1][1] = y;
-    out.m[2][2] = z;
-    out.m[3][3] = 1.0f;
+    out.rows[0][0] = scale.x;
+    out.rows[1][1] = scale.y;
+    out.rows[2][2] = scale.z;
 
     return out;
 }
@@ -381,16 +383,12 @@ static float4x4 scale(float x, float y, float z) {
 /**
  * Get a translation matrix
  */
-static float4x4 translation(float x, float y, float z) {
+static float4x4 translation(const float3 & translation) {
     float4x4 out;
 
-    out.m[0][0] = 1.0f;
-    out.m[0][3] = x;
-    out.m[1][1] = 1.0f;
-    out.m[1][3] = y;
-    out.m[2][2] = 1.0f;
-    out.m[2][3] = z;
-    out.m[3][3] = 1.0f;
+    out.rows[0][3] = translation.x;
+    out.rows[1][3] = translation.y;
+    out.rows[2][3] = translation.z;
 
     return out;
 }
@@ -400,12 +398,12 @@ static float4x4 translation(float x, float y, float z) {
  */
 static float determinant(const float3x3 & mat) {
     // Generated by mathematica
-    return -mat.m[0][2] * mat.m[1][1] * mat.m[2][0] +
-            mat.m[0][1] * mat.m[1][2] * mat.m[2][0] +
-            mat.m[0][2] * mat.m[1][0] * mat.m[2][1] -
-            mat.m[0][0] * mat.m[1][2] * mat.m[2][1] -
-            mat.m[0][1] * mat.m[1][0] * mat.m[2][2] +
-            mat.m[0][0] * mat.m[1][1] * mat.m[2][2];
+    return -mat.rows[0][2] * mat.rows[1][1] * mat.rows[2][0] +
+            mat.rows[0][1] * mat.rows[1][2] * mat.rows[2][0] +
+            mat.rows[0][2] * mat.rows[1][0] * mat.rows[2][1] -
+            mat.rows[0][0] * mat.rows[1][2] * mat.rows[2][1] -
+            mat.rows[0][1] * mat.rows[1][0] * mat.rows[2][2] +
+            mat.rows[0][0] * mat.rows[1][1] * mat.rows[2][2];
 }
 
 /**
@@ -413,14 +411,14 @@ static float determinant(const float3x3 & mat) {
  */
 static float determinant(const float4x4 & mat) {
     // Generated by mathematica
-    return mat.m[0][3] * mat.m[1][2] * mat.m[2][1] * mat.m[3][0] - mat.m[0][2] * mat.m[1][3] * mat.m[2][1] * mat.m[3][0] - mat.m[0][3] * mat.m[1][1] * mat.m[2][2] * mat.m[3][0] +
-           mat.m[0][1] * mat.m[1][3] * mat.m[2][2] * mat.m[3][0] + mat.m[0][2] * mat.m[1][1] * mat.m[2][3] * mat.m[3][0] - mat.m[0][1] * mat.m[1][2] * mat.m[2][3] * mat.m[3][0] -
-           mat.m[0][3] * mat.m[1][2] * mat.m[2][0] * mat.m[3][1] + mat.m[0][2] * mat.m[1][3] * mat.m[2][0] * mat.m[3][1] + mat.m[0][3] * mat.m[1][0] * mat.m[2][2] * mat.m[3][1] -
-           mat.m[0][0] * mat.m[1][3] * mat.m[2][2] * mat.m[3][1] - mat.m[0][2] * mat.m[1][0] * mat.m[2][3] * mat.m[3][1] + mat.m[0][0] * mat.m[1][2] * mat.m[2][3] * mat.m[3][1] +
-           mat.m[0][3] * mat.m[1][1] * mat.m[2][0] * mat.m[3][2] - mat.m[0][1] * mat.m[1][3] * mat.m[2][0] * mat.m[3][2] - mat.m[0][3] * mat.m[1][0] * mat.m[2][1] * mat.m[3][2] +
-           mat.m[0][0] * mat.m[1][3] * mat.m[2][1] * mat.m[3][2] + mat.m[0][1] * mat.m[1][0] * mat.m[2][3] * mat.m[3][2] - mat.m[0][0] * mat.m[1][1] * mat.m[2][3] * mat.m[3][2] -
-           mat.m[0][2] * mat.m[1][1] * mat.m[2][0] * mat.m[3][3] + mat.m[0][1] * mat.m[1][2] * mat.m[2][0] * mat.m[3][3] + mat.m[0][2] * mat.m[1][0] * mat.m[2][1] * mat.m[3][3] -
-           mat.m[0][0] * mat.m[1][2] * mat.m[2][1] * mat.m[3][3] - mat.m[0][1] * mat.m[1][0] * mat.m[2][2] * mat.m[3][3] + mat.m[0][0] * mat.m[1][1] * mat.m[2][2] * mat.m[3][3];
+    return mat.rows[0][3] * mat.rows[1][2] * mat.rows[2][1] * mat.rows[3][0] - mat.rows[0][2] * mat.rows[1][3] * mat.rows[2][1] * mat.rows[3][0] - mat.rows[0][3] * mat.rows[1][1] * mat.rows[2][2] * mat.rows[3][0] +
+           mat.rows[0][1] * mat.rows[1][3] * mat.rows[2][2] * mat.rows[3][0] + mat.rows[0][2] * mat.rows[1][1] * mat.rows[2][3] * mat.rows[3][0] - mat.rows[0][1] * mat.rows[1][2] * mat.rows[2][3] * mat.rows[3][0] -
+           mat.rows[0][3] * mat.rows[1][2] * mat.rows[2][0] * mat.rows[3][1] + mat.rows[0][2] * mat.rows[1][3] * mat.rows[2][0] * mat.rows[3][1] + mat.rows[0][3] * mat.rows[1][0] * mat.rows[2][2] * mat.rows[3][1] -
+           mat.rows[0][0] * mat.rows[1][3] * mat.rows[2][2] * mat.rows[3][1] - mat.rows[0][2] * mat.rows[1][0] * mat.rows[2][3] * mat.rows[3][1] + mat.rows[0][0] * mat.rows[1][2] * mat.rows[2][3] * mat.rows[3][1] +
+           mat.rows[0][3] * mat.rows[1][1] * mat.rows[2][0] * mat.rows[3][2] - mat.rows[0][1] * mat.rows[1][3] * mat.rows[2][0] * mat.rows[3][2] - mat.rows[0][3] * mat.rows[1][0] * mat.rows[2][1] * mat.rows[3][2] +
+           mat.rows[0][0] * mat.rows[1][3] * mat.rows[2][1] * mat.rows[3][2] + mat.rows[0][1] * mat.rows[1][0] * mat.rows[2][3] * mat.rows[3][2] - mat.rows[0][0] * mat.rows[1][1] * mat.rows[2][3] * mat.rows[3][2] -
+           mat.rows[0][2] * mat.rows[1][1] * mat.rows[2][0] * mat.rows[3][3] + mat.rows[0][1] * mat.rows[1][2] * mat.rows[2][0] * mat.rows[3][3] + mat.rows[0][2] * mat.rows[1][0] * mat.rows[2][1] * mat.rows[3][3] -
+           mat.rows[0][0] * mat.rows[1][2] * mat.rows[2][1] * mat.rows[3][3] - mat.rows[0][1] * mat.rows[1][0] * mat.rows[2][2] * mat.rows[3][3] + mat.rows[0][0] * mat.rows[1][1] * mat.rows[2][2] * mat.rows[3][3];
 }
 
 /**
@@ -432,15 +430,15 @@ static float3x3 inverse(const float3x3 & mat) {
     float det = determinant(mat);
 
     // Generated by mathematica
-    out.m[0][0] = -mat.m[1][2] * mat.m[2][1] + mat.m[1][1] * mat.m[2][2];
-    out.m[0][1] =  mat.m[0][2] * mat.m[2][1] - mat.m[0][1] * mat.m[2][2];
-    out.m[0][2] = -mat.m[0][2] * mat.m[1][1] + mat.m[0][1] * mat.m[1][2];
-    out.m[1][0] =  mat.m[1][2] * mat.m[2][0] - mat.m[1][0] * mat.m[2][2];
-    out.m[1][1] = -mat.m[0][2] * mat.m[2][0] + mat.m[0][0] * mat.m[2][2];
-    out.m[1][2] =  mat.m[0][2] * mat.m[1][0] - mat.m[0][0] * mat.m[1][2];
-    out.m[2][0] = -mat.m[1][1] * mat.m[2][0] + mat.m[1][0] * mat.m[2][1];
-    out.m[2][1] =  mat.m[0][1] * mat.m[2][0] - mat.m[0][0] * mat.m[2][1];
-    out.m[2][2] = -mat.m[0][1] * mat.m[1][0] + mat.m[0][0] * mat.m[1][1];
+    out.rows[0][0] = -mat.rows[1][2] * mat.rows[2][1] + mat.rows[1][1] * mat.rows[2][2];
+    out.rows[0][1] =  mat.rows[0][2] * mat.rows[2][1] - mat.rows[0][1] * mat.rows[2][2];
+    out.rows[0][2] = -mat.rows[0][2] * mat.rows[1][1] + mat.rows[0][1] * mat.rows[1][2];
+    out.rows[1][0] =  mat.rows[1][2] * mat.rows[2][0] - mat.rows[1][0] * mat.rows[2][2];
+    out.rows[1][1] = -mat.rows[0][2] * mat.rows[2][0] + mat.rows[0][0] * mat.rows[2][2];
+    out.rows[1][2] =  mat.rows[0][2] * mat.rows[1][0] - mat.rows[0][0] * mat.rows[1][2];
+    out.rows[2][0] = -mat.rows[1][1] * mat.rows[2][0] + mat.rows[1][0] * mat.rows[2][1];
+    out.rows[2][1] =  mat.rows[0][1] * mat.rows[2][0] - mat.rows[0][0] * mat.rows[2][1];
+    out.rows[2][2] = -mat.rows[0][1] * mat.rows[1][0] + mat.rows[0][0] * mat.rows[1][1];
 
     return out;
 }
@@ -454,22 +452,22 @@ static float4x4 inverse(const float4x4 & mat) {
     float det = determinant(mat);
 
     // Generated by mathematica
-    out.m[0][0] = (-mat.m[1][3] * mat.m[2][2] * mat.m[3][1] + mat.m[1][2] * mat.m[2][3] * mat.m[3][1] + mat.m[1][3] * mat.m[2][1] * mat.m[3][2] - mat.m[1][1] * mat.m[2][3] * mat.m[3][2] - mat.m[1][2] * mat.m[2][1] * mat.m[3][3] + mat.m[1][1] * mat.m[2][2] * mat.m[3][3]) / det;
-    out.m[0][1] = ( mat.m[0][3] * mat.m[2][2] * mat.m[3][1] - mat.m[0][2] * mat.m[2][3] * mat.m[3][1] - mat.m[0][3] * mat.m[2][1] * mat.m[3][2] + mat.m[0][1] * mat.m[2][3] * mat.m[3][2] + mat.m[0][2] * mat.m[2][1] * mat.m[3][3] - mat.m[0][1] * mat.m[2][2] * mat.m[3][3]) / det;
-    out.m[0][2] = (-mat.m[0][3] * mat.m[1][2] * mat.m[3][1] + mat.m[0][2] * mat.m[1][3] * mat.m[3][1] + mat.m[0][3] * mat.m[1][1] * mat.m[3][2] - mat.m[0][1] * mat.m[1][3] * mat.m[3][2] - mat.m[0][2] * mat.m[1][1] * mat.m[3][3] + mat.m[0][1] * mat.m[1][2] * mat.m[3][3]) / det;
-    out.m[0][3] = ( mat.m[0][3] * mat.m[1][2] * mat.m[2][1] - mat.m[0][2] * mat.m[1][3] * mat.m[2][1] - mat.m[0][3] * mat.m[1][1] * mat.m[2][2] + mat.m[0][1] * mat.m[1][3] * mat.m[2][2] + mat.m[0][2] * mat.m[1][1] * mat.m[2][3] - mat.m[0][1] * mat.m[1][2] * mat.m[2][3]) / det;
-    out.m[1][0] = ( mat.m[1][3] * mat.m[2][2] * mat.m[3][0] - mat.m[1][2] * mat.m[2][3] * mat.m[3][0] - mat.m[1][3] * mat.m[2][0] * mat.m[3][2] + mat.m[1][0] * mat.m[2][3] * mat.m[3][2] + mat.m[1][2] * mat.m[2][0] * mat.m[3][3] - mat.m[1][0] * mat.m[2][2] * mat.m[3][3]) / det;
-    out.m[1][1] = (-mat.m[0][3] * mat.m[2][2] * mat.m[3][0] + mat.m[0][2] * mat.m[2][3] * mat.m[3][0] + mat.m[0][3] * mat.m[2][0] * mat.m[3][2] - mat.m[0][0] * mat.m[2][3] * mat.m[3][2] - mat.m[0][2] * mat.m[2][0] * mat.m[3][3] + mat.m[0][0] * mat.m[2][2] * mat.m[3][3]) / det;
-    out.m[1][2] = ( mat.m[0][3] * mat.m[1][2] * mat.m[3][0] - mat.m[0][2] * mat.m[1][3] * mat.m[3][0] - mat.m[0][3] * mat.m[1][0] * mat.m[3][2] + mat.m[0][0] * mat.m[1][3] * mat.m[3][2] + mat.m[0][2] * mat.m[1][0] * mat.m[3][3] - mat.m[0][0] * mat.m[1][2] * mat.m[3][3]) / det;
-    out.m[1][3] = (-mat.m[0][3] * mat.m[1][2] * mat.m[2][0] + mat.m[0][2] * mat.m[1][3] * mat.m[2][0] + mat.m[0][3] * mat.m[1][0] * mat.m[2][2] - mat.m[0][0] * mat.m[1][3] * mat.m[2][2] - mat.m[0][2] * mat.m[1][0] * mat.m[2][3] + mat.m[0][0] * mat.m[1][2] * mat.m[2][3]) / det;
-    out.m[2][0] = (-mat.m[1][3] * mat.m[2][1] * mat.m[3][0] + mat.m[1][1] * mat.m[2][3] * mat.m[3][0] + mat.m[1][3] * mat.m[2][0] * mat.m[3][1] - mat.m[1][0] * mat.m[2][3] * mat.m[3][1] - mat.m[1][1] * mat.m[2][0] * mat.m[3][3] + mat.m[1][0] * mat.m[2][1] * mat.m[3][3]) / det;
-    out.m[2][1] = ( mat.m[0][3] * mat.m[2][1] * mat.m[3][0] - mat.m[0][1] * mat.m[2][3] * mat.m[3][0] - mat.m[0][3] * mat.m[2][0] * mat.m[3][1] + mat.m[0][0] * mat.m[2][3] * mat.m[3][1] + mat.m[0][1] * mat.m[2][0] * mat.m[3][3] - mat.m[0][0] * mat.m[2][1] * mat.m[3][3]) / det;
-    out.m[2][2] = (-mat.m[0][3] * mat.m[1][1] * mat.m[3][0] + mat.m[0][1] * mat.m[1][3] * mat.m[3][0] + mat.m[0][3] * mat.m[1][0] * mat.m[3][1] - mat.m[0][0] * mat.m[1][3] * mat.m[3][1] - mat.m[0][1] * mat.m[1][0] * mat.m[3][3] + mat.m[0][0] * mat.m[1][1] * mat.m[3][3]) / det;
-    out.m[2][3] = ( mat.m[0][3] * mat.m[1][1] * mat.m[2][0] - mat.m[0][1] * mat.m[1][3] * mat.m[2][0] - mat.m[0][3] * mat.m[1][0] * mat.m[2][1] + mat.m[0][0] * mat.m[1][3] * mat.m[2][1] + mat.m[0][1] * mat.m[1][0] * mat.m[2][3] - mat.m[0][0] * mat.m[1][1] * mat.m[2][3]) / det;
-    out.m[3][0] = ( mat.m[1][2] * mat.m[2][1] * mat.m[3][0] - mat.m[1][1] * mat.m[2][2] * mat.m[3][0] - mat.m[1][2] * mat.m[2][0] * mat.m[3][1] + mat.m[1][0] * mat.m[2][2] * mat.m[3][1] + mat.m[1][1] * mat.m[2][0] * mat.m[3][2] - mat.m[1][0] * mat.m[2][1] * mat.m[3][2]) / det;
-    out.m[3][1] = (-mat.m[0][2] * mat.m[2][1] * mat.m[3][0] + mat.m[0][1] * mat.m[2][2] * mat.m[3][0] + mat.m[0][2] * mat.m[2][0] * mat.m[3][1] - mat.m[0][0] * mat.m[2][2] * mat.m[3][1] - mat.m[0][1] * mat.m[2][0] * mat.m[3][2] + mat.m[0][0] * mat.m[2][1] * mat.m[3][2]) / det;
-    out.m[3][2] = ( mat.m[0][2] * mat.m[1][1] * mat.m[3][0] - mat.m[0][1] * mat.m[1][2] * mat.m[3][0] - mat.m[0][2] * mat.m[1][0] * mat.m[3][1] + mat.m[0][0] * mat.m[1][2] * mat.m[3][1] + mat.m[0][1] * mat.m[1][0] * mat.m[3][2] - mat.m[0][0] * mat.m[1][1] * mat.m[3][2]) / det;
-    out.m[3][3] = (-mat.m[0][2] * mat.m[1][1] * mat.m[2][0] + mat.m[0][1] * mat.m[1][2] * mat.m[2][0] + mat.m[0][2] * mat.m[1][0] * mat.m[2][1] - mat.m[0][0] * mat.m[1][2] * mat.m[2][1] - mat.m[0][1] * mat.m[1][0] * mat.m[2][2] + mat.m[0][0] * mat.m[1][1] * mat.m[2][2]) / det;
+    out.rows[0][0] = (-mat.rows[1][3] * mat.rows[2][2] * mat.rows[3][1] + mat.rows[1][2] * mat.rows[2][3] * mat.rows[3][1] + mat.rows[1][3] * mat.rows[2][1] * mat.rows[3][2] - mat.rows[1][1] * mat.rows[2][3] * mat.rows[3][2] - mat.rows[1][2] * mat.rows[2][1] * mat.rows[3][3] + mat.rows[1][1] * mat.rows[2][2] * mat.rows[3][3]) / det;
+    out.rows[0][1] = ( mat.rows[0][3] * mat.rows[2][2] * mat.rows[3][1] - mat.rows[0][2] * mat.rows[2][3] * mat.rows[3][1] - mat.rows[0][3] * mat.rows[2][1] * mat.rows[3][2] + mat.rows[0][1] * mat.rows[2][3] * mat.rows[3][2] + mat.rows[0][2] * mat.rows[2][1] * mat.rows[3][3] - mat.rows[0][1] * mat.rows[2][2] * mat.rows[3][3]) / det;
+    out.rows[0][2] = (-mat.rows[0][3] * mat.rows[1][2] * mat.rows[3][1] + mat.rows[0][2] * mat.rows[1][3] * mat.rows[3][1] + mat.rows[0][3] * mat.rows[1][1] * mat.rows[3][2] - mat.rows[0][1] * mat.rows[1][3] * mat.rows[3][2] - mat.rows[0][2] * mat.rows[1][1] * mat.rows[3][3] + mat.rows[0][1] * mat.rows[1][2] * mat.rows[3][3]) / det;
+    out.rows[0][3] = ( mat.rows[0][3] * mat.rows[1][2] * mat.rows[2][1] - mat.rows[0][2] * mat.rows[1][3] * mat.rows[2][1] - mat.rows[0][3] * mat.rows[1][1] * mat.rows[2][2] + mat.rows[0][1] * mat.rows[1][3] * mat.rows[2][2] + mat.rows[0][2] * mat.rows[1][1] * mat.rows[2][3] - mat.rows[0][1] * mat.rows[1][2] * mat.rows[2][3]) / det;
+    out.rows[1][0] = ( mat.rows[1][3] * mat.rows[2][2] * mat.rows[3][0] - mat.rows[1][2] * mat.rows[2][3] * mat.rows[3][0] - mat.rows[1][3] * mat.rows[2][0] * mat.rows[3][2] + mat.rows[1][0] * mat.rows[2][3] * mat.rows[3][2] + mat.rows[1][2] * mat.rows[2][0] * mat.rows[3][3] - mat.rows[1][0] * mat.rows[2][2] * mat.rows[3][3]) / det;
+    out.rows[1][1] = (-mat.rows[0][3] * mat.rows[2][2] * mat.rows[3][0] + mat.rows[0][2] * mat.rows[2][3] * mat.rows[3][0] + mat.rows[0][3] * mat.rows[2][0] * mat.rows[3][2] - mat.rows[0][0] * mat.rows[2][3] * mat.rows[3][2] - mat.rows[0][2] * mat.rows[2][0] * mat.rows[3][3] + mat.rows[0][0] * mat.rows[2][2] * mat.rows[3][3]) / det;
+    out.rows[1][2] = ( mat.rows[0][3] * mat.rows[1][2] * mat.rows[3][0] - mat.rows[0][2] * mat.rows[1][3] * mat.rows[3][0] - mat.rows[0][3] * mat.rows[1][0] * mat.rows[3][2] + mat.rows[0][0] * mat.rows[1][3] * mat.rows[3][2] + mat.rows[0][2] * mat.rows[1][0] * mat.rows[3][3] - mat.rows[0][0] * mat.rows[1][2] * mat.rows[3][3]) / det;
+    out.rows[1][3] = (-mat.rows[0][3] * mat.rows[1][2] * mat.rows[2][0] + mat.rows[0][2] * mat.rows[1][3] * mat.rows[2][0] + mat.rows[0][3] * mat.rows[1][0] * mat.rows[2][2] - mat.rows[0][0] * mat.rows[1][3] * mat.rows[2][2] - mat.rows[0][2] * mat.rows[1][0] * mat.rows[2][3] + mat.rows[0][0] * mat.rows[1][2] * mat.rows[2][3]) / det;
+    out.rows[2][0] = (-mat.rows[1][3] * mat.rows[2][1] * mat.rows[3][0] + mat.rows[1][1] * mat.rows[2][3] * mat.rows[3][0] + mat.rows[1][3] * mat.rows[2][0] * mat.rows[3][1] - mat.rows[1][0] * mat.rows[2][3] * mat.rows[3][1] - mat.rows[1][1] * mat.rows[2][0] * mat.rows[3][3] + mat.rows[1][0] * mat.rows[2][1] * mat.rows[3][3]) / det;
+    out.rows[2][1] = ( mat.rows[0][3] * mat.rows[2][1] * mat.rows[3][0] - mat.rows[0][1] * mat.rows[2][3] * mat.rows[3][0] - mat.rows[0][3] * mat.rows[2][0] * mat.rows[3][1] + mat.rows[0][0] * mat.rows[2][3] * mat.rows[3][1] + mat.rows[0][1] * mat.rows[2][0] * mat.rows[3][3] - mat.rows[0][0] * mat.rows[2][1] * mat.rows[3][3]) / det;
+    out.rows[2][2] = (-mat.rows[0][3] * mat.rows[1][1] * mat.rows[3][0] + mat.rows[0][1] * mat.rows[1][3] * mat.rows[3][0] + mat.rows[0][3] * mat.rows[1][0] * mat.rows[3][1] - mat.rows[0][0] * mat.rows[1][3] * mat.rows[3][1] - mat.rows[0][1] * mat.rows[1][0] * mat.rows[3][3] + mat.rows[0][0] * mat.rows[1][1] * mat.rows[3][3]) / det;
+    out.rows[2][3] = ( mat.rows[0][3] * mat.rows[1][1] * mat.rows[2][0] - mat.rows[0][1] * mat.rows[1][3] * mat.rows[2][0] - mat.rows[0][3] * mat.rows[1][0] * mat.rows[2][1] + mat.rows[0][0] * mat.rows[1][3] * mat.rows[2][1] + mat.rows[0][1] * mat.rows[1][0] * mat.rows[2][3] - mat.rows[0][0] * mat.rows[1][1] * mat.rows[2][3]) / det;
+    out.rows[3][0] = ( mat.rows[1][2] * mat.rows[2][1] * mat.rows[3][0] - mat.rows[1][1] * mat.rows[2][2] * mat.rows[3][0] - mat.rows[1][2] * mat.rows[2][0] * mat.rows[3][1] + mat.rows[1][0] * mat.rows[2][2] * mat.rows[3][1] + mat.rows[1][1] * mat.rows[2][0] * mat.rows[3][2] - mat.rows[1][0] * mat.rows[2][1] * mat.rows[3][2]) / det;
+    out.rows[3][1] = (-mat.rows[0][2] * mat.rows[2][1] * mat.rows[3][0] + mat.rows[0][1] * mat.rows[2][2] * mat.rows[3][0] + mat.rows[0][2] * mat.rows[2][0] * mat.rows[3][1] - mat.rows[0][0] * mat.rows[2][2] * mat.rows[3][1] - mat.rows[0][1] * mat.rows[2][0] * mat.rows[3][2] + mat.rows[0][0] * mat.rows[2][1] * mat.rows[3][2]) / det;
+    out.rows[3][2] = ( mat.rows[0][2] * mat.rows[1][1] * mat.rows[3][0] - mat.rows[0][1] * mat.rows[1][2] * mat.rows[3][0] - mat.rows[0][2] * mat.rows[1][0] * mat.rows[3][1] + mat.rows[0][0] * mat.rows[1][2] * mat.rows[3][1] + mat.rows[0][1] * mat.rows[1][0] * mat.rows[3][2] - mat.rows[0][0] * mat.rows[1][1] * mat.rows[3][2]) / det;
+    out.rows[3][3] = (-mat.rows[0][2] * mat.rows[1][1] * mat.rows[2][0] + mat.rows[0][1] * mat.rows[1][2] * mat.rows[2][0] + mat.rows[0][2] * mat.rows[1][0] * mat.rows[2][1] - mat.rows[0][0] * mat.rows[1][2] * mat.rows[2][1] - mat.rows[0][1] * mat.rows[1][0] * mat.rows[2][2] + mat.rows[0][0] * mat.rows[1][1] * mat.rows[2][2]) / det;
 
     return out;
 }
@@ -482,9 +480,68 @@ static float3x3 upper3x3(const float4x4 & mat) {
 
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 3; j++)
-            out.m[i][j] = mat.m[i][j];
+            out.rows[i][j] = mat.rows[i][j];
 
     return out;
+}
+
+/**
+ * @brief Decompose a matrix constructed from the product translation, rotation, and scale matrices
+ * into translation, rotation, and scale vectors.
+ */
+inline void decompose(const float4x4 & transform, float3 & translation, float3 & rotation, float3 & scale) {
+    float4x4 tp = transpose(transform);
+
+    float3 c0 = tp.rows[0].xyz();
+    float3 c1 = tp.rows[1].xyz();
+    float3 c2 = tp.rows[2].xyz();
+
+    translation = tp.rows[3].xyz();
+
+    scale.x = length(c0);
+    scale.y = length(c1);
+    scale.z = length(c2);
+
+    c0 = c0 / scale.x;
+    c1 = c1 / scale.y;
+    c2 = c2 / scale.z;
+
+    rotation.x = atan2f(c1.z, c2.z);
+    rotation.y = atan2f(-c0.z, sqrtf(c1.z * c1.z + c2.z * c2.z));
+    rotation.z = atan2f(c0.y, c0.x);
+}
+
+// TODO: handle NDC -1 to 1 and upside down window coordinates
+
+/**
+ * @brief Unproject a point in screen coordinates to world space
+ */
+inline Ray unproject(const float4x4 & viewProjection, const float2 & pt, const float2 & screenPos, const float2 & screenSz) {
+    float2 ndc = (pt - screenPos) / screenSz * 2.0f - 1.0f;
+    ndc.y = -ndc.y;
+
+    float4x4 invViewProjection = inverse(viewProjection);
+
+    float4 near(ndc, 0, 1);
+    near = invViewProjection * near;
+    near = near / near.w;
+
+    float4 far(ndc, 0, 1);
+    far = invViewProjection * far;
+    far = far / far.w;
+
+    return Ray(near.xyz(), normalize(far.xyz() - near.xyz()));
+}
+
+/**
+ * @brief Project a point in world space to screen coordinates
+ */
+inline float2 project(const float4x4 & viewProjection, const float3 & pt, const float2 & screenPos, const float2 & screenSz) {
+    float4 ndc = viewProjection * float4(pt, 1);
+    ndc = ndc / ndc.w;
+    ndc.y = -ndc.y;
+
+    return (ndc.xy() * 0.5 + 0.5) * screenSz + screenPos;
 }
 
 #endif

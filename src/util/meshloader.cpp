@@ -14,40 +14,46 @@
 #include <assimp/postprocess.h>
 
 // TODO: Clean up after assimp?
+// TODO: reverse winding at import time
 
 namespace MeshLoader {
 
 void processSubmesh(aiMesh *mesh, const aiScene *scene, Mesh *loadMesh) {
 	auto submesh = new Submesh(mesh->mMaterialIndex);
 
+	std::vector<PVVertex> & vertices = submesh->getVertices();
+	std::vector<uint32_t> & indices = submesh->getIndices();
+
+	aiVector3D *texCoords = mesh->mTextureCoords[0];
+
+	for (int i = 0; i < mesh->mNumVertices; i++) {
+		PVVertex v;
+
+		for (int j = 0; j < 3; j++) {
+			v.position[j] = mesh->mVertices[i][j];
+			v.normal[j] = mesh->mNormals[i][j];
+			v.tangent[j] = mesh->mTangents[i][j];
+		}
+
+		if (texCoords) {
+			for (int j = 0; j < 2; j++)
+				v.uv[j] = texCoords[i][j];
+		}
+		else {
+			for (int j = 0; j < 2; j++)
+				v.uv[j] = 0.0f;
+		}
+
+		vertices.push_back(v);
+
+		submesh->getBounds().join(float3(v.position[0], v.position[1], v.position[2]));
+	}
+
 	for (int i = 0; i < mesh->mNumFaces; i++) {
 		aiFace face = mesh->mFaces[i];
 
-		Triangle tri;
-		tri.triangle_id = i;
-		tri.material_id = 0; // TODO: could assign submesh ID
-
-		aiVector3D *texCoords = mesh->mTextureCoords[0];
-
-		for (int j = 0; j < 3; j++) {
-			int index = face.mIndices[j];
-			Vertex v;
-
-			v.position = float3(mesh->mVertices[index].x, mesh->mVertices[index].y, mesh->mVertices[index].z);
-			v.normal = float3(mesh->mNormals[index].x, mesh->mNormals[index].y, mesh->mNormals[index].z);
-			v.tangent = float3(mesh->mTangents[index].x, mesh->mTangents[index].y, mesh->mTangents[index].z);
-
-			if (texCoords)
-				v.uv = float2(texCoords[index].x, texCoords[index].y);
-			else
-				v.uv = float2(0.0f, 0.0f);
-
-			tri.v[j] = v;
-
-			submesh->getBounds().join(v.position);
-		}
-
-		submesh->addTriangle(tri);
+		for (int j = 0; j < 3; j++)
+			indices.push_back(face.mIndices[j]);
 	}
 
 	submesh->setName(std::string(mesh->mName.C_Str()));
@@ -117,7 +123,7 @@ void processMaterial(aiMaterial *material, Mesh *mesh) {
 Mesh *load(std::string filename) {
 	Assimp::Importer importer;
 
-	const aiScene *scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
+	const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_FlipUVs);
 
 	if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		return nullptr;

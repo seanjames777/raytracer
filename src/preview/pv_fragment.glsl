@@ -5,16 +5,29 @@ in vec3 var_tangent;
 in vec2 var_uv;
 in vec3 var_viewDirection;
 
-uniform vec3 diffuseColor;
-uniform vec3 specularColor;
-uniform float specularPower;
-uniform bool hasDiffuseTexture;
-uniform bool hasNormalTexture;
-uniform bool enableLighting;
+layout(std140) uniform CameraUniforms {
+    mat4 viewProjection;
+    vec3 viewPosition;
+};
 
-uniform vec3 lightPosition[4];
-uniform vec3 lightColor[4];
-uniform int numLights;
+layout(std140) uniform LightUniforms {
+    vec3 lightPositions[4];
+    vec3 lightColors[4];
+    int  numLights;
+    bool enableLighting;
+};
+
+layout(std140) uniform MeshInstanceUniforms {
+    mat4  transform;
+    mat3  orientation;
+    vec3  diffuseColor;
+    vec3  specularColor;
+    float _pad0; // TODO
+    float specularPower;
+    float normalMapScale;
+    bool  hasDiffuseTexture;
+    bool  hasNormalTexture;
+};
 
 uniform sampler2D diffuseTexture;
 uniform sampler2D normalTexture;
@@ -29,7 +42,7 @@ void main() {
 
     if (hasNormalTexture) {
         vec3 tbn = texture(normalTexture, var_uv).rgb * 2.0 - 1.0;
-        normal = normalize(tbn.x * tangent + tbn.y * bitangent + tbn.z * normal);
+        normal = normalize(tbn.x * normalMapScale * tangent + tbn.y * normalMapScale * bitangent + tbn.z * normal);
     }
 
     vec3 lighting = vec3(0, 0, 0);
@@ -40,7 +53,7 @@ void main() {
 
     if (enableLighting) {
         for (int i = 0; i < numLights; i++) {
-            vec3 l = lightPosition[i] - var_position;
+            vec3 l = lightPositions[i] - var_position;
             float r = length(l);
 
             l /= r;
@@ -51,7 +64,7 @@ void main() {
             vec3 reflDir = reflect(l, normal);
             float rdotv = pow(clamp(dot(reflDir, viewDir), 0, 1), specularPower);
 
-            lighting += ndotl * (diffuse + specularColor * rdotv) * lightColor[i];
+            lighting += ndotl * (diffuse + specularColor * rdotv) * lightColors[i];
         }
     }
     else {

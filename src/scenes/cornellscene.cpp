@@ -2,6 +2,7 @@
 #include <light/pointlight.h>
 
 CornellScene::CornellScene() {
+#if 0
     float3 cameraPosition = float3(0.0f, 5.0f, -16.0f);
 
     setCamera(new Camera(cameraPosition, float3(0.0f, 5.0f, 0.0f),
@@ -32,6 +33,7 @@ CornellScene::CornellScene() {
 
     addLight(new PointLight(float3(0.0f, 9.0f, 0.0f), 0.5f, 
         float3(17.476f, 13.04f, 7.6f) * 2.5f, true));
+#endif
 }
 
 CornellScene::~CornellScene() {

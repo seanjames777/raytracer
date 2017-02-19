@@ -5,13 +5,32 @@ layout(location=2) in vec3 in_tangent;
 layout(location=3) in vec2 in_uv;
 #endif
 
-uniform mat4 transform;
-uniform mat4 viewProjection;
+layout(std140) uniform CameraUniforms {
+    mat4 viewProjection;
+    vec3 viewPosition;
+};
 
-#if SUPPORT_LIGHTING
-uniform mat3 orientation;
-uniform vec3 viewPosition;
-#endif
+layout(std140) uniform LightUniforms {
+    vec3 lightPositions[4];
+    vec3 lightColors[4];
+    int  numLights;
+    bool enableLighting;
+};
+
+layout(std140) uniform MeshInstanceUniforms {
+    mat4  transform;
+    mat3  orientation;
+    vec3  diffuseColor;
+    vec3  specularColor;
+    float _pad0; // TODO
+    float specularPower;
+    float normalMapScale;
+    bool  hasDiffuseTexture;
+    bool  hasNormalTexture;
+};
+
+uniform sampler2D diffuseTexture;
+uniform sampler2D normalTexture;
 
 #if SUPPORT_LIGHTING
 out vec3 var_position;

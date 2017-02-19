@@ -15,6 +15,8 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <preview/imgui_internal.h>
 #include <preview/ImGuizmo.h>
+#include <math/plane.h>
+#include <math/sphere.h>
 
 GLFWwindow *window;
 GLuint vao;
@@ -24,6 +26,10 @@ double currTime;
 PVShader *shader = nullptr;
 PVBuffer *vertices = nullptr;
 PVBuffer *indices = nullptr;
+
+PVShader *solidShader = nullptr;
+PVBuffer *solidVB = nullptr;
+PVVertexArray *solidVA = nullptr;
 
 PVMeshInstance *selectedInstance = nullptr;
 PVLight *selectedLight = nullptr;
@@ -38,6 +44,8 @@ bool texturing = true;
 bool normalMapping = true;
 int sampleCount = 0;
 int maxSampleCount = 0;
+bool draggingCamera = false;
+bool wireframe = false;
 
 PVTexture *resolveTexture = nullptr;
 PVFramebuffer *resolveFramebuffer = nullptr;
@@ -53,7 +61,7 @@ bool mouseDown;
 
 float camFOV;
 bool culling;
-bool vsync;
+bool vsync = true;
 int maxLights;
 float scroll;
 
@@ -66,15 +74,18 @@ float gpuFrameTimes[MAX_FRAMES];
 #define MAX_QUERIES 3
 GLuint queries[MAX_QUERIES];
 
-float transform[16];
+bool draggingTransform = false;
+int selectedAxes = -1;
+int selectedPlane = -1;
+float3 selectedPosition;
 
-void setTransform(float3 position, float3 rotation, float3 scale) {
-    ImGuizmo::RecomposeMatrixFromComponents(&position[0], &rotation[0], &scale[0], transform);
-}
+enum TransformMode {
+    TransformModeTranslation,
+    TransformModeRotation,
+    TransformModeScale
+};
 
-void getTransform(float3 & position, float3 & rotation, float3 & scale) {
-    ImGuizmo::DecomposeMatrixToComponents(transform, &position[0], &rotation[0], &scale[0]);
-}
+TransformMode transformMode = TransformModeTranslation;
 
 #if 0
 const char *vs_source =
@@ -148,11 +159,34 @@ void glfw_scroll_callback(GLFWwindow *window, double x, double y) {
 void glfw_char_callback(GLFWwindow *window, unsigned int c) {
     ImGuiIO & io = ImGui::GetIO();
 
-    if (c > 0 && c < 0x10000)
-        io.AddInputCharacter((unsigned short)c);
+    if (io.WantCaptureKeyboard) {
+        if (c > 0 && c < 0x10000)
+            io.AddInputCharacter((unsigned short)c);
+    }
+    else {
+        switch (c) {
+        case 'w':
+            transformMode = TransformModeTranslation;
+            break;
+        case 'e':
+            transformMode = TransformModeRotation;
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 void imgui_render(ImDrawData *data) {
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+
+    glViewport(0, 0, width, height);
+    glScissor(0, 0, width, height);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     ImGuiIO & io = ImGui::GetIO();
 
     shader->bind();
@@ -168,9 +202,6 @@ void imgui_render(ImDrawData *data) {
     glEnable(GL_SCISSOR_TEST);
     glBlendEquation(GL_FUNC_ADD);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    int fbWidth, fbHeight;
-    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 
     uiSampler->bind(0);
 
@@ -193,7 +224,7 @@ void imgui_render(ImDrawData *data) {
                 PVTexture *fontTexture = (PVTexture *)cmd->TextureId;
                 fontTexture->bind(0);
 
-                glScissor((int)cmd->ClipRect.x, (int)(fbHeight - cmd->ClipRect.w), (int)(cmd->ClipRect.z - cmd->ClipRect.x), (int)(cmd->ClipRect.w - cmd->ClipRect.y));
+                glScissor((int)cmd->ClipRect.x, (int)(height - cmd->ClipRect.w), (int)(cmd->ClipRect.z - cmd->ClipRect.x), (int)(cmd->ClipRect.w - cmd->ClipRect.y));
 
                 glDrawElements(GL_TRIANGLES, cmd->ElemCount, GL_UNSIGNED_SHORT, (void *)offset);
                 offset += cmd->ElemCount * sizeof(ImDrawIdx);
@@ -234,7 +265,7 @@ ImageDisplay::ImageDisplay(int width, int height, Image<float, 4> *image)
     glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_DEPTH_BITS, 0);
     glfwWindowHint(GLFW_STENCIL_BITS, 0);
-#if 1
+#if 0
     glfwWindowHint(GLFW_SRGB_CAPABLE, true);
 #endif
 
@@ -254,7 +285,7 @@ ImageDisplay::ImageDisplay(int width, int height, Image<float, 4> *image)
     glfwSetKeyCallback(window, glfw_key_callback);
     glfwSetCharCallback(window, glfw_char_callback);
 
-    glfwSwapInterval(1); // TODO: flag to enable
+    glfwSwapInterval(vsync);
 
     // TODO: Init GLEW
     glewExperimental = true;
@@ -354,8 +385,6 @@ ImageDisplay::ImageDisplay(int width, int height, Image<float, 4> *image)
 
     glfwGetCursorPos(window, &mouseX, &mouseY);
 
-    currTime = glfwGetTime();
-
     for (int i = 0; i < MAX_FRAMES; i++)
         cpuFrameTimes[i] = 0.0f;
 
@@ -363,7 +392,6 @@ ImageDisplay::ImageDisplay(int width, int height, Image<float, 4> *image)
         gpuFrameTimes[i] = 0.0f;
 
     culling = true;
-    vsync = true;
     maxLights = 4;
     scroll = 0.0f;
     mouseDown = false;
@@ -386,6 +414,19 @@ ImageDisplay::ImageDisplay(int width, int height, Image<float, 4> *image)
 
     shadowFramebuffer = new PVFramebuffer();
     shadowFramebuffer->setDepthAttachment(shadowTexture);
+
+    solidShader = new PVShader("solid_vertex.glsl", "solid_fragment.glsl");
+
+    solidVB = new PVBuffer();
+
+    solidVA = new PVVertexArray();
+
+    solidVA->setVertexBuffer(solidVB);
+
+    solidVA->setVertexAttribute(0, 3, PVVertexFormatFloat, false, 28, 0);
+    solidVA->setVertexAttribute(1, 4, PVVertexFormatFloat, false, 28, 12); // TODO: uchar4
+
+    currTime = glfwGetTime();
 }
 
 ImageDisplay::~ImageDisplay() {
@@ -452,156 +493,533 @@ float2 ImageDisplay::getCursorPos() {
     return float2(cx, cy);
 }
 
-struct ProfilerEventData {
-    double cumulative;
-    int hits;
-
-    ProfilerEventData()
-        : cumulative(0),
-          hits(0)
-    {
-    }
+struct SolidVertex {
+    float position[3];
+    float color[4];
 };
 
-struct ProfilerEvent {
-    bool begin;
-    const char *name;
-    double time;
-    ProfilerEventData *data;
+struct SolidDrawCmd {
+    GLenum fillMode;
+    int vertexOffset;
+    int vertexCount;
+    bool clip;
+    float4 clipPlane;
 };
 
-std::vector<ProfilerEvent> profiler_events;
-double profiler_frame_start, profiler_frame_end;
-bool profiler_capture = false;
+void drawWireBox(const AABB & bounds, const float4x4 & transform, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    SolidDrawCmd cmd;
 
-void profiler_begin_frame() {
-    if (profiler_capture) {
-        Timer timer;
-        profiler_frame_start = timer.getTime();
+    cmd.fillMode = GL_LINE;
+    cmd.vertexOffset = vertices.size();
+    cmd.clip = false;
+
+    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
+
+    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
+    commands.push_back(cmd);
+
+    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
+        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
+
+        for (int j = 0; j < 3; j++)
+            vertices[i].position[j] = position[j];
     }
 }
 
-void profiler_end_frame() {
-    if (profiler_capture) {
-        Timer timer;
-        profiler_frame_end = timer.getTime();
+void drawFilledCylinder(const float4x4 & transform, int numVertices, float r, float h, bool capTop, bool capBottom, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    SolidDrawCmd cmd;
+
+    cmd.fillMode = GL_FILL;
+    cmd.vertexOffset = vertices.size();
+    cmd.clip = false;
+
+    for (int i = 0; i < numVertices; i++) {
+        // TODO: reuse first vertex
+        float theta0 = (float)i / (float)numVertices;
+        float theta1 = (float)(i + 1) / (float)numVertices;
+
+        float x0 = r * cosf(theta0 * 2.0f * (float)M_PI);
+        float z0 = r * sinf(theta0 * 2.0f * (float)M_PI);
+
+        float x1 = r * cosf(theta1 * 2.0f * (float)M_PI);
+        float z1 = r * sinf(theta1 * 2.0f * (float)M_PI);
+
+        if (capBottom) {
+            vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ { x1, 0, z1 }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ {  0, 0, 0  }, { color.x, color.y, color.z, color.w } });
+        }
+
+        vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
+        vertices.push_back({ { x0, h, z0 }, { color.x, color.y, color.z, color.w } });
+        vertices.push_back({ { x1, h, z1 }, { color.x, color.y, color.z, color.w } });
+
+        vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
+        vertices.push_back({ { x1, h, z1 }, { color.x, color.y, color.z, color.w } });
+        vertices.push_back({ { x1, 0, z1 }, { color.x, color.y, color.z, color.w } });
+
+        if (capTop) {
+            vertices.push_back({ { x0, h, z0 }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ { x1, h, z1 }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ {  0, h, 0  }, { color.x, color.y, color.z, color.w } });
+        }
+    }
+
+    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
+    commands.push_back(cmd);
+
+    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
+        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
+
+        for (int j = 0; j < 3; j++)
+            vertices[i].position[j] = position[j];
     }
 }
 
-void profiler_push(const char *name) {
-    if (profiler_capture) {
-        Timer timer;
+void drawFilledCone(const float4x4 & transform, int numVertices, float r, float h, bool capBottom, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    SolidDrawCmd cmd;
 
-        ProfilerEvent event;
-        event.begin = true;
-        event.name = name;
-        event.time = timer.getTime();
+    cmd.fillMode = GL_FILL;
+    cmd.vertexOffset = vertices.size();
+    cmd.clip = false;
 
-        profiler_events.push_back(event);
+    for (int i = 0; i < numVertices; i++) {
+        // TODO: reuse first vertex
+        float theta0 = (float)i / (float)numVertices;
+        float theta1 = (float)(i + 1) / (float)numVertices;
+
+        float x0 = r * cosf(theta0 * 2.0f * (float)M_PI);
+        float z0 = r * sinf(theta0 * 2.0f * (float)M_PI);
+
+        float x1 = r * cosf(theta1 * 2.0f * (float)M_PI);
+        float z1 = r * sinf(theta1 * 2.0f * (float)M_PI);
+
+        if (capBottom) {
+            vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ { x1, 0, z1 }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ {  0, 0, 0  }, { color.x, color.y, color.z, color.w } });
+        }
+
+        vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
+        vertices.push_back({ { x1, 0, z1 }, { color.x, color.y, color.z, color.w } });
+        vertices.push_back({ {  0, h, 0  }, { color.x, color.y, color.z, color.w } });
+    }
+
+    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
+    commands.push_back(cmd);
+
+    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
+        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
+
+        for (int j = 0; j < 3; j++)
+            vertices[i].position[j] = position[j];
     }
 }
 
-void profiler_pop() {
-    if (profiler_capture) {
-        Timer timer;
+void drawFilledQuad(const float4x4 & transform, float w, float h, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    SolidDrawCmd cmd;
 
-        ProfilerEvent event;
-        event.begin = false;
-        event.name = NULL;
-        event.time = timer.getTime();
+    cmd.fillMode = GL_FILL;
+    cmd.vertexOffset = vertices.size();
+    cmd.clip = false;
 
-        profiler_events.push_back(event);
+    vertices.push_back({ { 0, 0, 0 }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { 0, h, 0 }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { w, h, 0 }, { color.x, color.y, color.z, color.w } });
+
+    vertices.push_back({ { 0, 0, 0 }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { w, h, 0 }, { color.x, color.y, color.z, color.w } });
+    vertices.push_back({ { w, 0, 0 }, { color.x, color.y, color.z, color.w } });
+
+    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
+    commands.push_back(cmd);
+
+    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
+        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
+
+        for (int j = 0; j < 3; j++)
+            vertices[i].position[j] = position[j];
     }
 }
 
-void profiler_draw() {
-#if 0
-    // TODO: smooth out averages instead
-    //if (ImGui::Button("Capture")) {
+void drawFilledSphere(const float4x4 & transform, int numVerticesX, int numVerticesY, float r, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    SolidDrawCmd cmd;
 
-    //if (frameIdx % 10 == 0) {
-        profiler_capture = true;
-        //profiler_events.clear();
-        //return;
-    //}
+    cmd.fillMode = GL_FILL;
+    cmd.vertexOffset = vertices.size();
+    cmd.clip = false;
 
-    //profiler_capture = false;
+    for (int i = 0; i < numVerticesY; i++) {
+        // TODO: reuse first vertex
+        float phi0 = (float)i / (float)numVerticesY * (float)M_PI;
+        float phi1 = (float)(i + 1) / (float)numVerticesY * (float)M_PI;
 
-    ImGuiWindow *window = ImGui::GetCurrentWindow();
+        for (int j = 0; j < numVerticesX; j++) {
+            float theta0 = (float)j / (float)numVerticesX * 2.0f * (float)M_PI;
+            float theta1 = (float)(j + 1) / (float)numVerticesX * 2.0f * (float)M_PI;
 
-    if (window->SkipItems)
+            float3 p0(r * cosf(theta0) * sinf(phi0), r * cosf(phi0), r * sinf(theta0) * sinf(phi0));
+            float3 p1(r * cosf(theta0) * sinf(phi1), r * cosf(phi1), r * sinf(theta0) * sinf(phi1));
+            float3 p2(r * cosf(theta1) * sinf(phi1), r * cosf(phi1), r * sinf(theta1) * sinf(phi1));
+            float3 p3(r * cosf(theta1) * sinf(phi0), r * cosf(phi0), r * sinf(theta1) * sinf(phi0));
+
+            vertices.push_back({ { p0.x, p0.y, p0.z }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ { p1.x, p1.y, p1.z }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ { p2.x, p2.y, p2.z }, { color.x, color.y, color.z, color.w } });
+
+            vertices.push_back({ { p0.x, p0.y, p0.z }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ { p2.x, p2.y, p2.z }, { color.x, color.y, color.z, color.w } });
+            vertices.push_back({ { p3.x, p3.y, p3.z }, { color.x, color.y, color.z, color.w } });
+        }
+    }
+
+    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
+    commands.push_back(cmd);
+
+    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
+        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
+
+        for (int j = 0; j < 3; j++)
+            vertices[i].position[j] = position[j];
+    }
+}
+
+void drawWireCircle(const float4x4 & transform, int numVertices, float r, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    SolidDrawCmd cmd;
+
+    cmd.fillMode = GL_LINE;
+    cmd.vertexOffset = vertices.size();
+    cmd.clip = false;
+
+    for (int i = 0; i < numVertices; i++) {
+        // TODO: reuse first vertex
+        float theta0 = (float)i / (float)numVertices;
+        float theta1 = (float)(i + 1) / (float)numVertices;
+
+        float x0 = r * cosf(theta0 * 2.0f * (float)M_PI);
+        float y0 = r * sinf(theta0 * 2.0f * (float)M_PI);
+
+        float x1 = r * cosf(theta1 * 2.0f * (float)M_PI);
+        float y1 = r * sinf(theta1 * 2.0f * (float)M_PI);
+
+        vertices.push_back({ { x0, y0, 0 }, { color.x, color.y, color.z, color.w } });
+        vertices.push_back({ { x1, y1, 0 }, { color.x, color.y, color.z, color.w } });
+    }
+
+    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
+    commands.push_back(cmd);
+
+    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
+        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
+
+        for (int j = 0; j < 3; j++)
+            vertices[i].position[j] = position[j];
+    }
+}
+
+// TODO ::rotation() is broken
+
+void drawAxes(const float4x4 & transform, int numVertices, float lineRadius, float lineLength, float coneRadius, float coneLength, const float4 & xcolor, const float4 & ycolor, const float4 & zcolor, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    float4x4 cylTransform = transform;
+    drawFilledCylinder(cylTransform, numVertices, lineRadius, lineLength, false, true, ycolor, vertices, commands);
+    float4x4 coneTransform = cylTransform * translation(float3(0.0f, lineLength, 0.0f));
+    drawFilledCone(coneTransform, numVertices, coneRadius, coneLength, true, ycolor, vertices, commands);
+
+    cylTransform = transform * rotationX((float)M_PI / 2.0f);
+    drawFilledCylinder(cylTransform, numVertices, lineRadius, lineLength, false, true, zcolor, vertices, commands);
+    coneTransform = cylTransform * translation(float3(0.0f, lineLength, 0.0f));
+    drawFilledCone(coneTransform, numVertices, coneRadius, coneLength, true, zcolor, vertices, commands);
+
+    cylTransform = transform * rotationZ(-(float)M_PI / 2.0f);
+    drawFilledCylinder(cylTransform, numVertices, lineRadius, lineLength, false, true, xcolor, vertices, commands);
+    coneTransform = cylTransform * translation(float3(0.0f, lineLength, 0.0f));
+    drawFilledCone(coneTransform, numVertices, coneRadius, coneLength, true, xcolor, vertices, commands);
+}
+
+void flushSolidDrawCommands(const float4x4 & viewProjectionMatrix, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    if (vertices.size() == 0)
         return;
 
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuiContext& g = *GImGui;
-    const ImGuiStyle& style = g.Style;
+    GLCHECK(glEnable(GL_BLEND));
+    GLCHECK(glBlendEquation(GL_FUNC_ADD));
+    GLCHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
-    ImVec2 orig = ImGui::GetCursorScreenPos();
-    ImVec2 sz;
-    sz.x = ImGui::GetContentRegionMax().x - window->WindowPadding.x;
-    sz.y = g.FontSize + style.FramePadding.y * 2;
+    solidVB->setData(&vertices[0], sizeof(SolidVertex) * vertices.size(), GL_STATIC_DRAW);
 
-    ImRect bb(orig, orig + sz);
+    solidVA->bind();
+    solidShader->bind();
 
-    if (!ImGui::ItemAdd(bb, NULL))
-        return;
+    GLint viewProjectionLocation = solidShader->getUniformLocation("viewProjection");
+    GLCHECK(glUniformMatrix4fv(viewProjectionLocation, 1, true, &viewProjectionMatrix.rows[0][0]));
 
-    //double frameTime = profiler_frame_end - profiler_frame_start;
-    double frameTime = 50.0;
-    float width = bb.Max.x - bb.Min.x;
-
-    for (int i = 0; i <= 50; i++) {
-        float x = (float)i / frameTime * width;
-
-        window->DrawList->AddLine(ImVec2(bb.Min.x + x, bb.Min.y), ImVec2(bb.Min.x + x, bb.Max.y), ImColor(255, 255, 255, 255));
-
-        char str[64];
-        memset(str, 0, 64);
-        sprintf(str, "%d", i);
-
-        ImGui::RenderText(ImVec2(bb.Min.x + x, bb.Min.y), str);
+    for (SolidDrawCmd & command : commands) {
+        // TODO: sort/coalesce commands. Could probably do so for imgui as well.
+        GLCHECK(glPolygonMode(GL_FRONT_AND_BACK, command.fillMode));
+        GLCHECK(glDrawArrays(command.fillMode == GL_LINE ? GL_LINES : GL_TRIANGLES, command.vertexOffset, command.vertexCount));
     }
 
-    struct ProfilerFrame {
-        const char *name;
-        double startTime;
+    GLCHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+
+    GLCHECK(glUseProgram(0));
+    GLCHECK(glBindVertexArray(0));
+    GLCHECK(glDisable(GL_BLEND));
+}
+
+void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewProjectionMatrix, const float2 & viewPos, const float2 & viewSize, float pixelSize, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    // TODO: add a world space mode
+
+    float4x4 worldViewProjection = viewProjectionMatrix * transform;
+    float4x4 invWorldViewProjection = inverse(worldViewProjection);
+
+    // Transform gizmo position into screen space
+    float4 positionNDC(0, 0, 0, 1);
+    positionNDC = worldViewProjection * positionNDC;
+    positionNDC = positionNDC / positionNDC.w;
+
+    // Create another point a constant screen space distance away
+    float desiredSize = 100.0f / viewSize.x * 2.0f;
+    float4 offsetPosNDC = positionNDC;
+    offsetPosNDC.x += desiredSize;
+
+    // Unproject second point
+    float4 offsetPos = invWorldViewProjection * offsetPosNDC;
+    offsetPos = offsetPos / offsetPos.w;
+
+    // Get world space distance between two points
+    float axisLength = length(offsetPos.xyz());
+    float axisRadius = 0.022f * axisLength;
+    float quadLength = axisLength * 0.33f;
+
+    //Ray ray = unproject(worldViewProjection, float2(mouseX, mouseY), viewPos, viewSize);
+
+#if 1
+    float2 ndc(mouseX, mouseY);
+    ndc = (ndc - viewPos) / viewSize;
+    ndc = ndc * 2.0f - 1.0f;
+    ndc.y = -ndc.y;
+
+    float4 near(ndc, 0.0f, 1.0f); // TODO: -1 or 0 ?
+    float4 far(ndc, 1.0f, 1.0f);
+
+    near = invWorldViewProjection * near;
+    far = invWorldViewProjection * far;
+    near = near / near.w;
+    far = far / far.w;
+
+    Ray ray(near.xyz(), normalize(far.xyz() - near.xyz()));
+#endif
+
+    float3 axes[3] = {
+        float3(1, 0, 0),
+        float3(0, 1, 0),
+        float3(0, 0, 1)
     };
 
-    std::vector<ProfilerFrame> stack;
-    int depth = 0;
+    Plane planes[3] = {
+        Plane(axes[0], 0),
+        Plane(axes[1], 0),
+        Plane(axes[2], 0)
+    };
 
-    for (ProfilerEvent & event : profiler_events) {
-        if (event.begin) {
-            ProfilerFrame frame;
-            frame.name = event.name;
-            frame.startTime = event.time;
+    float3 axisColors[3];
+    float3 quadColors[3];
 
-            stack.push_back(frame);
-            depth++;
+    for (int i = 0; i < 3; i++) {
+        axisColors[i] = axes[i];
+        quadColors[i] = axes[i];
+    }
+
+    if (draggingTransform) {
+        float hitDist;
+        if (planes[selectedPlane].intersects(ray, hitDist)) {
+            float3 hitPos = ray.at(hitDist);
+
+            float3 delta = hitPos - selectedPosition;
+            float3 constrainedDelta = 0;
+
+            // TODO: can just filter out the unselected axes directly
+            for (int i = 0; i < 3; i++) {
+                if ((1 << i) & selectedAxes)
+                    constrainedDelta = constrainedDelta + dot(axes[i], delta) * axes[i];
+            }
+
+            if (transformMode == TransformModeTranslation)
+                transform = transform * translation(constrainedDelta);
+            else if (transformMode == TransformModeRotation) {
+                float3 S_norm = normalize(selectedPosition);
+
+                float3 HonS = dot(hitPos, S_norm) * S_norm;
+                float3 HoffS = hitPos - HonS;
+
+                float theta = atan2(length(HoffS), length(HonS));
+
+                if (dot(cross(selectedPosition, hitPos), planes[selectedPlane].normal) < 0.0f)
+                    theta = -theta;
+
+                // TODO
+                switch (selectedPlane) {
+                case 0: transform = transform * rotationX(theta); break;
+                case 1: transform = transform * rotationY(theta); break;
+                case 2: transform = transform * rotationZ(theta); break;
+                }
+            }
         }
-        else {
-            ProfilerFrame & frame = stack.back();
-            double endTime = event.time;
 
-            float t0 = (frame.startTime - profiler_frame_start) / frameTime;
-            float t1 = (endTime - profiler_frame_start) / frameTime;
+        for (int i = 0; i < 3; i++) {
+            if ((1 << i) & selectedAxes)
+                axisColors[i] = float3(1, 1, 0);
 
-            ImRect rect(ImVec2(bb.Min.x + t0 * width, bb.Min.y + 30 * depth), ImVec2(bb.Min.x + t1 * width, bb.Max.y + 30 * depth));
-
-            window->DrawList->AddRectFilled(rect.Min, rect.Max, ImColor(255, 0, 0, 255));
-            // TODO: just use strlen
-            char value_buf[64];
-            const char *value_buf_end = value_buf + ImFormatString(value_buf, IM_ARRAYSIZE(value_buf), "%s", frame.name);
-            ImGui::RenderTextClipped(rect.Min, rect.Max, value_buf, value_buf_end, NULL, ImVec2(0.5f, 0.5f));
-            window->DrawList->AddRect(rect.Min, rect.Max, ImColor(255, 255, 0, 255));
-
-            stack.pop_back();
-            depth--;
+            if (((1 << ((i + 1) % 3)) & selectedAxes) && ((1 << ((i + 2) % 3)) & selectedAxes))
+                quadColors[i] = float3(1, 1, 0);
         }
     }
-#endif
-    
-    profiler_events.clear();
+    else if (!draggingCamera) {
+        int hoveredAxes = 0;
+        int hoveredPlane;
+        float hoveredDist = INFINITY;
+
+        if (transformMode == TransformModeTranslation) {
+            for (int pickAxis = 0; pickAxis < 3; pickAxis++) {
+                // TODO: pick the plane with the greatest precision?
+                for (int pickPlane = 0; pickPlane < 3; pickPlane++) {
+                    if (pickPlane == pickAxis)
+                        continue;
+
+                    float hitDist;
+                    if (planes[pickPlane].intersects(ray, hitDist)) {
+                        float3 hitPos = ray.at(hitDist);
+                        float onAxisAmt = dot(axes[pickAxis], hitPos);
+                        float3 onAxis = onAxisAmt * axes[pickAxis];
+                        float3 offAxis = hitPos - onAxis;
+                        float offAxisAmt = length(offAxis); // TODO: probably a simpler expression
+
+                        // TODO: Could take cone radius into account
+                        if (onAxisAmt > 0.0f && onAxisAmt < axisLength && offAxisAmt < axisRadius * 4.0f && hitDist < hoveredDist) {
+                            hoveredAxes = (1 << pickAxis);
+                            hoveredDist = hitDist;
+                            hoveredPlane = pickPlane;
+                        }
+                    }
+                }
+            }
+
+            for (int pickPlane = 0; pickPlane < 3; pickPlane++) {
+                int axis0 = (pickPlane + 1) % 3;
+                int axis1 = (pickPlane + 2) % 3;
+
+                float hitDist;
+                if (planes[pickPlane].intersects(ray, hitDist)) {
+                    float3 hitPos = ray.at(hitDist);
+
+                    float onAxis0 = dot(axes[axis0], hitPos);
+                    float onAxis1= dot(axes[axis1], hitPos);
+
+                    // TODO: Selection radius should probably be in screen space
+
+                    if (onAxis0 > axisRadius * 4.0f && onAxis0 < quadLength && onAxis1 > axisRadius * 4.0f && onAxis1 < quadLength && hitDist < hoveredDist) {
+                        hoveredAxes = (1 << axis0) | (1 << axis1);
+                        hoveredDist = hitDist;
+                        hoveredPlane = pickPlane;
+                    }
+                }
+            }
+        }
+        else if (transformMode == TransformModeRotation) {
+            for (int pickPlane = 0; pickPlane < 3; pickPlane++) {
+                float hitDist;
+                if (planes[pickPlane].intersects(ray, hitDist)) {
+                    float3 hitPos = ray.at(hitDist);
+
+                    float r = length(hitPos);
+
+                    if (r > axisLength * 0.8f && r < axisLength * 1.2f) {
+                        hoveredAxes = (1 << ((pickPlane + 1) % 3)) | (1 << ((pickPlane + 2) %3));
+                        hoveredDist = hitDist;
+                        hoveredPlane = pickPlane;
+                    }
+                }
+            }
+        }
+
+        if (hoveredAxes != 0) {
+            if (mouseDown) {
+                selectedAxes = hoveredAxes;
+                selectedPosition = ray.at(hoveredDist);
+                selectedPlane = hoveredPlane;
+                draggingTransform = true;
+            }
+
+            for (int i = 0; i < 3; i++) {
+                if ((1 << i) & hoveredAxes)
+                    axisColors[i] = float3(1, 1, 0);
+
+                if (((1 << ((i + 1) % 3)) & hoveredAxes) && ((1 << ((i + 2) % 3)) & hoveredAxes))
+                    quadColors[i] = float3(1, 1, 0);
+            }
+
+        }
+    }
+
+    if (transformMode == TransformModeTranslation) {
+        drawAxes(transform, 8, axisRadius, 0.66f * axisLength, 0.11f * axisLength, 0.33f * axisLength, float4(axisColors[0], 1), float4(axisColors[1], 1), float4(axisColors[2], 1), vertices, commands);
+
+        // TODO: Sort for blending
+        float4x4 quadTransform;
+        drawFilledQuad(transform * quadTransform, quadLength, quadLength, float4(quadColors[2], 0.5f), vertices, commands);
+        quadTransform = rotationX((float)M_PI / 2.0f);
+        drawFilledQuad(transform * quadTransform, quadLength, quadLength, float4(quadColors[1], 0.5f), vertices, commands);
+        quadTransform = rotationY(-(float)M_PI / 2.0f);
+        drawFilledQuad(transform * quadTransform, quadLength, quadLength, float4(quadColors[0], 0.5f), vertices, commands);
+    }
+    else if (transformMode == TransformModeRotation) {
+        float4x4 circleTransform;
+        drawWireCircle(transform * circleTransform, 32, axisLength, float4(quadColors[2], 1.0f), vertices, commands);
+        circleTransform = rotationX((float)M_PI / 2.0f);
+        drawWireCircle(transform * circleTransform, 32, axisLength, float4(quadColors[1], 1.0f), vertices, commands);
+        circleTransform = rotationY(-(float)M_PI / 2.0f);
+        drawWireCircle(transform * circleTransform, 32, axisLength, float4(quadColors[0], 1.0f), vertices, commands);
+
+        for (int i = 0; i < 3; i++) {
+            SolidDrawCmd & cmd = commands[commands.size() - 1 - i];
+
+            cmd.clip = true;
+            //cmd.clipPlane = float4()
+        }
+    }
 }
 
 void ImageDisplay::drawPreviewScene(PVScene *scene) {
@@ -622,142 +1040,9 @@ void ImageDisplay::drawPreviewScene(PVScene *scene) {
     mouseX = newMouseX;
     mouseY = newMouseY;
 
-    float3 targ = scene->getCamera(0)->getTarget();
-    float3 pos = scene->getCamera(0)->getPosition() - targ;
-
-    float r = length(pos);
-    float theta = atan2(pos.z, pos.x);
-    float phi = acos(pos.y / r);
-
-    if (!ImGuizmo::IsUsing() && !io.WantCaptureMouse) {
-        if (mouseDown && prevMouseDown) {
-            if (!io.KeySuper) {
-                theta += deltaMouseX * -0.004f;
-                phi += deltaMouseY * -0.004f;
-
-                if (phi < 0.001f)
-                    phi = 0.001f;
-
-                if (phi > (float)M_PI * 0.9999f)
-                    phi = (float)M_PI * 0.9999f;
-            }
-            else {
-                // TODO: we could project the actual mouse delta in world space
-                targ = targ + deltaMouseX * -0.03f * scene->getCamera(0)->getRight()
-                            + deltaMouseY *  0.03f * scene->getCamera(0)->getUp();
-            }
-        }
-
-        r += scroll * -0.1f;
-
-        if (r < 0.001f)
-            r = 0.001f;
-    }
-
-    pos.x = r * cos(theta) * sin(phi);
-    pos.y = r * cos(phi);
-    pos.z = r * sin(theta) * sin(phi);
-
-    scene->getCamera(0)->setTarget(targ);
-    scene->getCamera(0)->setPosition(pos + targ);
-
-    //glFlush();
-    Timer timer;
-
-    profiler_begin_frame();
-    profiler_push("Draw Scene");
-
-#define ENABLE_GPU_PROFILING 1
-
-#if ENABLE_GPU_PROFILING
-    glBeginQuery(GL_TIME_ELAPSED, queries[frameIdx % 3]);
-#endif
-
-    profiler_push("Clear");
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    profiler_pop();
-
     int width, height, windowWidth, windowHeight;
     glfwGetFramebufferSize(window, &width, &height);
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
-
-    int drawW = width / 2;
-    int drawH = height / 2;
-
-    if (colorTexture->getWidth() != drawW || colorTexture->getHeight() != drawH || colorTexture->getSampleCount() != sampleCount) {
-        delete colorTexture;
-        delete depthTexture;
-        delete framebuffer;
-
-        if (resolveTexture) {
-            delete resolveTexture;
-            delete resolveFramebuffer;
-
-            resolveTexture = nullptr;
-            resolveFramebuffer = nullptr;
-        }
-
-        if (sampleCount > 0) {
-            colorTexture = new PVTexture(PVTextureType2DMultisample, PVPixelFormatRGBA8Unorm, drawW, drawH, sampleCount, 1);
-            depthTexture = new PVTexture(PVTextureType2DMultisample, PVPixelFormatDepth32Float, drawW, drawH, sampleCount, 1);
-
-            resolveTexture = new PVTexture(PVTextureType2D, PVPixelFormatRGBA8Unorm, drawW, drawH, 0, 1);
-
-            resolveFramebuffer = new PVFramebuffer();
-            resolveFramebuffer->setColorAttachment(0, resolveTexture);
-        }
-        else {
-            colorTexture = new PVTexture(PVTextureType2D, PVPixelFormatRGBA8Unorm, drawW, drawH, 0, 1);
-            depthTexture = new PVTexture(PVTextureType2D, PVPixelFormatDepth32Float, drawW, drawH, 0, 1);
-        }
-
-        framebuffer = new PVFramebuffer();
-        framebuffer->setColorAttachment(0, colorTexture);
-        framebuffer->setDepthAttachment(depthTexture);
-    }
-
-    float4x4 viewMatrix = lookAtLH(scene->getCamera(0)->getPosition(), scene->getCamera(0)->getTarget(), scene->getCamera(0)->getUp());
-    float4x4 projectionMatrix = perspectiveLH(scene->getCamera(0)->getFOV(), (float)width / (float)height, 0.1f, 100.0f);
-    float3 viewPosition = scene->getCamera(0)->getPosition();
-
-    PVRenderFlags flags = (PVRenderFlags)(
-        (texturing ? PVRenderFlagEnableTexturing : 0) |
-        (normalMapping ? PVRenderFlagEnableNormalMapping : 0) |
-        (culling ? PVRenderFlagEnableCulling : 0) |
-        (lighting ? PVRenderFlagEnableLighting : 0)
-    );
-
-    scene->draw(flags, maxLights, filterMode, anisotropy, viewMatrix, projectionMatrix, viewPosition, framebuffer);
-
-    if (sampleCount > 0) {
-        framebuffer->resolve(resolveFramebuffer);
-        resolveFramebuffer->blit(0, 0, width, height);
-    }
-    else
-        framebuffer->blit(0, 0, width, height);
-
-#if ENABLE_GPU_PROFILING
-    glEndQuery(GL_TIME_ELAPSED);
-#endif
-
-    profiler_pop();
-    profiler_end_frame();
-
-    float gpuFrameTime = 0.0f;
-
-#if ENABLE_GPU_PROFILING
-    if (++frameIdx >= 3) {
-        int timerDone = 0;
-        while (!timerDone)
-            glGetQueryObjectiv(queries[frameIdx % 3], GL_QUERY_RESULT_AVAILABLE, &timerDone);
-
-        GLuint64 elapsedTime;
-        glGetQueryObjectui64v(queries[frameIdx % 3], GL_QUERY_RESULT, &elapsedTime);
-
-        gpuFrameTime = elapsedTime / 1000000.0f;
-    }
-#endif
 
     io.DisplaySize.x = windowWidth;
     io.DisplaySize.y = windowHeight;
@@ -767,27 +1052,20 @@ void ImageDisplay::drawPreviewScene(PVScene *scene) {
     io.MousePos = ImVec2(newMouseX, newMouseY);
     io.MouseWheel = scroll * 0.5f;
 
+    float deltaScroll = scroll;
     scroll = 0.0f;
-
-    glViewport(0, 0, width, height);
-    glScissor(0, 0, width, height);
 
     ImGui::NewFrame();
     ImGuizmo::BeginFrame();
 
+#if 1
     {
-        ImGui::SetNextWindowPos(ImVec2(350, 0), ImGuiSetCond_FirstUseEver);
-        ImGui::Begin("Renderer  Settings", nullptr, ImVec2(440, 0));
+        ImGui::SetNextWindowPos(ImVec2(350, windowHeight - 300), ImGuiSetCond_FirstUseEver);
+        ImGui::Begin("Renderer Settings", nullptr, ImVec2(440, 300));
 
-        //glFlush();
         for (int i = 0; i < MAX_FRAMES - 1; i++)
             cpuFrameTimes[i] = cpuFrameTimes[i + 1];
         cpuFrameTimes[MAX_FRAMES - 1] = /*timer.getElapsedMilliseconds();*/ elapsed * 1000.0f;
-
-        // TODO: Not really accurate
-        for (int i = 0; i < MAX_FRAMES - 1; i++)
-            gpuFrameTimes[i] = gpuFrameTimes[i + 1];
-        gpuFrameTimes[MAX_FRAMES - 1] = gpuFrameTime;
 
         float avgCPU = 0.0f;
 
@@ -836,253 +1114,463 @@ void ImageDisplay::drawPreviewScene(PVScene *scene) {
         ImGui::Checkbox("Enable Lighting", &lighting);
         ImGui::Checkbox("Enable Textures", &texturing);
         ImGui::Checkbox("Enable Normal Maps", &normalMapping);
+        ImGui::Checkbox("Wireframe", &wireframe);
 
         ImGui::SliderInt("MSAA Samples", &sampleCount, 0, maxSampleCount);
 
         ImGui::End();
     }
+#endif
+#if 1
+    {
+        // TODO: This window doesn't need a background, especially a transparent one
+        ImGui::SetNextWindowPos(ImVec2(350, 0));
+        ImGui::SetNextWindowSize(ImVec2(windowWidth - 700, windowHeight - 300));
 
-    float4x4 viewProjectionMatrix = projectionMatrix * viewMatrix;
+        ImGui::Begin("View", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-    if (!ImGuizmo::IsUsing() && !io.WantCaptureMouse && mouseDown && !prevMouseDown) {
-        float2 ndc(mouseX, mouseY);
-        ndc = ndc / float2(windowWidth, windowHeight);
-        ndc = ndc * 2.0f - 1.0f;
-        ndc.y = -ndc.y;
+        ImVec2 padding = ImGui::GetStyle().WindowPadding;
+        ImDrawList *drawList = ImGui::GetWindowDrawList();
+        ImVec2 pos = ImGui::GetCursorScreenPos() - padding;
+        ImVec2 sz = ImGui::GetContentRegionAvail() + padding * 2;
 
-        float4x4 invViewProjection = inverse(viewProjectionMatrix);
+        ImRect bb(pos, pos + sz);
 
-        float4 near(ndc, 0.0001f, 1.0f); // TODO: -1 or 0 ?
-        float4 far(ndc, 0.9999f, 1.0f);
+        ImGui::ItemSize(bb);
+        const ImGuiID id = ImGui::GetCurrentWindow()->GetID("view_button");
 
-        near = invViewProjection * near;
-        far = invViewProjection * far;
-        near = near / near.w;
-        far = far / far.w;
+        if (ImGui::ItemAdd(bb, &id)) {
+            bool hovered, held;
+            bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
 
-        PVMeshInstance *closestHit = nullptr;
-        float closestDist = INFINITY;
+            int viewWidth = sz.x;
+            int viewHeight = sz.y;
 
-        for (int i = 0; i < scene->getNumMeshInstances(); i++) {
-            PVMeshInstance *instance = scene->getMeshInstance(i);
+            float3 camTarg = scene->getCamera(0)->getTarget();
+            float3 camPos = scene->getCamera(0)->getPosition() - camTarg;
 
-            float4x4 instanceTransform = instance->getTransform();
-            float4x4 invInstanceTransform = inverse(instanceTransform);
+            float r = length(camPos);
+            float theta = atan2(camPos.z, camPos.x);
+            float phi = acos(camPos.y / r);
 
-            float4 tfNear = invInstanceTransform * near;
-            float4 tfFar = invInstanceTransform * far;
+            // TODO: pressed and held trigger together
 
-            // TODO: not necessary for affine transforms
-            tfNear = tfNear / tfNear.w;
-            tfFar = tfFar / tfFar.w;
+            if (held && !draggingTransform) {
+                if (deltaMouseX != 0 || deltaMouseY != 0)
+                    draggingCamera = true;
 
-            float3 dir = normalize(tfFar.xyz() - tfNear.xyz());
+                if (draggingCamera) {
+                    if (!io.KeySuper) {
+                        theta += deltaMouseX * -0.004f;
+                        phi += deltaMouseY * -0.004f;
 
-            Ray mouseRay(tfNear.xyz(), normalize(tfFar.xyz() - tfNear.xyz()));
+                        if (phi < 0.001f)
+                            phi = 0.001f;
 
-            Collision result;
-            if (instance->mesh->intersect(mouseRay, result)) {
-                float3 hitPos = mouseRay.at(result.distance);
-
-                // TODO: divide not needed for affine transforms
-                float4 tfHitPos = instanceTransform * float4(hitPos, 1.0f);
-                tfHitPos = tfHitPos / tfHitPos.w;
-
-                float dist = length(near.xyz() - tfHitPos.xyz());
-
-                if (dist < closestDist) {
-                    closestHit = instance;
-                    closestDist = dist;
+                        if (phi > (float)M_PI * 0.9999f)
+                            phi = (float)M_PI * 0.9999f;
+                    }
+                    else {
+                        // TODO: we could project the actual mouse delta in world space
+                        camTarg = camTarg + deltaMouseX * -0.03f * scene->getCamera(0)->getRight()
+                                    + deltaMouseY *  0.03f * scene->getCamera(0)->getUp();
+                    }
                 }
             }
-        }
 
-        if (closestHit) {
-            printf("Hit mesh instance '%s': %f\n", closestHit->name.c_str(), closestDist);
-        
-            selectedInstance = closestHit;
-            selectedLight = nullptr;
-            setTransform(closestHit->position, closestHit->rotation, closestHit->scale);
-            selectedCamera = nullptr;
-        }
-    }
+            if (hovered) {
+                r += deltaScroll * -0.1f;
 
-    {
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight));
-
-        ImGui::Begin("Overlay", NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar |
-                                                          ImGuiWindowFlags_NoResize |
-                                                          ImGuiWindowFlags_NoScrollbar |
-                                                          ImGuiWindowFlags_NoInputs |
-                                                          ImGuiWindowFlags_NoSavedSettings |
-                                                          ImGuiWindowFlags_NoFocusOnAppearing |
-                                                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-
-        ImDrawList *drawList = ImGui::GetWindowDrawList();
-
-        for (int i = 0; i < scene->getNumLights(); i++) {
-            PVLight *light = scene->getLight(i);
-            float3 position = light->getPosition();
-
-            float4 transformed = viewProjectionMatrix * float4(position, 1.0f);
-
-            float depth = transformed.z / transformed.w;
-
-            if (depth < 0.001f)
-                continue;
-
-            float2 screenPos = transformed.xy() / transformed.w;
-
-            screenPos = screenPos * 0.5f + 0.5f;
-            screenPos.y = 1.0f - screenPos.y;
-            screenPos = screenPos * float2(windowWidth, windowHeight);
-
-            ImVec2 center = ImVec2(screenPos.x, screenPos.y);
-            ImVec2 rad = ImVec2(20, 20);
-
-            ImVec4 rgb(light->color.x, light->color.y, light->color.z, 1.0f);
-            ImVec4 hsv(0.0f, 0.0f, 0.0f, rgb.w);
-            ImGui::ColorConvertRGBtoHSV(rgb.x, rgb.y, rgb.z, hsv.x, hsv.y, hsv.z);
-            hsv.z = 1.0f; // Don't allow icon to get too dark
-            hsv.w = selectedLight == light ? 1.0f : 0.5f;
-            ImGui::ColorConvertHSVtoRGB(hsv.x, hsv.y, hsv.z, rgb.x, rgb.y, rgb.z);
-            rgb.w = hsv.w;
-
-            drawList->AddImage(lightIcon, center - rad, center + rad, ImVec2(0, 0), ImVec2(1, 1), ImGui::GetColorU32(rgb));
-
-            if (!ImGuizmo::IsUsing() && !io.WantCaptureMouse && mouseDown && !prevMouseDown && mouseX >= screenPos.x - rad.x && mouseX <= screenPos.x + rad.x && mouseY >= screenPos.y - rad.y && mouseY <= screenPos.y + rad.y) {
-                selectedInstance = nullptr;
-                selectedLight = light;
-                setTransform(light->position, float3(0, 0, 0), float3(1, 1, 1));
-                selectedCamera = nullptr;
+                if (r < 0.001f)
+                    r = 0.001f;
             }
+
+            camPos.x = r * cos(theta) * sin(phi);
+            camPos.y = r * cos(phi);
+            camPos.z = r * sin(theta) * sin(phi);
+
+            scene->getCamera(0)->setTarget(camTarg);
+            scene->getCamera(0)->setPosition(camPos + camTarg);
+
+            Timer timer;
+
+#define ENABLE_GPU_PROFILING 1
+
+#if ENABLE_GPU_PROFILING
+            glBeginQuery(GL_TIME_ELAPSED, queries[frameIdx % 3]);
+#endif
+
+            if (colorTexture->getWidth() != viewWidth || colorTexture->getHeight() != viewHeight || colorTexture->getSampleCount() != sampleCount) {
+                delete colorTexture;
+                delete depthTexture;
+                delete framebuffer;
+
+                if (resolveTexture) {
+                    delete resolveTexture;
+                    delete resolveFramebuffer;
+
+                    resolveTexture = nullptr;
+                    resolveFramebuffer = nullptr;
+                }
+
+                if (sampleCount > 0) {
+                    colorTexture = new PVTexture(PVTextureType2DMultisample, PVPixelFormatRGBA8Unorm, viewWidth, viewHeight, sampleCount, 1);
+                    depthTexture = new PVTexture(PVTextureType2DMultisample, PVPixelFormatDepth32Float, viewWidth, viewHeight, sampleCount, 1);
+
+                    resolveTexture = new PVTexture(PVTextureType2D, PVPixelFormatRGBA8Unorm, viewWidth, viewHeight, 0, 1);
+
+                    resolveFramebuffer = new PVFramebuffer();
+                    resolveFramebuffer->setColorAttachment(0, resolveTexture);
+                }
+                else {
+                    colorTexture = new PVTexture(PVTextureType2D, PVPixelFormatRGBA8Unorm, viewWidth, viewHeight, 0, 1);
+                    depthTexture = new PVTexture(PVTextureType2D, PVPixelFormatDepth32Float, viewWidth, viewHeight, 0, 1);
+                }
+
+                framebuffer = new PVFramebuffer();
+                framebuffer->setColorAttachment(0, colorTexture);
+                framebuffer->setDepthAttachment(depthTexture);
+            }
+
+            float4x4 viewMatrix = lookAtLH(scene->getCamera(0)->getPosition(), scene->getCamera(0)->getTarget(), scene->getCamera(0)->getUp());
+            float4x4 projectionMatrix = perspectiveLH(scene->getCamera(0)->getFOV(), (float)viewWidth / (float)viewHeight, 0.1f, 100.0f);
+            float4x4 viewProjectionMatrix = projectionMatrix * viewMatrix;
+            float3 viewPosition = scene->getCamera(0)->getPosition();
+            float4x4 invViewProjection = inverse(viewProjectionMatrix);
+
+            PVRenderFlags flags = (PVRenderFlags)(
+                (texturing ? PVRenderFlagEnableTexturing : 0) |
+                (normalMapping ? PVRenderFlagEnableNormalMapping : 0) |
+                (culling ? PVRenderFlagEnableCulling : 0) |
+                (lighting ? PVRenderFlagEnableLighting : 0) |
+                (wireframe ? PVRenderFlagWireframe : 0)
+            );
+
+            framebuffer->bind(GL_DRAW_FRAMEBUFFER);
+
+            if (sampleCount > 0)
+                GLCHECK(glEnable(GL_MULTISAMPLE));
+
+            GLCHECK(glViewport(0, 0, viewWidth, viewHeight));
+
+            scene->draw(flags, maxLights, filterMode, anisotropy, viewMatrix, projectionMatrix, viewPosition);
+
+            GLCHECK(glClearDepth(1.0f));
+            GLCHECK(glClear(GL_DEPTH_BUFFER_BIT));
+
+            GLCHECK(glEnable(GL_DEPTH_TEST));
+
+            std::vector<SolidVertex> verts;
+            std::vector<SolidDrawCmd> commands;
+
+            // TODO: index buffer
+
+            // TODO: Don't start dragging if super key is down
+
+            if (selectedInstance) {
+                const AABB & bounds = selectedInstance->mesh->getBounds();
+                float4x4 transform = selectedInstance->getTransform();
+
+                drawWireBox(bounds, transform, float4(1, 1, 1, 1), verts, commands);
+
+                transformGizmo(held, transform, viewProjectionMatrix, float2(pos.x, pos.y), float2(sz.x, sz.y), 100.0f, verts, commands);
+
+                decompose(transform, selectedInstance->position, selectedInstance->rotation, selectedInstance->scale);
+            }
+
+            flushSolidDrawCommands(viewProjectionMatrix, verts, commands);
+
+            {
+                float3x3 axisViewMatrix3 = upper3x3(transpose(inverse(viewMatrix)));
+                float4x4 axisViewMatrix;
+
+                for (int i = 0; i < 3; i++)
+                    for (int j = 0; j < 3; j++)
+                        axisViewMatrix.rows[i][j] = axisViewMatrix3.rows[i][j];
+
+                axisViewMatrix = translation(float3(0, 0, 1)) * axisViewMatrix;
+                float4x4 axisProjectionMatrix = orthographicLH(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10.0f);
+                float4x4 axisViewProjectionMatrix = axisProjectionMatrix * axisViewMatrix;
+
+                // TODO: scale with view size
+                GLCHECK(glViewport(viewWidth - 100, 0, 100, 100));
+                GLCHECK(glClear(GL_DEPTH_BUFFER_BIT));
+
+                verts.clear();
+                commands.clear();
+
+                drawAxes(float4x4(), 8, 0.02f, 0.66f, 0.11f, 0.33f, float4(1, 0, 0, 1), float4(0, 1, 0, 1), float4(0, 0, 1, 1), verts, commands);
+
+                flushSolidDrawCommands(axisViewProjectionMatrix, verts, commands);
+            }
+
+            GLCHECK(glDisable(GL_DEPTH_TEST));
+
+            if (sampleCount > 0)
+                GLCHECK(glDisable(GL_MULTISAMPLE));
+
+            GLCHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+            if (sampleCount > 0)
+                framebuffer->resolve(resolveFramebuffer);
+
+#if ENABLE_GPU_PROFILING
+            glEndQuery(GL_TIME_ELAPSED);
+#endif
+
+            float gpuFrameTime = 0.0f;
+
+#if ENABLE_GPU_PROFILING
+            if (++frameIdx >= 3) {
+                int timerDone = 0;
+                while (!timerDone)
+                    glGetQueryObjectiv(queries[frameIdx % 3], GL_QUERY_RESULT_AVAILABLE, &timerDone);
+
+                GLuint64 elapsedTime;
+                glGetQueryObjectui64v(queries[frameIdx % 3], GL_QUERY_RESULT, &elapsedTime);
+
+                gpuFrameTime = elapsedTime / 1000000.0f;
+            }
+#endif
+
+            for (int i = 0; i < MAX_FRAMES - 1; i++)
+                gpuFrameTimes[i] = gpuFrameTimes[i + 1];
+            gpuFrameTimes[MAX_FRAMES - 1] = gpuFrameTime;
+
+            PVTexture *viewTex = colorTexture;
+
+            if (sampleCount > 0)
+                viewTex = resolveTexture;
+
+            ImGui::PushClipRect(pos, pos + sz, false);
+
+            drawList->AddImage(viewTex, pos, pos + sz, ImVec2(0, 1), ImVec2(1, 0), IM_COL32(255, 255, 255, 255));
+
+            if (pressed && !draggingCamera && !draggingTransform) {
+                float2 ndc(mouseX, mouseY);
+                ndc = (ndc - float2(pos.x, pos.y)) / float2(sz.x, sz.y);
+                ndc = ndc * 2.0f - 1.0f;
+                ndc.y = -ndc.y;
+
+                float4x4 invViewProjection = inverse(viewProjectionMatrix);
+
+                float4 near(ndc, 0.0f, 1.0f); // TODO: -1 or 0 ?
+                float4 far(ndc, 1.0f, 1.0f);
+
+                near = invViewProjection * near;
+                far = invViewProjection * far;
+                near = near / near.w;
+                far = far / far.w;
+
+                PVMeshInstance *closestHit = nullptr;
+                float closestDist = INFINITY;
+
+                for (int i = 0; i < scene->getNumMeshInstances(); i++) {
+                    PVMeshInstance *instance = scene->getMeshInstance(i);
+
+                    float4x4 instanceTransform = instance->getTransform();
+                    float4x4 invInstanceTransform = inverse(instanceTransform);
+
+                    float4 tfNear = invInstanceTransform * near;
+                    float4 tfFar = invInstanceTransform * far;
+
+                    // TODO: not necessary for affine transforms
+                    tfNear = tfNear / tfNear.w;
+                    tfFar = tfFar / tfFar.w;
+
+                    float3 dir = normalize(tfFar.xyz() - tfNear.xyz());
+
+                    Ray mouseRay(tfNear.xyz(), normalize(tfFar.xyz() - tfNear.xyz()));
+
+                    Collision result;
+                    if (instance->mesh->intersect(mouseRay, result)) {
+                        float3 hitPos = mouseRay.at(result.distance);
+
+                        // TODO: divide not needed for affine transforms
+                        float4 tfHitPos = instanceTransform * float4(hitPos, 1.0f);
+                        tfHitPos = tfHitPos / tfHitPos.w;
+
+                        float dist = length(near.xyz() - tfHitPos.xyz());
+
+                        if (dist < closestDist) {
+                            closestHit = instance;
+                            closestDist = dist;
+                        }
+                    }
+                }
+
+                if (closestHit) {
+                    printf("Hit mesh instance '%s': %f\n", closestHit->name.c_str(), closestDist);
+                
+                    selectedInstance = closestHit;
+                    selectedLight = nullptr;
+                    selectedCamera = nullptr;
+                }
+            }
+
+            for (int i = 0; i < scene->getNumLights(); i++) {
+                PVLight *light = scene->getLight(i);
+                float3 position = light->getPosition();
+
+                float4 transformed = viewProjectionMatrix * float4(position, 1.0f);
+
+                float depth = transformed.z / transformed.w;
+
+                if (depth < 0.001f)
+                    continue;
+
+                float2 screenPos = transformed.xy() / transformed.w;
+
+                screenPos = screenPos * 0.5f + 0.5f;
+                screenPos.y = 1.0f - screenPos.y;
+                screenPos = screenPos * float2(sz.x, sz.y) + float2(pos.x, pos.y);
+
+                ImVec2 center = ImVec2(screenPos.x, screenPos.y);
+                ImVec2 rad = ImVec2(20, 20);
+
+                ImVec4 rgb(light->color.x, light->color.y, light->color.z, 1.0f);
+                ImVec4 hsv(0.0f, 0.0f, 0.0f, rgb.w);
+                ImGui::ColorConvertRGBtoHSV(rgb.x, rgb.y, rgb.z, hsv.x, hsv.y, hsv.z);
+                hsv.z = 1.0f; // Don't allow icon to get too dark
+                hsv.w = selectedLight == light ? 1.0f : 0.5f;
+                ImGui::ColorConvertHSVtoRGB(hsv.x, hsv.y, hsv.z, rgb.x, rgb.y, rgb.z);
+                rgb.w = hsv.w;
+
+                drawList->AddImage(lightIcon, center - rad, center + rad, ImVec2(0, 0), ImVec2(1, 1), ImGui::GetColorU32(rgb));
+
+                if (pressed && !draggingCamera && !draggingTransform && mouseX >= screenPos.x - rad.x && mouseX <= screenPos.x + rad.x && mouseY >= screenPos.y - rad.y && mouseY <= screenPos.y + rad.y) {
+                    selectedInstance = nullptr;
+                    selectedLight = light;
+                    selectedCamera = nullptr;
+                }
+            }
+
+            if (!held) {
+                draggingCamera = false;
+                draggingTransform = false;
+                selectedAxes = 0;
+            }
+
+            ImGui::PopClipRect();
         }
 
         ImGui::End();
     }
+#endif
+#if 1
+    {
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImVec2(350, windowHeight));
 
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowSize(ImVec2(350, windowHeight));
+        ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
-    ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+        if (ImGui::TreeNode("Mesh Instances")) {
+            for (int i = 0; i < scene->getNumMeshInstances(); i++) {
+                PVMeshInstance *instance = scene->getMeshInstance(i);
+                std::string name = instance->name;
 
-    if (ImGui::TreeNode("Mesh Instances")) {
-        for (int i = 0; i < scene->getNumMeshInstances(); i++) {
-            PVMeshInstance *instance = scene->getMeshInstance(i);
-            std::string name = instance->name;
+                if (name == "")
+                    name = "Unnamed Mesh Instance";
 
-            if (name == "")
-                name = "Unnamed Mesh Instance";
+                ImGui::TreeNodeEx((void*)(intptr_t)i, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "");
+                ImGui::SameLine();
+                ImGui::Checkbox(name.c_str(), &instance->visible);
 
-            ImGui::TreeNodeEx((void*)(intptr_t)i, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "");
-            ImGui::SameLine();
-            ImGui::Checkbox(name.c_str(), &instance->visible);
-
-            if (ImGui::IsItemClicked()) {
-                selectedInstance = instance;
-                setTransform(selectedInstance->position, selectedInstance->rotation, selectedInstance->scale);
-                selectedLight = nullptr;
-                selectedCamera = nullptr;
+                if (ImGui::IsItemClicked()) {
+                    selectedInstance = instance;
+                    selectedLight = nullptr;
+                    selectedCamera = nullptr;
+                }
             }
+
+            ImGui::TreePop();
         }
 
-        ImGui::TreePop();
-    }
+        if (ImGui::TreeNode("Lights")) {
+            for (int i = 0; i < scene->getNumLights(); i++) {
+                ImGui::TreeNodeEx((void*)(intptr_t)i, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "Light %d", i);
 
-    if (ImGui::TreeNode("Lights")) {
-        for (int i = 0; i < scene->getNumLights(); i++) {
-            ImGui::TreeNodeEx((void*)(intptr_t)i, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "Light %d", i);
-
-            if (ImGui::IsItemClicked()) {
-                selectedInstance = nullptr;
-                selectedLight = scene->getLight(i);
-                setTransform(selectedLight->position, float3(0, 0, 0), float3(1, 1, 1));
-                selectedCamera = nullptr;
+                if (ImGui::IsItemClicked()) {
+                    selectedInstance = nullptr;
+                    selectedLight = scene->getLight(i);
+                    selectedCamera = nullptr;
+                }
             }
+
+            ImGui::TreePop();
         }
 
-        ImGui::TreePop();
-    }
+        if (ImGui::TreeNode("Cameras")) {
+            for (int i = 0; i < scene->getNumCameras(); i++) {
+                ImGui::TreeNodeEx((void*)(intptr_t)i, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "Camera %d", i);
+                    
+                if (ImGui::IsItemClicked()) {
+                    selectedInstance = nullptr;
+                    selectedLight = nullptr;
+                    selectedCamera = scene->getCamera(i);
 
-    if (ImGui::TreeNode("Cameras")) {
-        for (int i = 0; i < scene->getNumCameras(); i++) {
-            ImGui::TreeNodeEx((void*)(intptr_t)i, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "Camera %d", i);
-                
-            if (ImGui::IsItemClicked()) {
-                selectedInstance = nullptr;
-                selectedLight = nullptr;
-                selectedCamera = scene->getCamera(i);
-
-                camFOV = selectedCamera->getFOV() * 180.0f / (float)M_PI;
+                    camFOV = selectedCamera->getFOV() * 180.0f / (float)M_PI;
+                }
             }
+
+            ImGui::TreePop();
         }
 
-        ImGui::TreePop();
+        ImGui::End();
     }
+#endif
+#if 1
+    {
+        ImGui::SetNextWindowPos(ImVec2(windowWidth - 350, 0));
+        ImGui::SetNextWindowSize(ImVec2(350, windowHeight));
 
-    ImGui::End();
+        ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
-    ImGui::SetNextWindowPos(ImVec2(windowWidth - 350, 0));
-    ImGui::SetNextWindowSize(ImVec2(350, windowHeight));
+        if (selectedInstance) {
+            ImGui::ColorPicker("Diffuse Color", &selectedInstance->diffuseColor[0]);
+            ImGui::ColorPicker("Specular Color", &selectedInstance->specularColor[0]);
+            ImGui::DragFloat("Specular Power", &selectedInstance->specularPower, 0.5f, 1.0f, 64.0f);
+            ImGui::DragFloat("Normal Map Scale", &selectedInstance->normalMapScale, 0.005f, 0.0f, 4.0f);
 
-    ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+            ImGui::Text("Diffuse Texture");
 
-    if (selectedInstance) {
-        ImGui::ColorPicker("Diffuse Color", &selectedInstance->diffuseColor[0]);
-        ImGui::ColorPicker("Specular Color", &selectedInstance->specularColor[0]);
-        ImGui::DragFloat("Specular Power", &selectedInstance->specularPower, 0.5f, 1.0f, 64.0f);
+            if (selectedInstance->diffuseTexture)
+                ImGui::Image(selectedInstance->diffuseTexture, ImVec2(250, 250));
+            else
+                ImGui::Text("None");
 
-        ImGui::Text("Diffuse Texture");
+            ImGui::Text("Normal Texture");
 
-        if (selectedInstance->diffuseTexture)
-            ImGui::Image(selectedInstance->diffuseTexture, ImVec2(250, 250));
-        else
-            ImGui::Text("None");
+            if (selectedInstance->normalTexture)
+                ImGui::Image(selectedInstance->normalTexture, ImVec2(250, 250));
+            else
+                ImGui::Text("None");
 
-        ImGui::Text("Normal Texture");
+            #if 0
+            ImGui::InputFloat3("Position", &selectedInstance->position[0], 3);
+            ImGui::InputFloat3("Rotation", &selectedInstance->rotation[0], 3);
+            ImGui::InputFloat3("Scale", &selectedInstance->scale[0], 3);
+            #endif
+        }
+        else if (selectedLight) {
+            ImGui::ColorPicker("Color", &selectedLight->color[0]);
 
-        if (selectedInstance->normalTexture)
-            ImGui::Image(selectedInstance->normalTexture, ImVec2(250, 250));
-        else
-            ImGui::Text("None");
+            ImGui::DragFloat("Intensity", &selectedLight->intensity, 1.0f, 0.0f, 1000.0f);
 
-        getTransform(selectedInstance->position, selectedInstance->rotation, selectedInstance->scale);
-        ImGui::InputFloat3("Position", &selectedInstance->position[0], 3);
-        ImGui::InputFloat3("Rotation", &selectedInstance->rotation[0], 3);
-        ImGui::InputFloat3("Scale", &selectedInstance->scale[0], 3);
+            #if 0
+            ImGui::InputFloat3("Position", &selectedLight->position[0], 3);
+            #endif
+        }
+        else if (selectedCamera) {
+            ImGui::DragFloat("FOV", &camFOV, 0.5f, 5.0f, 150.0f);
+            selectedCamera->setFOV(camFOV / 180.0f * (float)M_PI);
+        }
 
-        float4x4 vt = transpose(viewMatrix);
-        float4x4 pt = transpose(projectionMatrix);
-        ImGuizmo::Manipulate(&vt.m[0][0], &pt.m[0][0], ImGuizmo::TRANSLATE, ImGuizmo::WORLD, transform);
+        ImGui::End();
     }
-    else if (selectedLight) {
-        ImGui::ColorPicker("Color", &selectedLight->color[0]);
-
-        ImGui::DragFloat("Intensity", &selectedLight->intensity, 1.0f, 0.0f, 1000.0f);
-
-        float3 rotation, scale;
-        getTransform(selectedLight->position, rotation, scale);
-        ImGui::InputFloat3("Position", &selectedLight->position[0], 3);
-
-        float4x4 vt = transpose(viewMatrix);
-        float4x4 pt = transpose(projectionMatrix);
-        ImGuizmo::Manipulate(&vt.m[0][0], &pt.m[0][0], ImGuizmo::TRANSLATE, ImGuizmo::WORLD, transform);
-    }
-    else if (selectedCamera) {
-        ImGui::DragFloat("FOV", &camFOV, 0.5f, 5.0f, 150.0f);
-        selectedCamera->setFOV(camFOV / 180.0f * (float)M_PI);
-    }
-
-    ImGui::End();
+#endif
 
     // TODO: add a way to select nothing
-
-#if 0
-    ImGui::Begin("Profiler");
-    profiler_draw();
-    ImGui::End();
-#endif
 
     ImGui::Render();
 }

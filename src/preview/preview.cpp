@@ -1,44 +1,11 @@
 #include <preview/preview.h>
 #include <util/timer.h>
 #include <kdtree/kdsahbuilder.h>
-
-extern void profiler_push(const char *name);
-extern void profiler_pop();
-
-inline const char *getErrorString(GLenum error) {
-    switch(error) {
-    case GL_INVALID_ENUM:
-        return "GL_INVALID_ENUM: GLenum argument out of range";
-    case GL_INVALID_VALUE:
-        return "GL_INVALID_VALUE: Numeric argument out of range";
-    case GL_INVALID_OPERATION:
-        return "GL_INVALID_OPERATION: Operation illegal in current state";
-    case GL_OUT_OF_MEMORY:
-        return "GL_OUT_OF_MEMORY: Not enough memory left to execute command";
-    }
-
-    return "Unknown error";
-}
-
-#ifdef DEBUG
-#define GLCHECK(stmt) {                                                       \
-    stmt;                                                                     \
-    GLenum error = glGetError();                                              \
-    if (error != GL_NO_ERROR) {                                               \
-        std::cout << "GL Error check failed:" << std::endl;                   \
-        std::cout << "    At: " << __FILE__ << ":" << __LINE__ << std::endl;  \
-        std::cout << " Error: " << getErrorString(error) << std::endl;        \
-        __builtin_trap();                                                     \
-        assert(0);                                                            \
-    }                                                                         \
-}
-#else
-#define GLCHECK(stmt) stmt;
-#endif
+#include <kdtree/kdmedianbuilder.h>
 
 enum PVRenderFlagsPrivate {
-    PVRenderFlagPrivateDepthOnly     = (1 << 4),
-    PVRenderFlagPrivatePreserveDepth = (1 << 5)
+    PVRenderFlagPrivateDepthOnly     = (1 << 5),
+    PVRenderFlagPrivatePreserveDepth = (1 << 6)
 };
 
 GLenum getPixelFormatDataFormat(PVPixelFormat pixelFormat) {
@@ -250,101 +217,90 @@ void PVBuffer::bind(GLenum target) {
 }
 
 void PVBuffer::bind(GLenum target, int index) {
-    // TODO: could bind a range
     GLCHECK(glBindBufferBase(target, index, buffer));
 }
+
+void PVBuffer::bind(GLenum target, int index, int offset, int length) {
+    GLCHECK(glBindBufferRange(target, index, buffer, offset, length));
+}
+
+class PVShaderFunction {
+private:
+
+    GLuint shader;
+
+public:
+
+    PVShaderFunction(GLenum type, const char *src_path, const GLchar **defines = nullptr, int num_defines = 0) {
+        shader = GLCHECK(glCreateShader(type));
+
+        FILE *fd = fopen(relToExeDir(src_path).c_str(), "r");
+
+        fseek(fd, 0, SEEK_END);
+        int src_len = ftell(fd);
+        fseek(fd, 0, SEEK_SET);
+
+        char *src = (char *)malloc(src_len);
+        fread(src, 1, src_len, fd);
+
+        fclose(fd);
+
+        const GLchar **sources = (const GLchar **)malloc(sizeof(GLchar *) * (num_defines + 1));
+        GLint *lengths = (GLint *)malloc(sizeof(GLint) * (num_defines + 1));
+
+        for (int i = 0; i < num_defines; i++) {
+            sources[i] = defines[i];
+            lengths[i] = strlen(defines[i]);
+        }
+
+        sources[num_defines] = src;
+        lengths[num_defines] = src_len;
+
+        GLCHECK(glShaderSource(shader, num_defines + 1, sources, lengths));
+
+        free(sources);
+        free(lengths);
+        free(src);
+
+        GLCHECK(glCompileShader(shader));
+
+        GLint result = GL_FALSE;
+        int length;
+
+        GLCHECK(glGetShaderiv(shader, GL_COMPILE_STATUS, &result));
+        GLCHECK(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length));
+
+        if (length > 0){
+            char *message = (char *)malloc(length + 1);
+            GLCHECK(glGetShaderInfoLog(shader, length, NULL, message));
+            printf("%s\n", message);
+            free(message);
+        }
+
+        assert(result);
+    }
+
+    ~PVShaderFunction() {
+        GLCHECK(glDeleteShader(shader));
+    }
+
+    GLuint getGLShader() {
+        return shader;
+    }
+};
 
 PVShader::PVShader(const char *vs_path, const char *fs_path, const GLchar **defines, int num_defines) {
     program = GLCHECK(glCreateProgram());
 
-    const GLchar **sources = (const GLchar **)malloc(sizeof(GLchar *) * (num_defines + 1));
-    GLint *lengths = (GLint *)malloc(sizeof(GLint) * (num_defines + 1));
-
-    for (int i = 0; i < num_defines; i++) {
-        sources[i] = defines[i];
-        lengths[i] = strlen(defines[i]);
-    }
-
     if (vs_path) {
-        GLuint vs = GLCHECK(glCreateShader(GL_VERTEX_SHADER));
-
-        FILE *fd = fopen(relToExeDir(vs_path).c_str(), "r");
-
-        fseek(fd, 0, SEEK_END);
-        int vs_len = ftell(fd);
-        fseek(fd, 0, SEEK_SET);
-
-        char *vs_source = (char *)malloc(vs_len);
-        fread(vs_source, 1, vs_len, fd);
-
-        fclose(fd);
-
-        sources[num_defines] = vs_source;
-        lengths[num_defines] = vs_len;
-
-        GLCHECK(glShaderSource(vs, num_defines + 1, sources, lengths));
-
-        free(vs_source);
-
-        GLCHECK(glCompileShader(vs));
-
-        GLint result = GL_FALSE;
-        int length;
-
-        GLCHECK(glGetShaderiv(vs, GL_COMPILE_STATUS, &result));
-        GLCHECK(glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &length));
-        if (length > 0){
-            std::vector<char> message(length+1);
-            GLCHECK(glGetShaderInfoLog(vs, length, NULL, &message[0]));
-            printf("%s\n", &message[0]);
-        }
-
-        GLCHECK(glAttachShader(program, vs));
-
-        GLCHECK(glDeleteShader(vs));
+        PVShaderFunction vs(GL_VERTEX_SHADER, vs_path, defines, num_defines);
+        GLCHECK(glAttachShader(program, vs.getGLShader()));
     }
 
     if (fs_path) {
-        GLuint fs = GLCHECK(glCreateShader(GL_FRAGMENT_SHADER));
-
-        FILE *fd = fopen(relToExeDir(fs_path).c_str(), "r");
-
-        fseek(fd, 0, SEEK_END);
-        int fs_len = ftell(fd);
-        fseek(fd, 0, SEEK_SET);
-
-        char *fs_source = (char *)malloc(fs_len);
-        fread(fs_source, 1, fs_len, fd);
-
-        fclose(fd);
-
-        sources[num_defines] = fs_source;
-        lengths[num_defines] = fs_len;
-
-        GLCHECK(glShaderSource(fs, num_defines + 1, sources, lengths));
-
-        free(fs_source);
-
-        GLCHECK(glCompileShader(fs));
-
-        GLint result = GL_FALSE;
-        int length;
-
-        GLCHECK(glGetShaderiv(fs, GL_COMPILE_STATUS, &result));
-        GLCHECK(glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &length));
-        if (length > 0){
-            std::vector<char> message(length+1);
-            GLCHECK(glGetShaderInfoLog(fs, length, NULL, &message[0]));
-            printf("%s\n", &message[0]);
-        }
-
-        GLCHECK(glAttachShader(program, fs));
-
-        GLCHECK(glDeleteShader(fs));
+        PVShaderFunction fs(GL_FRAGMENT_SHADER, fs_path, defines, num_defines);
+        GLCHECK(glAttachShader(program, fs.getGLShader()));
     }
-
-    free(sources);
-    free(lengths);
 
     GLCHECK(glLinkProgram(program));
 
@@ -354,10 +310,13 @@ PVShader::PVShader(const char *vs_path, const char *fs_path, const GLchar **defi
     GLCHECK(glGetProgramiv(program, GL_LINK_STATUS, &result));
     GLCHECK(glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length));
     if (length > 0){
-        std::vector<char> message(length+1);
-        GLCHECK(glGetProgramInfoLog(program, length, NULL, &message[0]));
-        printf("%s\n", &message[0]);
+        char *message = (char *)malloc(length + 1);
+        GLCHECK(glGetProgramInfoLog(program, length, NULL, message));
+        printf("%s\n", message);
+            free(message);
     }
+
+    assert(result);
 }
 
 PVShader::~PVShader() {
@@ -379,7 +338,19 @@ void PVShader::bind() {
     GLCHECK(glUseProgram(program));
 }
 
-PVFramebuffer::PVFramebuffer() {
+void PVShader::bindUniformBlock(const char *block, int binding) {
+    GLint index = GLCHECK(glGetUniformBlockIndex(program, block));
+
+    if (index >= 0)
+        GLCHECK(glUniformBlockBinding(program, index, binding));
+}
+
+PVFramebuffer::PVFramebuffer()
+    : depthAttachment(nullptr)
+{
+    for (int i = 0; i < 4; i++)
+        colorAttachments[i] = nullptr;
+
     GLCHECK(glGenFramebuffers(1, &fbo));
 }
 
@@ -448,71 +419,147 @@ PVTexture *PVFramebuffer::getDepthAttachment() {
     return depthAttachment;
 }
 
+void PVFramebuffer::getDimensions(int & width, int & height, int & sampleCount) {
+    if (depthAttachment) {
+        width = depthAttachment->getWidth();
+        height = depthAttachment->getHeight();
+        sampleCount = depthAttachment->getSampleCount();
+    }
+    else {
+        for (int i = 0; i < 4; i++) {
+            if (colorAttachments[i]) {
+                width = colorAttachments[i]->getWidth();
+                height = colorAttachments[i]->getHeight();
+                sampleCount = colorAttachments[i]->getSampleCount();
+                break;
+            }
+        }
+    }
+}
+
+PVVertexArray::PVVertexArray() {
+    GLCHECK(glGenVertexArrays(1, &vao));
+}
+
+PVVertexArray::~PVVertexArray() {
+    GLCHECK(glDeleteVertexArrays(1, &vao));
+}
+
+void PVVertexArray::bind() {
+    GLCHECK(glBindVertexArray(vao));
+}
+
+void PVVertexArray::setVertexBuffer(PVBuffer *buffer) {
+    GLCHECK(glBindVertexArray(vao));
+    buffer->bind(GL_ARRAY_BUFFER);
+    GLCHECK(glBindVertexArray(0));
+}
+
+void PVVertexArray::setIndexBuffer(PVBuffer *buffer) {
+    GLCHECK(glBindVertexArray(vao));
+    buffer->bind(GL_ELEMENT_ARRAY_BUFFER);
+    GLCHECK(glBindVertexArray(0));
+}
+
+void PVVertexArray::setVertexAttribute(int index, int components, PVVertexFormat format, bool normalized, int stride, int offset) {
+    GLCHECK(glBindVertexArray(vao));
+    GLCHECK(glEnableVertexAttribArray(index));
+    GLCHECK(glVertexAttribPointer(index, components, format, normalized, stride, (void *)offset));
+    GLCHECK(glBindVertexArray(0));
+}
+
+Vertex createVertex(const PVVertex & vertex)
+{
+    float3 position = float3(vertex.position[0], vertex.position[1], vertex.position[2]);
+    float3 normal = float3(vertex.normal[0], vertex.normal[1], vertex.normal[2]);
+    float3 tangent = float3(vertex.tangent[0], vertex.tangent[1], vertex.tangent[2]);
+    float2 uv = float2(vertex.uv[0], vertex.uv[1]);
+
+    return Vertex(position, normalize(normal), normalize(tangent), uv);
+}
+
 PVMesh::PVMesh(
-    util::vector<Triangle, 16> & triangles,
+    std::vector<PVVertex> & vertices,
+    std::vector<uint32_t> & indices,
     bool reverseWinding,
     const std::string & name)
-    : vertexCount(triangles.size() * 3),
+    : indexCount(indices.size()),
       name(name)
 {
-    KDSAHBuilder builder(kdTree, triangles, 12.0f, 1.0f);
-    builder.build();
+    util::vector<Triangle, 16> triangles;
 
-    std::vector<PVVertex> vertices;
+    bounds = AABB(float3(INFINITY, INFINITY, INFINITY), float3(-INFINITY, -INFINITY, -INFINITY));
 
-    for (int j = 0; j < triangles.size(); j++) {
-        const Triangle & tri = triangles[j];
+    for (int j = 0; j < indices.size() / 3; j++) {
+        int i0 = indices[j * 3 + 0];
+        int i1 = indices[j * 3 + 1];
+        int i2 = indices[j * 3 + 2];
 
-        for (int k = 0; k < 3; k++) {
-            const Vertex & v = tri.v[reverseWinding ? 2 - k : k];
+        if (!reverseWinding) {
+            Triangle tri(
+                createVertex(vertices[i0]),
+                createVertex(vertices[i1]),
+                createVertex(vertices[i2]),
+                triangles.size(),
+                0
+            );
 
-            // TODO: preserve/generate index buffers
+            for (int k = 0; k < 3; k++)
+                bounds.join(tri.v[k].position);
 
-            PVVertex pv;
-            for (int l = 0; l < 3; l++) {
-                pv.position[l] = v.position[l];
-                pv.normal[l] = (reverseWinding ? -1.0f : 1.0f) *  v.normal[l];
-                pv.tangent[l] = v.tangent[l];
-            }
-            for (int l = 0; l < 2; l++) {
-                pv.uv[l] = v.uv[l];
-            }
+            triangles.push_back(tri);
+        }
+        else {
+            Triangle tri(
+                createVertex(vertices[i2]),
+                createVertex(vertices[i1]),
+                createVertex(vertices[i0]),
+                triangles.size(),
+                0
+            );
 
-            vertices.push_back(pv);
+            for (int k = 0; k < 3; k++)
+                tri.v[k].normal = -tri.v[k].normal;
+
+            for (int k = 0; k < 3; k++)
+                bounds.join(tri.v[k].position);
+
+            triangles.push_back(tri);
         }
     }
 
-    // TODO: preserve state
-    GLCHECK(glGenVertexArrays(1, &vao));
-    GLCHECK(glBindVertexArray(vao));
+    KDSAHBuilder builder(kdTree, triangles, 12.0f, 1.0f);
+    //KDMedianBuilder builder(kdTree, triangles);
+    builder.build();
+
+    vertexArray = new PVVertexArray();
 
     vertexBuffer = new PVBuffer();
-    vertexBuffer->bind(GL_ARRAY_BUFFER);
+    vertexArray->setVertexBuffer(vertexBuffer);
+    vertexBuffer->setData(&vertices[0], sizeof(PVVertex) * vertices.size(), GL_STATIC_DRAW);
 
-    vertexBuffer->setData(&vertices[0], sizeof(PVVertex) * vertexCount, GL_STATIC_DRAW);
-
-    GLCHECK(glEnableVertexAttribArray(0));
-    GLCHECK(glEnableVertexAttribArray(1));
-    GLCHECK(glEnableVertexAttribArray(2));
-    GLCHECK(glEnableVertexAttribArray(3));
+    indexBuffer = new PVBuffer();
+    vertexArray->setIndexBuffer(indexBuffer);
+    indexBuffer->setData(&indices[0], sizeof(uint32_t) * indices.size(), GL_STATIC_DRAW);
 
     // TODO: aligning to 4 bytes may actually help...
-    GLCHECK(glVertexAttribPointer(0, 3, GL_FLOAT, false, 44, (void *)0));
-    GLCHECK(glVertexAttribPointer(1, 3, GL_FLOAT, false, 44, (void *)12));
-    GLCHECK(glVertexAttribPointer(2, 3, GL_FLOAT, false, 44, (void *)24));
-    GLCHECK(glVertexAttribPointer(3, 2, GL_FLOAT, false, 44, (void *)36));
-
-    GLCHECK(glBindVertexArray(0));
+    vertexArray->setVertexAttribute(0, 3, PVVertexFormatFloat, false, 44, 0);
+    vertexArray->setVertexAttribute(1, 3, PVVertexFormatFloat, false, 44, 12);
+    vertexArray->setVertexAttribute(2, 3, PVVertexFormatFloat, false, 44, 24);
+    vertexArray->setVertexAttribute(3, 2, PVVertexFormatFloat, false, 44, 36);
 }
 
 PVMesh::~PVMesh() {
     // TODO: delete stuff
-    GLCHECK(glDeleteVertexArrays(1, &vao));
+}
+
+const AABB & PVMesh::getBounds() const {
+    return bounds;
 }
 
 void PVMesh::draw() {
-    GLCHECK(glBindVertexArray(vao));
-    GLCHECK(glDrawArrays(GL_TRIANGLES, 0, vertexCount));
+    vertexArray->bind();
+    GLCHECK(glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, NULL));
 }
 
 bool PVMesh::intersect(const Ray & ray, Collision & result) {
@@ -526,6 +573,7 @@ PVMeshInstance::PVMeshInstance(
     float3 diffuseColor,
     float3 specularColor,
     float specularPower,
+    float normalMapScale,
     PVTexture *diffuseTexture,
     PVTexture *normalTexture,
     float3 position,
@@ -535,6 +583,7 @@ PVMeshInstance::PVMeshInstance(
     : mesh(mesh),
       diffuseColor(diffuseColor),
       specularColor(specularColor),
+      normalMapScale(normalMapScale),
       specularPower(specularPower),
       diffuseTexture(diffuseTexture),
       normalTexture(normalTexture),
@@ -550,39 +599,32 @@ PVMeshInstance::~PVMeshInstance() {
 }
 
 float4x4 PVMeshInstance::getTransform() {
-    // TODO: make nicer functions
-    return ::translation(position.x, position.y, position.z) *
-           ::yawPitchRoll(rotation.y, rotation.x, rotation.z) *
-           ::scale(scale.x, scale.y, scale.z);
+    return translation(position) * ::rotation(rotation) * ::scale(scale);
 }
 
-void PVMeshInstance::draw(PVRenderFlags flags, PVShader *shader) {
-    GLuint diffuseTextureLocation = shader->getUniformLocation("diffuseTexture");
-    GLuint normalTextureLocation = shader->getUniformLocation("normalTexture");
-    GLuint hasDiffuseTextureLocation = shader->getUniformLocation("hasDiffuseTexture");
-    GLuint hasNormalTextureLocation = shader->getUniformLocation("hasNormalTexture");
-    GLuint diffuseColorLocation = shader->getUniformLocation("diffuseColor");
-    GLuint specularColorLocation = shader->getUniformLocation("specularColor");
-    GLuint specularPowerLocation = shader->getUniformLocation("specularPower");
-    GLuint transformLocation = shader->getUniformLocation("transform");
-    GLuint orientationLocation = shader->getUniformLocation("orientation");
-
-    GLCHECK(glUniform3f(diffuseColorLocation, diffuseColor.x, diffuseColor.y, diffuseColor.z));
-    GLCHECK(glUniform3f(specularColorLocation, specularColor.x, specularColor.y, specularColor.z));
-    GLCHECK(glUniform1f(specularPowerLocation, specularPower));
+void PVMeshInstance::updateUniforms(PVRenderFlags flags, PVMeshInstanceUniforms & uniforms) {
+    uniforms.diffuseColor = diffuseColor;
+    uniforms.specularColor = specularColor;
+    uniforms.specularPower = specularPower;
+    uniforms.normalMapScale = normalMapScale;
 
     float4x4 transform = getTransform();
     // TODO: doubly transposed
     float3x3 orientation = upper3x3(transpose(inverse(transform)));
-    
-    GLCHECK(glUniformMatrix4fv(transformLocation, 1, true, &transform.m[0][0]));        
-    GLCHECK(glUniformMatrix3fv(orientationLocation, 1, true, &orientation.m[0][0]));        
+
+    uniforms.transform = transpose(transform);
+    uniforms.orientation = transpose(orientation);
+
+    uniforms.hasDiffuseTexture = (flags & PVRenderFlagEnableTexturing) != 0 && diffuseTexture != nullptr;
+    uniforms.hasNormalTexture = (flags & PVRenderFlagEnableNormalMapping) != 0 && normalTexture != nullptr;
+}
+
+void PVMeshInstance::draw(PVRenderFlags flags, PVShader *shader) {
+    GLint diffuseTextureLocation = shader->getUniformLocation("diffuseTexture");
+    GLint normalTextureLocation = shader->getUniformLocation("normalTexture");
 
     GLCHECK(glUniform1i(diffuseTextureLocation, 0));
     GLCHECK(glUniform1i(normalTextureLocation, 1));
-
-    GLCHECK(glUniform1i(hasDiffuseTextureLocation, (flags & PVRenderFlagEnableTexturing) != 0 && diffuseTexture != nullptr));
-    GLCHECK(glUniform1i(hasNormalTextureLocation, (flags & PVRenderFlagEnableNormalMapping) != 0 && normalTexture != nullptr));
 
     if ((flags & PVRenderFlagEnableTexturing) != 0 && diffuseTexture)
         diffuseTexture->bind(0);
@@ -691,7 +733,8 @@ void PVScene::addMesh(const MeshInstance *instance) {
             normalTexture = PVTexture::fromFile("content/textures/" + material->normalTexture, true);
 
         PVMesh *pvmesh = new PVMesh(
-            submesh->getTriangles(),
+            submesh->getVertices(),
+            submesh->getIndices(),
             instance->reverseWinding,
             submesh->getName());
 
@@ -700,6 +743,7 @@ void PVScene::addMesh(const MeshInstance *instance) {
             material->diffuseColor,
             float3(0.8f),
             16.0f,
+            1.0f,
             diffuseTexture,
             normalTexture,
             instance->translation,
@@ -740,9 +784,21 @@ PVScene::PVScene(Scene *scene) {
     defines[1] = "#define SUPPORT_LIGHTING 0\n";
     depthShader = new PVShader("pv_vertex.glsl", "pv_fragment.glsl", defines, sizeof(defines) / sizeof(defines[0]));
 
+    lightingShader->bindUniformBlock("CameraUniforms", 0);
+    lightingShader->bindUniformBlock("LightUniforms", 1);
+    lightingShader->bindUniformBlock("MeshInstanceUniforms", 2);
+
+    depthShader->bindUniformBlock("CameraUniforms", 0);
+    depthShader->bindUniformBlock("LightUniforms", 1);
+    depthShader->bindUniformBlock("MeshInstanceUniforms", 2);
+
     GLCHECK(glBindVertexArray(0));
 
     meshSampler = new PVSampler(PVFilterLinear, PVFilterLinear, PVFilterNearest, PVAddressRepeat, PVAddressRepeat, 1);
+
+    cameraUniforms = new PVBuffer();
+    lightUniforms = new PVBuffer();
+    meshInstanceUniforms = new PVBuffer();
 }
 
 PVScene::~PVScene() {
@@ -758,33 +814,12 @@ PVScene::~PVScene() {
         delete light;
 }
 
-void PVScene::drawPass(PVRenderFlags flags,
+void PVScene::drawView(PVRenderFlags flags,
                        PVShader *shader,
                        float4x4 viewMatrix,
                        float4x4 projectionMatrix,
-                       float3 viewPosition,
-                       PVFramebuffer *framebuffer)
+                       float3 viewPosition)
 {
-    int width = 0;
-    int height = 0;
-    int sampleCount = 0;
-
-    if (PVTexture *depthAttachment = framebuffer->getDepthAttachment()) {
-        width = depthAttachment->getWidth();
-        height = depthAttachment->getHeight();
-        sampleCount = depthAttachment->getSampleCount();
-    }
-    else {
-        for (int i = 0; i < 4; i++) {
-            if (PVTexture *colorAttachment = framebuffer->getColorAttachment(i)) {
-                width = colorAttachment->getWidth();
-                height = colorAttachment->getHeight();
-                sampleCount = colorAttachment->getSampleCount();
-                break;
-            }
-        }
-    }
-
     if (flags & PVRenderFlagPrivateDepthOnly) {
         GLCHECK(glColorMask(false, false, false, false));
         //GLCHECK(glDrawBuffer(GL_NONE)); // TODO
@@ -794,24 +829,18 @@ void PVScene::drawPass(PVRenderFlags flags,
 
     // TODO: Don't fill out all these uniforms for depth only passes
 
-    float4x4 viewProjectionMatrix = projectionMatrix * viewMatrix;
+    PVCameraUniforms cameraUniforms;
+    cameraUniforms.viewProjection = transpose(projectionMatrix * viewMatrix);
+    cameraUniforms.viewPosition = viewPosition;
 
-    GLuint viewProjectionLocation = shader->getUniformLocation("viewProjection");
-    GLCHECK(glUniformMatrix4fv(viewProjectionLocation, 1, true, &viewProjectionMatrix.m[0][0]));
-
-    GLuint viewPositionLocation = shader->getUniformLocation("viewPosition");
-    GLCHECK(glUniform3f(viewPositionLocation, viewPosition.x, viewPosition.y, viewPosition.z));
-
-    framebuffer->bind(GL_FRAMEBUFFER);
+    // TODO: static draw?
+    this->cameraUniforms->setData(&cameraUniforms, sizeof(cameraUniforms), GL_STATIC_DRAW);
 
     // TODO: don't need to clear color without color attachments
     GLCHECK(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
     GLCHECK(glClearDepth(1.0f));
 
     GLCHECK(glClear(GL_COLOR_BUFFER_BIT | ((flags & PVRenderFlagPrivatePreserveDepth ? 0 : GL_DEPTH_BUFFER_BIT))));
-
-    if (sampleCount > 0)
-        GLCHECK(glEnable(GL_MULTISAMPLE));
 
     GLCHECK(glEnable(GL_DEPTH_TEST));
 
@@ -820,20 +849,36 @@ void PVScene::drawPass(PVRenderFlags flags,
     if (flags & PVRenderFlagEnableCulling)
         GLCHECK(glEnable(GL_CULL_FACE));
 
+    if (flags & PVRenderFlagWireframe)
+        GLCHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+
     GLCHECK(glCullFace(GL_BACK));
     GLCHECK(glFrontFace(GL_CW));
-
-    GLCHECK(glViewport(0, 0, width, height));
 
     for (int i = 0; i < 2; i++)
         meshSampler->bind(i);
 
+    this->cameraUniforms->bind(GL_UNIFORM_BUFFER, 0);
+    this->lightUniforms->bind(GL_UNIFORM_BUFFER, 1);
+
+    int instanceUniformsSize = sizeof(PVMeshInstanceUniforms);
+    instanceUniformsSize = (instanceUniformsSize + 255) & ~255;
+    int instanceUniformsOffset = 0;
+
     for (PVMeshInstance *instance : instances)
-        if (instance->visible)
+        if (instance->visible) {
+            this->meshInstanceUniforms->bind(GL_UNIFORM_BUFFER, 2, instanceUniformsOffset, instanceUniformsSize);
+            instanceUniformsOffset += instanceUniformsSize;
             instance->draw(flags, shader);
+        }
+
+    GLCHECK(glBindVertexArray(0));
 
     //GLCHECK(glDrawBuffer(GL_BACK));
     GLCHECK(glColorMask(true, true, true, true));
+
+    if (flags & PVRenderFlagWireframe)
+        GLCHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 
     GLCHECK(glDisable(GL_CULL_FACE));
 
@@ -841,12 +886,7 @@ void PVScene::drawPass(PVRenderFlags flags,
 
     GLCHECK(glDisable(GL_DEPTH_TEST));
 
-    if (sampleCount > 0)
-        GLCHECK(glDisable(GL_MULTISAMPLE));
-
     GLCHECK(glUseProgram(0));
-
-    GLCHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
 void PVScene::draw(PVRenderFlags flags,
@@ -855,8 +895,7 @@ void PVScene::draw(PVRenderFlags flags,
                    int anisotropy,
                    float4x4 viewMatrix,
                    float4x4 projectionMatrix,
-                   float3 viewPosition,
-                   PVFramebuffer *framebuffer)
+                   float3 viewPosition)
 {
     PVFilter minFilter, magFilter, mipFilter;
 
@@ -895,42 +934,51 @@ void PVScene::draw(PVRenderFlags flags,
     else
         shader = lightingShader;
 
-    shader->bind();
-
-    GLuint lightColorLocation = shader->getUniformLocation("lightColor");
-    GLuint lightPositionLocation = shader->getUniformLocation("lightPosition");
-    GLuint numLightsLocation = shader->getUniformLocation("numLights");
-    GLuint enableLightingLocation = shader->getUniformLocation("enableLighting");
-
-    float lightPositions[3 * 4];
-    float lightColors[3 * 4];
+    PVLightUniforms lightUniforms;
 
     int numLights = lights.size();
 
     if (numLights > maxLights)
         numLights = maxLights;
 
+    lightUniforms.numLights = numLights;
+
     for (int i = 0; i < numLights; i++) {
         PVLight *light = lights[i];
 
-        float3 lightPosition = light->getPosition();
-        float3 lightColor = light->getColor() * light->getIntensity();
-
-        lightPositions[i * 3 + 0] = lightPosition.x;
-        lightPositions[i * 3 + 1] = lightPosition.y;
-        lightPositions[i * 3 + 2] = lightPosition.z;
-
-        lightColors[i * 3 + 0] = lightColor.x;
-        lightColors[i * 3 + 1] = lightColor.y;
-        lightColors[i * 3 + 2] = lightColor.z;
+        lightUniforms.lightPositions[i] = light->getPosition();
+        lightUniforms.lightColors[i] = light->getColor() * light->getIntensity();
     }
 
-    GLCHECK(glUniform3fv(lightPositionLocation, numLights, lightPositions));
-    GLCHECK(glUniform3fv(lightColorLocation, numLights, lightColors));
-    GLCHECK(glUniform1i(numLightsLocation, numLights));
-    GLCHECK(glUniform1i(enableLightingLocation, (flags & PVRenderFlagEnableLighting) != 0));
+    lightUniforms.enableLighting = (flags & PVRenderFlagEnableLighting) != 0;
 
-    drawPass(flags, shader, viewMatrix, projectionMatrix, viewPosition, framebuffer);
+    int numVisibleMeshes = 0;
+
+    for (PVMeshInstance *instance : instances)
+        if (instance->visible)
+            numVisibleMeshes++;
+
+    int instanceUniformsSize = sizeof(PVMeshInstanceUniforms);
+    instanceUniformsSize = (instanceUniformsSize + 255) & ~255;
+
+    // TODO: don't malloc here
+    char *instanceUniforms = (char *)malloc(instanceUniformsSize * numVisibleMeshes);
+
+    char *instanceUniformsPtr = instanceUniforms;
+
+    for (PVMeshInstance *instance : instances)
+        if (instance->visible) {
+            instance->updateUniforms(flags, *(PVMeshInstanceUniforms *)instanceUniformsPtr);
+            instanceUniformsPtr += instanceUniformsSize;
+        }
+
+    // TODO: static draw?
+    this->lightUniforms->setData(&lightUniforms, sizeof(lightUniforms), GL_STATIC_DRAW);
+    this->meshInstanceUniforms->setData(instanceUniforms, instanceUniformsSize * numVisibleMeshes, GL_STATIC_DRAW);
+
+    drawView(flags, shader, viewMatrix, projectionMatrix, viewPosition);
+
+    free(instanceUniforms);
 }
 
 int PVScene::getNumMeshInstances() {

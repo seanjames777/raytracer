@@ -38,14 +38,14 @@ Image<float, 4> *loadTexture(std::string name) {
     return image;
 }
 
-Vertex transformVertex(const Vertex & vertex, const float4x4 & transform,
+Vertex transformVertex(const PVVertex & vertex, const float4x4 & transform,
     const float4x4 & transformInverseTranspose)
 {
-    float4 position = transform * float4(vertex.position, 1.0f);
-    float4 normal = transformInverseTranspose * float4(vertex.normal, 0.0f);
-    float4 tangent = transformInverseTranspose * float4(vertex.tangent, 0.0f);
+    float4 position = transform * float4(vertex.position[0], vertex.position[1], vertex.position[2], 1.0f);
+    float4 normal = transformInverseTranspose * float4(vertex.normal[0], vertex.normal[1], vertex.normal[2], 0.0f);
+    float4 tangent = transformInverseTranspose * float4(vertex.tangent[0], vertex.tangent[1], vertex.tangent[2], 0.0f);
 
-    return Vertex(position.xyz(), normalize(normal.xyz()), normalize(tangent.xyz()), vertex.uv);
+    return Vertex(position.xyz(), normalize(normal.xyz()), normalize(tangent.xyz()), float2(vertex.uv[0], vertex.uv[1]));
 }
 
 Raytracer::Raytracer(RaytracerSettings settings, Scene *scene, Image<float, 4> *output)
@@ -71,9 +71,9 @@ void Raytracer::addMeshesFromScene() {
 		const MeshInstance *instance = scene->getMeshInstance(instanceIdx);
 
 		float4x4 transform =
-	        ::translation(instance->translation.x, instance->translation.y, instance->translation.z) *
-	        ::yawPitchRoll(instance->rotation.y, instance->rotation.x, instance->rotation.z) *
-	        ::scale(instance->scale.x, instance->scale.y, instance->scale.z);
+	        translation(instance->translation) *
+	        rotation(instance->rotation) *
+	        scale(instance->scale);
 
 	    Mesh *mesh = instance->mesh;
 
@@ -84,14 +84,19 @@ void Raytracer::addMeshesFromScene() {
 	    for (int i = 0; i < mesh->getNumSubmeshes(); i++) {
 	        auto submesh = mesh->getSubmesh(i);
 
-	        for (int j = 0; j < submesh->getNumTriangles(); j++) {
-	            const Triangle & tri = submesh->getTriangle(j);
+	        std::vector<PVVertex> & vertices = submesh->getVertices();
+	        std::vector<uint32_t> & indices = submesh->getIndices();
+
+	        for (int j = 0; j < indices.size() / 3; j++) {
+	        	int i0 = indices[j * 3 + 0];
+	        	int i1 = indices[j * 3 + 1];
+	        	int i2 = indices[j * 3 + 2];
 
 	            if (!instance->reverseWinding) {
 	                Triangle transformed(
-	                    transformVertex(tri.v[0], transform, transformInverseTranspose),
-	                    transformVertex(tri.v[1], transform, transformInverseTranspose),
-	                    transformVertex(tri.v[2], transform, transformInverseTranspose),
+	                    transformVertex(vertices[i0], transform, transformInverseTranspose),
+	                    transformVertex(vertices[i1], transform, transformInverseTranspose),
+	                    transformVertex(vertices[i2], transform, transformInverseTranspose),
 	                    triangles.size(),
 	                    submesh->getMaterialID() + materialOffset
 	                );
@@ -100,9 +105,9 @@ void Raytracer::addMeshesFromScene() {
 	            }
 	            else {
 	                Triangle transformed(
-	                    transformVertex(tri.v[2], transform, transformInverseTranspose),
-	                    transformVertex(tri.v[1], transform, transformInverseTranspose),
-	                    transformVertex(tri.v[0], transform, transformInverseTranspose),
+	                    transformVertex(vertices[i2], transform, transformInverseTranspose),
+	                    transformVertex(vertices[i1], transform, transformInverseTranspose),
+	                    transformVertex(vertices[i0], transform, transformInverseTranspose),
 	                    triangles.size(),
 	                    submesh->getMaterialID() + materialOffset
 	                );

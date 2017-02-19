@@ -91,6 +91,8 @@ add_executable(raytracer
     include/math/ray.h
     include/math/sampling.h
     include/math/vector.h
+    include/math/plane.h
+    include/math/sphere.h
     include/rt_defs.h
     include/materials/pbrmaterial.h
     include/util/align.h
@@ -124,6 +126,8 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/pv_vertex.glsl" DESTINATI
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/pv_fragment.glsl" DESTINATION bin/)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/ui_vertex.glsl" DESTINATION bin/)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/ui_fragment.glsl" DESTINATION bin/)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/solid_vertex.glsl" DESTINATION bin/)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/preview/solid_fragment.glsl" DESTINATION bin/)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     install(FILES ${PROJECT_BINARY_DIR}/Debug/raytracer.pdb DESTINATION bin CONFIGURATIONS Debug)

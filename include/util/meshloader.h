@@ -16,10 +16,19 @@
 #include <vector>
 #include <math/aabb.h>
 
+struct PVVertex {
+    float position[3];
+    float normal[3];
+    float tangent[3];
+    float uv[2];
+};
+
 class Submesh {
 private:
 
-	util::vector<Triangle, 16> triangles;
+	std::vector<PVVertex> vertices;
+	std::vector<uint32_t> indices;
+
 	unsigned int materialID;
 	AABB bounds;
 	std::string name;
@@ -27,7 +36,8 @@ private:
 public:
 
 	// TODO
-	util::vector<Triangle, 16> & getTriangles() { return triangles; }
+	std::vector<PVVertex> & getVertices() { return vertices; }
+	std::vector<uint32_t> & getIndices() { return indices; }
 
 	Submesh(unsigned int materialID)
 		: materialID(materialID),
@@ -36,33 +46,6 @@ public:
 	}
 
 	~Submesh() {
-	}
-
-	void addTriangle(Triangle tri) {
-		triangles.push_back(tri);
-	}
-
-	unsigned int getNumTriangles() const {
-		return triangles.size();
-	}
-
-	Triangle & getTriangle(unsigned int i) {
-		return triangles[i];
-	}
-
-	void eraseTriangles(unsigned int i, unsigned int count) {
-		// TODO: vector erase
-		util::vector<Triangle, 16> newTriangles;
-
-		for (unsigned int j = 0; j < triangles.size(); j++)
-			if (j < i || j >= i + count)
-				newTriangles.push_back(triangles[j]);
-		
-		// TODO: copy assignment
-		triangles.clear();
-
-		for (auto & tri : newTriangles)
-			triangles.push_back(tri);
 	}
 
 	unsigned int getMaterialID() const {
