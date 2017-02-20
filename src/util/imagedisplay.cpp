@@ -77,7 +77,7 @@ GLuint queries[MAX_QUERIES];
 bool draggingTransform = false;
 int selectedAxes = -1;
 int selectedPlane = -1;
-float3 selectedPosition;
+float3 selectedOffset;
 
 enum TransformMode {
     TransformModeTranslation,
@@ -86,6 +86,7 @@ enum TransformMode {
 };
 
 TransformMode transformMode = TransformModeTranslation;
+bool local = false;
 
 #if 0
 const char *vs_source =
@@ -170,6 +171,9 @@ void glfw_char_callback(GLFWwindow *window, unsigned int c) {
             break;
         case 'e':
             transformMode = TransformModeRotation;
+            break;
+        case 'l':
+            local = !local;
             break;
         default:
             break;
@@ -799,49 +803,77 @@ void flushSolidDrawCommands(const float4x4 & viewProjectionMatrix, std::vector<S
     GLCHECK(glDisable(GL_BLEND));
 }
 
-void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewProjectionMatrix, const float2 & viewPos, const float2 & viewSize, float pixelSize, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    // TODO: add a world space mode
+void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewProjection, const float2 & viewPos, const float2 & viewSize, float pixelSize, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
+    float4x4 tp = transpose(transform);
 
-    float4x4 worldViewProjection = viewProjectionMatrix * transform;
-    float4x4 invWorldViewProjection = inverse(worldViewProjection);
+    float3 c0 = tp.rows[0].xyz();
+    float3 c1 = tp.rows[1].xyz();
+    float3 c2 = tp.rows[2].xyz();
 
-    // Transform gizmo position into screen space
-    float4 positionNDC(0, 0, 0, 1);
-    positionNDC = worldViewProjection * positionNDC;
-    positionNDC = positionNDC / positionNDC.w;
+    float3 origin = tp.rows[3].xyz();
 
-    // Create another point a constant screen space distance away
-    float desiredSize = 100.0f / viewSize.x * 2.0f;
-    float4 offsetPosNDC = positionNDC;
-    offsetPosNDC.x += desiredSize;
+    float3 scale(length(c0), length(c1), length(c2));
 
-    // Unproject second point
-    float4 offsetPos = invWorldViewProjection * offsetPosNDC;
-    offsetPos = offsetPos / offsetPos.w;
+    c0 = c0 / scale.x;
+    c1 = c1 / scale.y;
+    c2 = c2 / scale.z;
 
-    // Get world space distance between two points
-    float axisLength = length(offsetPos.xyz());
+    float3x3 rotation;
+    rotation.rows[0] = c0;
+    rotation.rows[1] = c1;
+    rotation.rows[2] = c2;
+    rotation = transpose(rotation);
+
+    //float4x4 worldViewProjection = viewProjectionMatrix * transform;
+    //float4x4 invWorldViewProjection = inverse(worldViewProjection);
+
+    float4x4 invViewProjection = inverse(viewProjection);
+    float axisLength = 0.0f;
+
+    // Compute gizmo scale
+    {
+        // Transform gizmo position into screen space
+        float4 positionNDC(origin, 1);
+        positionNDC = viewProjection * positionNDC;
+        positionNDC = positionNDC / positionNDC.w;
+
+        // Create another point a constant screen space distance away
+        float desiredSize = 50.0f / viewSize.x * 2.0f;
+        float4 offsetPosNDC = positionNDC;
+        offsetPosNDC.x += desiredSize;
+
+        // Unproject second point
+        float4 offsetPos = invViewProjection * offsetPosNDC;
+        offsetPos = offsetPos / offsetPos.w;
+
+        // Get world space distance between two points
+        axisLength = length(offsetPos.xyz());
+
+        axisLength = 3.0f;
+    }
+
     float axisRadius = 0.022f * axisLength;
     float quadLength = axisLength * 0.33f;
 
-    //Ray ray = unproject(worldViewProjection, float2(mouseX, mouseY), viewPos, viewSize);
+    Ray ray;
 
-#if 1
-    float2 ndc(mouseX, mouseY);
-    ndc = (ndc - viewPos) / viewSize;
-    ndc = ndc * 2.0f - 1.0f;
-    ndc.y = -ndc.y;
+    // Compute view ray
+    {
+        float2 ndc(mouseX, mouseY);
+        ndc = (ndc - viewPos) / viewSize;
+        ndc = ndc * 2.0f - 1.0f;
+        ndc.y = -ndc.y;
 
-    float4 near(ndc, 0.0f, 1.0f); // TODO: -1 or 0 ?
-    float4 far(ndc, 1.0f, 1.0f);
+        float4 near(ndc, 0.0f, 1.0f); // TODO: -1 or 0 ?
+        float4 far(ndc, 1.0f, 1.0f);
 
-    near = invWorldViewProjection * near;
-    far = invWorldViewProjection * far;
-    near = near / near.w;
-    far = far / far.w;
+        near = invViewProjection * near;
+        far = invViewProjection * far;
+        near = near / near.w;
+        far = far / far.w;
 
-    Ray ray(near.xyz(), normalize(far.xyz() - near.xyz()));
-#endif
+        ray = Ray(near.xyz(), normalize(far.xyz() - near.xyz()));
+    }
 
     float3 axes[3] = {
         float3(1, 0, 0),
@@ -849,26 +881,30 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
         float3(0, 0, 1)
     };
 
+    if (local)
+        for (int i = 0; i < 3; i++)
+            axes[i] = rotation * axes[i];
+
     Plane planes[3] = {
-        Plane(axes[0], 0),
-        Plane(axes[1], 0),
-        Plane(axes[2], 0)
+        Plane(axes[0], dot(origin, axes[0])),
+        Plane(axes[1], dot(origin, axes[1])),
+        Plane(axes[2], dot(origin, axes[2]))
     };
 
     float3 axisColors[3];
     float3 quadColors[3];
 
     for (int i = 0; i < 3; i++) {
-        axisColors[i] = axes[i];
-        quadColors[i] = axes[i];
+        axisColors[i] = float3(i == 0 ? 1.0f : 0.0f, i == 1 ? 1.0f : 0.0f, i == 2 ? 1.0f : 0.0f);
+        quadColors[i] = float3(i == 0 ? 1.0f : 0.0f, i == 1 ? 1.0f : 0.0f, i == 2 ? 1.0f : 0.0f);
     }
 
     if (draggingTransform) {
         float hitDist;
         if (planes[selectedPlane].intersects(ray, hitDist)) {
-            float3 hitPos = ray.at(hitDist);
+            float3 hitPos = ray.at(hitDist) - origin;
 
-            float3 delta = hitPos - selectedPosition;
+            float3 delta = hitPos - selectedOffset;
             float3 constrainedDelta = 0;
 
             // TODO: can just filter out the unselected axes directly
@@ -877,26 +913,35 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
                     constrainedDelta = constrainedDelta + dot(axes[i], delta) * axes[i];
             }
 
-            if (transformMode == TransformModeTranslation)
-                transform = transform * translation(constrainedDelta);
+            if (transformMode == TransformModeTranslation) {
+                origin = constrainedDelta + origin;
+                // Does not affect offset
+            }
             else if (transformMode == TransformModeRotation) {
-                float3 S_norm = normalize(selectedPosition);
+                float3 S_norm = normalize(selectedOffset);
 
                 float3 HonS = dot(hitPos, S_norm) * S_norm;
                 float3 HoffS = hitPos - HonS;
 
                 float theta = atan2(length(HoffS), length(HonS));
 
-                if (dot(cross(selectedPosition, hitPos), planes[selectedPlane].normal) < 0.0f)
+                if (dot(cross(S_norm, hitPos), planes[selectedPlane].normal) < 0.0f)
                     theta = -theta;
 
-                // TODO
-                switch (selectedPlane) {
-                case 0: transform = transform * rotationX(theta); break;
-                case 1: transform = transform * rotationY(theta); break;
-                case 2: transform = transform * rotationZ(theta); break;
-                }
+                float3x3 rotationMatrix = upper3x3(::rotation(planes[selectedPlane].normal, theta));
+
+                rotation = rotationMatrix * rotation;
+
+                // Rotates offset
+                selectedOffset = rotationMatrix * selectedOffset;
             }
+
+            float4x4 fullRotation;
+            fullRotation.rows[0] = float4(rotation.rows[0], 0);
+            fullRotation.rows[1] = float4(rotation.rows[1], 0);
+            fullRotation.rows[2] = float4(rotation.rows[2], 0);
+
+            transform = translation(origin) * fullRotation * ::scale(scale);
         }
 
         for (int i = 0; i < 3; i++) {
@@ -921,7 +966,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
 
                     float hitDist;
                     if (planes[pickPlane].intersects(ray, hitDist)) {
-                        float3 hitPos = ray.at(hitDist);
+                        float3 hitPos = ray.at(hitDist) - origin;
                         float onAxisAmt = dot(axes[pickAxis], hitPos);
                         float3 onAxis = onAxisAmt * axes[pickAxis];
                         float3 offAxis = hitPos - onAxis;
@@ -943,7 +988,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
 
                 float hitDist;
                 if (planes[pickPlane].intersects(ray, hitDist)) {
-                    float3 hitPos = ray.at(hitDist);
+                    float3 hitPos = ray.at(hitDist) - origin;
 
                     float onAxis0 = dot(axes[axis0], hitPos);
                     float onAxis1= dot(axes[axis1], hitPos);
@@ -962,7 +1007,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
             for (int pickPlane = 0; pickPlane < 3; pickPlane++) {
                 float hitDist;
                 if (planes[pickPlane].intersects(ray, hitDist)) {
-                    float3 hitPos = ray.at(hitDist);
+                    float3 hitPos = ray.at(hitDist) - origin;
 
                     float r = length(hitPos);
 
@@ -978,7 +1023,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
         if (hoveredAxes != 0) {
             if (mouseDown) {
                 selectedAxes = hoveredAxes;
-                selectedPosition = ray.at(hoveredDist);
+                selectedOffset = ray.at(hoveredDist) - origin;
                 selectedPlane = hoveredPlane;
                 draggingTransform = true;
             }
@@ -994,24 +1039,35 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
         }
     }
 
+    float4x4 gizmoTransform = translation(origin);
+
+    if (local) {
+        float4x4 fullRotation;
+        fullRotation.rows[0] = float4(rotation.rows[0], 0);
+        fullRotation.rows[1] = float4(rotation.rows[1], 0);
+        fullRotation.rows[2] = float4(rotation.rows[2], 0);
+
+        gizmoTransform = gizmoTransform * fullRotation;
+    }
+
     if (transformMode == TransformModeTranslation) {
-        drawAxes(transform, 8, axisRadius, 0.66f * axisLength, 0.11f * axisLength, 0.33f * axisLength, float4(axisColors[0], 1), float4(axisColors[1], 1), float4(axisColors[2], 1), vertices, commands);
+        drawAxes(gizmoTransform, 8, axisRadius, 0.66f * axisLength, 0.11f * axisLength, 0.33f * axisLength, float4(axisColors[0], 1), float4(axisColors[1], 1), float4(axisColors[2], 1), vertices, commands);
 
         // TODO: Sort for blending
         float4x4 quadTransform;
-        drawFilledQuad(transform * quadTransform, quadLength, quadLength, float4(quadColors[2], 0.5f), vertices, commands);
+        drawFilledQuad(gizmoTransform * quadTransform, quadLength, quadLength, float4(quadColors[2], 0.5f), vertices, commands);
         quadTransform = rotationX((float)M_PI / 2.0f);
-        drawFilledQuad(transform * quadTransform, quadLength, quadLength, float4(quadColors[1], 0.5f), vertices, commands);
+        drawFilledQuad(gizmoTransform * quadTransform, quadLength, quadLength, float4(quadColors[1], 0.5f), vertices, commands);
         quadTransform = rotationY(-(float)M_PI / 2.0f);
-        drawFilledQuad(transform * quadTransform, quadLength, quadLength, float4(quadColors[0], 0.5f), vertices, commands);
+        drawFilledQuad(gizmoTransform * quadTransform, quadLength, quadLength, float4(quadColors[0], 0.5f), vertices, commands);
     }
     else if (transformMode == TransformModeRotation) {
         float4x4 circleTransform;
-        drawWireCircle(transform * circleTransform, 32, axisLength, float4(quadColors[2], 1.0f), vertices, commands);
+        drawWireCircle(gizmoTransform * circleTransform, 32, axisLength, float4(quadColors[2], 1.0f), vertices, commands);
         circleTransform = rotationX((float)M_PI / 2.0f);
-        drawWireCircle(transform * circleTransform, 32, axisLength, float4(quadColors[1], 1.0f), vertices, commands);
+        drawWireCircle(gizmoTransform * circleTransform, 32, axisLength, float4(quadColors[1], 1.0f), vertices, commands);
         circleTransform = rotationY(-(float)M_PI / 2.0f);
-        drawWireCircle(transform * circleTransform, 32, axisLength, float4(quadColors[0], 1.0f), vertices, commands);
+        drawWireCircle(gizmoTransform * circleTransform, 32, axisLength, float4(quadColors[0], 1.0f), vertices, commands);
 
         for (int i = 0; i < 3; i++) {
             SolidDrawCmd & cmd = commands[commands.size() - 1 - i];

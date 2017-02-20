@@ -257,12 +257,10 @@ static float4x4 rotationX(float radians) {
 
     float4x4 out;
 
-    out.rows[0][0] = 1.0f;
     out.rows[1][1] = cost;
     out.rows[1][2] = -sint;
     out.rows[2][1] = sint;
     out.rows[2][2] = cost;
-    out.rows[3][3] = 1.0f;
 
     return out;
 }
@@ -278,10 +276,8 @@ static float4x4 rotationY(float radians) {
 
     out.rows[0][0] = cost;
     out.rows[0][2] = sint;
-    out.rows[1][1] = 1.0f;
     out.rows[2][0] = -sint;
     out.rows[2][2] = cost;
-    out.rows[3][3] = 1.0f;
 
     return out;
 }
@@ -299,8 +295,6 @@ static float4x4 rotationZ(float radians) {
     out.rows[0][1] = -sint;
     out.rows[1][0] = sint;
     out.rows[1][1] = cost;
-    out.rows[2][2] = 1.0f;
-    out.rows[3][3] = 1.0f;
 
     return out;
 }
@@ -315,9 +309,9 @@ static float4x4 rotation(const float3 & axis, float radians) {
     float4x4 out;
 
     out.rows[0][0] = cost + axis.x * axis.x * (1 - cost);
-    out.rows[0][1] = (1 - cost) - axis.x * sint;
+    out.rows[0][1] = axis.x * axis.y * (1 - cost) - axis.z * sint;
     out.rows[0][2] = axis.x * axis.z * (1 - cost) + axis.y * sint;
-    out.rows[1][0] = axis.y * axis.x * (1 - cost) + axis.x * sint;
+    out.rows[1][0] = axis.y * axis.x * (1 - cost) + axis.z * sint;
     out.rows[1][1] = cost + axis.y * axis.y * (1 - cost);
     out.rows[1][2] = axis.y * axis.z * (1 - cost) - axis.x * sint;
     out.rows[2][0] = axis.z * axis.x * (1 - cost) - axis.y * sint;
