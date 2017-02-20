@@ -33,13 +33,6 @@ endif()
 include(prebuilt/CMakeLists.txt)
 
 add_executable(raytracer
-    src/main.cpp
-    src/testvectors.cpp # TODO
-
-    src/preview/imgui.cpp
-    src/preview/imgui_draw.cpp
-    src/preview/ImGuizmo.cpp
-
     src/core/camera.cpp
     src/core/camera.cpp
     src/core/material.cpp
@@ -57,16 +50,23 @@ add_executable(raytracer
     src/light/directionallight.cpp
     src/light/light.cpp
     src/light/pointlight.cpp
+    src/main.cpp
     src/materials/pbrmaterial.cpp
+    src/preview/imgui.cpp
+    src/preview/imgui_draw.cpp
+    src/preview/ImGuizmo.cpp
+    src/preview/preview.cpp
+    src/preview/solidgeom.cpp
+    src/preview/transformgizmo.cpp
+    src/scenes/cornellscene.cpp
+    src/scenes/simplescene.cpp
+    src/scenes/sponzascene.cpp
+    src/testvectors.cpp # TODO
     src/util/imagedisplay.cpp
     src/util/imageloader.cpp
     src/util/meshloader.cpp
     src/util/path.cpp
     src/util/timer.cpp
-    src/scenes/sponzascene.cpp
-    src/scenes/simplescene.cpp
-    src/scenes/cornellscene.cpp
-    src/preview/preview.cpp
 
     include/core/camera.h
     include/core/material.h
@@ -86,15 +86,20 @@ add_executable(raytracer
     include/light/directionallight.h
     include/light/light.h
     include/light/pointlight.h
+    include/materials/pbrmaterial.h
     include/math/aabb.h
     include/math/matrix.h
+    include/math/plane.h
     include/math/ray.h
     include/math/sampling.h
-    include/math/vector.h
-    include/math/plane.h
     include/math/sphere.h
+    include/math/vector.h
+    include/preview/solidgeom.h
+    include/preview/transformgizmo.h
     include/rt_defs.h
-    include/materials/pbrmaterial.h
+    include/scenes/cornellscene.h
+    include/scenes/simplescene.h
+    include/scenes/sponzascene.h
     include/util/align.h
     include/util/imagedisplay.h
     include/util/imageloader.h
@@ -104,9 +109,6 @@ add_executable(raytracer
     include/util/stack.h
     include/util/timer.h
     include/util/vector.h
-    include/scenes/sponzascene.h
-    include/scenes/simplescene.h
-    include/scenes/cornellscene.h
 )
 
 FIND_PACKAGE(OpenGL REQUIRED)

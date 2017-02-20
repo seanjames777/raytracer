@@ -17,6 +17,8 @@
 #include <preview/ImGuizmo.h>
 #include <math/plane.h>
 #include <math/sphere.h>
+#include <preview/solidgeom.h>
+#include <preview/transformgizmo.h>
 
 GLFWwindow *window;
 GLuint vao;
@@ -65,6 +67,8 @@ bool vsync = true;
 int maxLights;
 float scroll;
 
+TransformGizmoState transformState;
+
 uint64_t frameIdx = 0;
 
 #define MAX_FRAMES 120
@@ -73,55 +77,6 @@ float gpuFrameTimes[MAX_FRAMES];
 
 #define MAX_QUERIES 3
 GLuint queries[MAX_QUERIES];
-
-bool draggingTransform = false;
-int selectedAxes = -1;
-int selectedPlane = -1;
-float3 selectedOffset;
-
-enum TransformMode {
-    TransformModeTranslation,
-    TransformModeRotation,
-    TransformModeScale
-};
-
-// TODO: Make sure transform mode and local do not change while dragging the tool
-// TODO: Camera relative transform mode?
-TransformMode transformMode = TransformModeTranslation;
-bool local = false;
-
-#if 0
-const char *vs_source =
-    "#version 330 core\n"
-    "layout(location=0) in vec2 in_position;\n"
-    "out vec2 var_uv;\n"
-    "void main() {\n"
-    "    gl_Position.xy = in_position;\n"
-    "    gl_Position.zw = vec2(0.0, 1.0);\n"
-    "    var_uv = in_position / 2.0 + 0.5;\n"
-    "}\n";
-
-const char *fs_source =
-	"#version 330 core\n"
-	"in vec2 var_uv;\n"
-	"out vec4 out_color;\n"
-	"uniform sampler2D tex;\n"
-	"uniform vec2 imageSize;\n"
-	"void main() {\n"
-	"    vec4 image = texture(tex, var_uv);\n"
-	"    out_color.rgb = image.rgb;\n"
-    "}\n";
-
-// TODO: shorthand for this type
-float vertices[] = {
-    -1, -1,
-    -1,  1,
-     1,  1,
-    -1, -1,
-     1,  1,
-     1, -1
-};
-#endif
 
 void glfw_error_callback(int error, const char *msg) {
     printf("GLFW Error (%d): %s\n", error, msg);
@@ -169,16 +124,16 @@ void glfw_char_callback(GLFWwindow *window, unsigned int c) {
     else {
         switch (c) {
         case 'w':
-            transformMode = TransformModeTranslation;
+            transformState.mode = TransformModeTranslation;
             break;
         case 'e':
-            transformMode = TransformModeRotation;
+            transformState.mode = TransformModeRotation;
             break;
         case 'r':
-            transformMode = TransformModeScale;
+            transformState.mode = TransformModeScale;
             break;
         case 'l':
-            local = !local;
+            transformState.local = !transformState.local;
             break;
         default:
             break;
@@ -502,283 +457,6 @@ float2 ImageDisplay::getCursorPos() {
     return float2(cx, cy);
 }
 
-struct SolidVertex {
-    float position[3];
-    float color[4];
-};
-
-struct SolidDrawCmd {
-    GLenum fillMode;
-    int vertexOffset;
-    int vertexCount;
-    bool clip;
-    float4 clipPlane;
-};
-
-void drawWireBox(const AABB & bounds, const float4x4 & transform, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    SolidDrawCmd cmd;
-
-    cmd.fillMode = GL_LINE;
-    cmd.vertexOffset = vertices.size();
-    cmd.clip = false;
-
-    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.min.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.min.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.min.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { bounds.max.x, bounds.min.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { bounds.max.x, bounds.max.y, bounds.max.z }, { color.x, color.y, color.z, color.w } });
-
-    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
-    commands.push_back(cmd);
-
-    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
-        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
-
-        for (int j = 0; j < 3; j++)
-            vertices[i].position[j] = position[j];
-    }
-}
-
-void drawFilledCylinder(const float4x4 & transform, int numVertices, float r, float h, bool capTop, bool capBottom, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    SolidDrawCmd cmd;
-
-    cmd.fillMode = GL_FILL;
-    cmd.vertexOffset = vertices.size();
-    cmd.clip = false;
-
-    for (int i = 0; i < numVertices; i++) {
-        // TODO: reuse first vertex
-        float theta0 = (float)i / (float)numVertices;
-        float theta1 = (float)(i + 1) / (float)numVertices;
-
-        float x0 = r * cosf(theta0 * 2.0f * (float)M_PI);
-        float z0 = r * sinf(theta0 * 2.0f * (float)M_PI);
-
-        float x1 = r * cosf(theta1 * 2.0f * (float)M_PI);
-        float z1 = r * sinf(theta1 * 2.0f * (float)M_PI);
-
-        if (capBottom) {
-            vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ { x1, 0, z1 }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ {  0, 0, 0  }, { color.x, color.y, color.z, color.w } });
-        }
-
-        vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
-        vertices.push_back({ { x0, h, z0 }, { color.x, color.y, color.z, color.w } });
-        vertices.push_back({ { x1, h, z1 }, { color.x, color.y, color.z, color.w } });
-
-        vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
-        vertices.push_back({ { x1, h, z1 }, { color.x, color.y, color.z, color.w } });
-        vertices.push_back({ { x1, 0, z1 }, { color.x, color.y, color.z, color.w } });
-
-        if (capTop) {
-            vertices.push_back({ { x0, h, z0 }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ { x1, h, z1 }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ {  0, h, 0  }, { color.x, color.y, color.z, color.w } });
-        }
-    }
-
-    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
-    commands.push_back(cmd);
-
-    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
-        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
-
-        for (int j = 0; j < 3; j++)
-            vertices[i].position[j] = position[j];
-    }
-}
-
-void drawFilledCone(const float4x4 & transform, int numVertices, float r, float h, bool capBottom, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    SolidDrawCmd cmd;
-
-    cmd.fillMode = GL_FILL;
-    cmd.vertexOffset = vertices.size();
-    cmd.clip = false;
-
-    for (int i = 0; i < numVertices; i++) {
-        // TODO: reuse first vertex
-        float theta0 = (float)i / (float)numVertices;
-        float theta1 = (float)(i + 1) / (float)numVertices;
-
-        float x0 = r * cosf(theta0 * 2.0f * (float)M_PI);
-        float z0 = r * sinf(theta0 * 2.0f * (float)M_PI);
-
-        float x1 = r * cosf(theta1 * 2.0f * (float)M_PI);
-        float z1 = r * sinf(theta1 * 2.0f * (float)M_PI);
-
-        if (capBottom) {
-            vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ { x1, 0, z1 }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ {  0, 0, 0  }, { color.x, color.y, color.z, color.w } });
-        }
-
-        vertices.push_back({ { x0, 0, z0 }, { color.x, color.y, color.z, color.w } });
-        vertices.push_back({ { x1, 0, z1 }, { color.x, color.y, color.z, color.w } });
-        vertices.push_back({ {  0, h, 0  }, { color.x, color.y, color.z, color.w } });
-    }
-
-    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
-    commands.push_back(cmd);
-
-    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
-        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
-
-        for (int j = 0; j < 3; j++)
-            vertices[i].position[j] = position[j];
-    }
-}
-
-void drawFilledQuad(const float4x4 & transform, float w, float h, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    SolidDrawCmd cmd;
-
-    cmd.fillMode = GL_FILL;
-    cmd.vertexOffset = vertices.size();
-    cmd.clip = false;
-
-    vertices.push_back({ { 0, 0, 0 }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { 0, h, 0 }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { w, h, 0 }, { color.x, color.y, color.z, color.w } });
-
-    vertices.push_back({ { 0, 0, 0 }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { w, h, 0 }, { color.x, color.y, color.z, color.w } });
-    vertices.push_back({ { w, 0, 0 }, { color.x, color.y, color.z, color.w } });
-
-    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
-    commands.push_back(cmd);
-
-    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
-        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
-
-        for (int j = 0; j < 3; j++)
-            vertices[i].position[j] = position[j];
-    }
-}
-
-void drawFilledSphere(const float4x4 & transform, int numVerticesX, int numVerticesY, float r, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    SolidDrawCmd cmd;
-
-    cmd.fillMode = GL_FILL;
-    cmd.vertexOffset = vertices.size();
-    cmd.clip = false;
-
-    for (int i = 0; i < numVerticesY; i++) {
-        // TODO: reuse first vertex
-        float phi0 = (float)i / (float)numVerticesY * (float)M_PI;
-        float phi1 = (float)(i + 1) / (float)numVerticesY * (float)M_PI;
-
-        for (int j = 0; j < numVerticesX; j++) {
-            float theta0 = (float)j / (float)numVerticesX * 2.0f * (float)M_PI;
-            float theta1 = (float)(j + 1) / (float)numVerticesX * 2.0f * (float)M_PI;
-
-            float3 p0(r * cosf(theta0) * sinf(phi0), r * cosf(phi0), r * sinf(theta0) * sinf(phi0));
-            float3 p1(r * cosf(theta0) * sinf(phi1), r * cosf(phi1), r * sinf(theta0) * sinf(phi1));
-            float3 p2(r * cosf(theta1) * sinf(phi1), r * cosf(phi1), r * sinf(theta1) * sinf(phi1));
-            float3 p3(r * cosf(theta1) * sinf(phi0), r * cosf(phi0), r * sinf(theta1) * sinf(phi0));
-
-            vertices.push_back({ { p0.x, p0.y, p0.z }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ { p1.x, p1.y, p1.z }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ { p2.x, p2.y, p2.z }, { color.x, color.y, color.z, color.w } });
-
-            vertices.push_back({ { p0.x, p0.y, p0.z }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ { p2.x, p2.y, p2.z }, { color.x, color.y, color.z, color.w } });
-            vertices.push_back({ { p3.x, p3.y, p3.z }, { color.x, color.y, color.z, color.w } });
-        }
-    }
-
-    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
-    commands.push_back(cmd);
-
-    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
-        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
-
-        for (int j = 0; j < 3; j++)
-            vertices[i].position[j] = position[j];
-    }
-}
-
-void drawWireCircle(const float4x4 & transform, int numVertices, float r, const float4 & color, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    SolidDrawCmd cmd;
-
-    cmd.fillMode = GL_LINE;
-    cmd.vertexOffset = vertices.size();
-    cmd.clip = false;
-
-    for (int i = 0; i < numVertices; i++) {
-        // TODO: reuse first vertex
-        float theta0 = (float)i / (float)numVertices;
-        float theta1 = (float)(i + 1) / (float)numVertices;
-
-        float x0 = r * cosf(theta0 * 2.0f * (float)M_PI);
-        float y0 = r * sinf(theta0 * 2.0f * (float)M_PI);
-
-        float x1 = r * cosf(theta1 * 2.0f * (float)M_PI);
-        float y1 = r * sinf(theta1 * 2.0f * (float)M_PI);
-
-        vertices.push_back({ { x0, y0, 0 }, { color.x, color.y, color.z, color.w } });
-        vertices.push_back({ { x1, y1, 0 }, { color.x, color.y, color.z, color.w } });
-    }
-
-    cmd.vertexCount = vertices.size() - cmd.vertexOffset;
-    commands.push_back(cmd);
-
-    for (int i = cmd.vertexOffset; i < cmd.vertexOffset + cmd.vertexCount; i++) {
-        float3 position = (transform * float4(vertices[i].position[0], vertices[i].position[1], vertices[i].position[2], 1.0f)).xyz();
-
-        for (int j = 0; j < 3; j++)
-            vertices[i].position[j] = position[j];
-    }
-}
-
-// TODO ::rotation() is broken
-
-void drawAxes(const float4x4 & transform, int numVertices, float lineRadius, float lineLength, float coneRadius, float coneLength, const float4 & xcolor, const float4 & ycolor, const float4 & zcolor, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    float4x4 cylTransform = transform;
-    drawFilledCylinder(cylTransform, numVertices, lineRadius, lineLength, false, true, ycolor, vertices, commands);
-    float4x4 coneTransform = cylTransform * translation(float3(0.0f, lineLength, 0.0f));
-    drawFilledCone(coneTransform, numVertices, coneRadius, coneLength, true, ycolor, vertices, commands);
-
-    cylTransform = transform * rotationX((float)M_PI / 2.0f);
-    drawFilledCylinder(cylTransform, numVertices, lineRadius, lineLength, false, true, zcolor, vertices, commands);
-    coneTransform = cylTransform * translation(float3(0.0f, lineLength, 0.0f));
-    drawFilledCone(coneTransform, numVertices, coneRadius, coneLength, true, zcolor, vertices, commands);
-
-    cylTransform = transform * rotationZ(-(float)M_PI / 2.0f);
-    drawFilledCylinder(cylTransform, numVertices, lineRadius, lineLength, false, true, xcolor, vertices, commands);
-    coneTransform = cylTransform * translation(float3(0.0f, lineLength, 0.0f));
-    drawFilledCone(coneTransform, numVertices, coneRadius, coneLength, true, xcolor, vertices, commands);
-}
-
 void flushSolidDrawCommands(const float4x4 & viewProjectionMatrix, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
     if (vertices.size() == 0)
         return;
@@ -806,296 +484,6 @@ void flushSolidDrawCommands(const float4x4 & viewProjectionMatrix, std::vector<S
     GLCHECK(glUseProgram(0));
     GLCHECK(glBindVertexArray(0));
     GLCHECK(glDisable(GL_BLEND));
-}
-
-void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewProjection, const float2 & viewPos, const float2 & viewSize, float pixelSize, std::vector<SolidVertex> & vertices, std::vector<SolidDrawCmd> & commands) {
-    float4x4 tp = transpose(transform);
-
-    float3 c0 = tp.rows[0].xyz();
-    float3 c1 = tp.rows[1].xyz();
-    float3 c2 = tp.rows[2].xyz();
-
-    float3 origin = tp.rows[3].xyz();
-
-    float3 scale(length(c0), length(c1), length(c2));
-
-    c0 = c0 / scale.x;
-    c1 = c1 / scale.y;
-    c2 = c2 / scale.z;
-
-    float3x3 rotation;
-    rotation.rows[0] = c0;
-    rotation.rows[1] = c1;
-    rotation.rows[2] = c2;
-    rotation = transpose(rotation);
-
-    float axisLength = 0.0f;
-
-    float4x4 invViewProjection = inverse(viewProjection);
-
-    // Compute gizmo scale
-    {
-        // Transform gizmo position into screen space
-        float4 positionNDC(origin, 1);
-        positionNDC = viewProjection * positionNDC;
-        positionNDC = positionNDC / positionNDC.w;
-
-        // Create another point a constant screen space distance away
-        float desiredSize = 100.0f / viewSize.x * 2.0f;
-        float4 offsetPosNDC = positionNDC;
-        offsetPosNDC.x += desiredSize;
-
-        // Unproject second point
-        float4 offsetPos = invViewProjection * offsetPosNDC;
-        offsetPos = offsetPos / offsetPos.w;
-
-        // Get world space distance between two points
-        axisLength = length(offsetPos.xyz() - origin);
-    }
-
-    float axisRadius = 0.022f * axisLength;
-    float quadLength = axisLength * 0.33f;
-
-    Ray ray;
-
-    // Compute view ray
-    {
-        float2 ndc(mouseX, mouseY);
-        ndc = (ndc - viewPos) / viewSize;
-        ndc = ndc * 2.0f - 1.0f;
-        ndc.y = -ndc.y;
-
-        float4 near(ndc, 0.0f, 1.0f); // TODO: -1 or 0 ?
-        float4 far(ndc, 1.0f, 1.0f);
-
-        near = invViewProjection * near;
-        far = invViewProjection * far;
-        near = near / near.w;
-        far = far / far.w;
-
-        ray = Ray(near.xyz(), normalize(far.xyz() - near.xyz()));
-    }
-
-    float3 axes[3] = {
-        float3(1, 0, 0),
-        float3(0, 1, 0),
-        float3(0, 0, 1)
-    };
-
-    // Don't allow world space scaling because it leads to skewing
-    if (local || transformMode == TransformModeScale)
-        for (int i = 0; i < 3; i++)
-            axes[i] = rotation * axes[i];
-
-    Plane planes[3] = {
-        Plane(axes[0], dot(origin, axes[0])),
-        Plane(axes[1], dot(origin, axes[1])),
-        Plane(axes[2], dot(origin, axes[2]))
-    };
-
-    float3 axisColors[3];
-    float3 quadColors[3];
-
-    for (int i = 0; i < 3; i++) {
-        axisColors[i] = float3(i == 0 ? 1.0f : 0.0f, i == 1 ? 1.0f : 0.0f, i == 2 ? 1.0f : 0.0f);
-        quadColors[i] = float3(i == 0 ? 1.0f : 0.0f, i == 1 ? 1.0f : 0.0f, i == 2 ? 1.0f : 0.0f);
-    }
-
-    if (draggingTransform) {
-        float hitDist;
-        if (planes[selectedPlane].intersects(ray, hitDist)) {
-            float3 hitPos = ray.at(hitDist) - origin;
-
-            float3 delta = hitPos - selectedOffset;
-            float3 constrainedDelta = 0;
-
-            // TODO: can just filter out the unselected axes directly
-            for (int i = 0; i < 3; i++) {
-                if ((1 << i) & selectedAxes)
-                    constrainedDelta = constrainedDelta + dot(axes[i], delta) * axes[i];
-            }
-
-            if (transformMode == TransformModeTranslation) {
-                origin = constrainedDelta + origin;
-                // Does not affect offset
-            }
-            else if (transformMode == TransformModeScale) {
-                float3 scaleAmount(1, 1, 1);
-
-#if 1
-                // TODO: clamp second dot product
-                for (int i = 0; i < 3; i++) {
-                    if ((1 << i) & selectedAxes)
-                        scaleAmount[i] = max(dot(axes[i], hitPos), 0.00001f) / max(dot(axes[i], selectedOffset), 0.00001f);
-                }
-#endif
-
-                scale = scaleAmount * scale;
-
-                // Scales offset
-                selectedOffset = scaleAmount[0] * dot(selectedOffset, axes[0]) * axes[0] +
-                                 scaleAmount[1] * dot(selectedOffset, axes[1]) * axes[1] +
-                                 scaleAmount[2] * dot(selectedOffset, axes[2]) * axes[2];
-            }
-            else if (transformMode == TransformModeRotation) {
-                float3 S_norm = normalize(selectedOffset);
-
-                float3 HonS = dot(hitPos, S_norm) * S_norm;
-                float3 HoffS = hitPos - HonS;
-
-                float theta = atan2(length(HoffS), length(HonS));
-
-                if (dot(cross(S_norm, hitPos), planes[selectedPlane].normal) < 0.0f)
-                    theta = -theta;
-
-                float3x3 rotationMatrix = upper3x3(::rotation(planes[selectedPlane].normal, theta));
-
-                rotation = rotationMatrix * rotation;
-
-                // Rotates offset
-                selectedOffset = rotationMatrix * selectedOffset;
-            }
-
-            float4x4 fullRotation;
-            fullRotation.rows[0] = float4(rotation.rows[0], 0);
-            fullRotation.rows[1] = float4(rotation.rows[1], 0);
-            fullRotation.rows[2] = float4(rotation.rows[2], 0);
-
-            transform = translation(origin) * fullRotation * ::scale(scale);
-        }
-
-        for (int i = 0; i < 3; i++) {
-            if ((1 << i) & selectedAxes)
-                axisColors[i] = float3(1, 1, 0);
-
-            if (((1 << ((i + 1) % 3)) & selectedAxes) && ((1 << ((i + 2) % 3)) & selectedAxes))
-                quadColors[i] = float3(1, 1, 0);
-        }
-    }
-    else if (!draggingCamera) {
-        int hoveredAxes = 0;
-        int hoveredPlane;
-        float hoveredDist = INFINITY;
-
-        if (transformMode == TransformModeTranslation || transformMode == TransformModeScale) {
-            for (int pickAxis = 0; pickAxis < 3; pickAxis++) {
-                // TODO: pick the plane with the greatest precision?
-                for (int pickPlane = 0; pickPlane < 3; pickPlane++) {
-                    if (pickPlane == pickAxis)
-                        continue;
-
-                    float hitDist;
-                    if (planes[pickPlane].intersects(ray, hitDist)) {
-                        float3 hitPos = ray.at(hitDist) - origin;
-                        float onAxisAmt = dot(axes[pickAxis], hitPos);
-                        float3 onAxis = onAxisAmt * axes[pickAxis];
-                        float3 offAxis = hitPos - onAxis;
-                        float offAxisAmt = length(offAxis); // TODO: probably a simpler expression
-
-                        // TODO: Could take cone radius into account
-                        if (onAxisAmt > 0.0f && onAxisAmt < axisLength && offAxisAmt < axisRadius * 4.0f && hitDist < hoveredDist) {
-                            hoveredAxes = (1 << pickAxis);
-                            hoveredDist = hitDist;
-                            hoveredPlane = pickPlane;
-                        }
-                    }
-                }
-            }
-
-            for (int pickPlane = 0; pickPlane < 3; pickPlane++) {
-                int axis0 = (pickPlane + 1) % 3;
-                int axis1 = (pickPlane + 2) % 3;
-
-                float hitDist;
-                if (planes[pickPlane].intersects(ray, hitDist)) {
-                    float3 hitPos = ray.at(hitDist) - origin;
-
-                    float onAxis0 = dot(axes[axis0], hitPos);
-                    float onAxis1= dot(axes[axis1], hitPos);
-
-                    // TODO: Selection radius should probably be in screen space
-
-                    if (onAxis0 > axisRadius * 4.0f && onAxis0 < quadLength && onAxis1 > axisRadius * 4.0f && onAxis1 < quadLength && hitDist < hoveredDist) {
-                        hoveredAxes = (1 << axis0) | (1 << axis1);
-                        hoveredDist = hitDist;
-                        hoveredPlane = pickPlane;
-                    }
-                }
-            }
-        }
-        else if (transformMode == TransformModeRotation) {
-            for (int pickPlane = 0; pickPlane < 3; pickPlane++) {
-                float hitDist;
-                if (planes[pickPlane].intersects(ray, hitDist)) {
-                    float3 hitPos = ray.at(hitDist) - origin;
-
-                    float r = length(hitPos);
-
-                    if (r > axisLength * 0.8f && r < axisLength * 1.2f) {
-                        hoveredAxes = (1 << ((pickPlane + 1) % 3)) | (1 << ((pickPlane + 2) %3));
-                        hoveredDist = hitDist;
-                        hoveredPlane = pickPlane;
-                    }
-                }
-            }
-        }
-
-        if (hoveredAxes != 0) {
-            if (mouseDown) {
-                selectedAxes = hoveredAxes;
-                selectedOffset = ray.at(hoveredDist) - origin;
-                selectedPlane = hoveredPlane;
-                draggingTransform = true;
-            }
-
-            for (int i = 0; i < 3; i++) {
-                if ((1 << i) & hoveredAxes)
-                    axisColors[i] = float3(1, 1, 0);
-
-                if (((1 << ((i + 1) % 3)) & hoveredAxes) && ((1 << ((i + 2) % 3)) & hoveredAxes))
-                    quadColors[i] = float3(1, 1, 0);
-            }
-
-        }
-    }
-
-    float4x4 gizmoTransform = translation(origin);
-
-    if (local || transformMode == TransformModeScale) {
-        float4x4 fullRotation;
-        fullRotation.rows[0] = float4(rotation.rows[0], 0);
-        fullRotation.rows[1] = float4(rotation.rows[1], 0);
-        fullRotation.rows[2] = float4(rotation.rows[2], 0);
-
-        gizmoTransform = gizmoTransform * fullRotation;
-    }
-
-    if (transformMode == TransformModeTranslation || transformMode == TransformModeScale) {
-        drawAxes(gizmoTransform, 8, axisRadius, 0.66f * axisLength, 0.11f * axisLength, 0.33f * axisLength, float4(axisColors[0], 1), float4(axisColors[1], 1), float4(axisColors[2], 1), vertices, commands);
-
-        // TODO: Sort for blending
-        float4x4 quadTransform;
-        drawFilledQuad(gizmoTransform * quadTransform, quadLength, quadLength, float4(quadColors[2], 0.5f), vertices, commands);
-        quadTransform = rotationX((float)M_PI / 2.0f);
-        drawFilledQuad(gizmoTransform * quadTransform, quadLength, quadLength, float4(quadColors[1], 0.5f), vertices, commands);
-        quadTransform = rotationY(-(float)M_PI / 2.0f);
-        drawFilledQuad(gizmoTransform * quadTransform, quadLength, quadLength, float4(quadColors[0], 0.5f), vertices, commands);
-    }
-    else if (transformMode == TransformModeRotation) {
-        float4x4 circleTransform;
-        drawWireCircle(gizmoTransform * circleTransform, 32, axisLength, float4(quadColors[2], 1.0f), vertices, commands);
-        circleTransform = rotationX((float)M_PI / 2.0f);
-        drawWireCircle(gizmoTransform * circleTransform, 32, axisLength, float4(quadColors[1], 1.0f), vertices, commands);
-        circleTransform = rotationY(-(float)M_PI / 2.0f);
-        drawWireCircle(gizmoTransform * circleTransform, 32, axisLength, float4(quadColors[0], 1.0f), vertices, commands);
-
-        for (int i = 0; i < 3; i++) {
-            SolidDrawCmd & cmd = commands[commands.size() - 1 - i];
-
-            cmd.clip = true;
-            //cmd.clipPlane = float4()
-        }
-    }
 }
 
 void ImageDisplay::drawPreviewScene(PVScene *scene) {
@@ -1231,7 +619,7 @@ void ImageDisplay::drawPreviewScene(PVScene *scene) {
 
             // TODO: pressed and held trigger together
 
-            if (held && !draggingTransform) {
+            if (held && !transformState.active) {
                 if (deltaMouseX != 0 || deltaMouseY != 0)
                     draggingCamera = true;
 
@@ -1349,7 +737,16 @@ void ImageDisplay::drawPreviewScene(PVScene *scene) {
 
                 drawWireBox(bounds, transform, float4(1, 1, 1, 1), verts, commands);
 
-                transformGizmo(held, transform, viewProjectionMatrix, float2(pos.x, pos.y), float2(sz.x, sz.y), 100.0f, verts, commands);
+                transformGizmo(
+                    transform,
+                    viewProjectionMatrix,
+                    held && !draggingCamera,
+                    float2(mouseX, mouseY),
+                    float2(pos.x, pos.y),
+                    float2(sz.x, sz.y),
+                    transformState,
+                    verts,
+                    commands);
 
                 decompose(transform, selectedInstance->position, selectedInstance->rotation, selectedInstance->scale);
             }
@@ -1422,7 +819,7 @@ void ImageDisplay::drawPreviewScene(PVScene *scene) {
 
             drawList->AddImage(viewTex, pos, pos + sz, ImVec2(0, 1), ImVec2(1, 0), IM_COL32(255, 255, 255, 255));
 
-            if (pressed && !draggingCamera && !draggingTransform) {
+            if (pressed && !draggingCamera && !transformState.active && !transformState.hovered) { // TODO: use hovered elsewhere?
                 float2 ndc(mouseX, mouseY);
                 ndc = (ndc - float2(pos.x, pos.y)) / float2(sz.x, sz.y);
                 ndc = ndc * 2.0f - 1.0f;
@@ -1514,18 +911,15 @@ void ImageDisplay::drawPreviewScene(PVScene *scene) {
 
                 drawList->AddImage(lightIcon, center - rad, center + rad, ImVec2(0, 0), ImVec2(1, 1), ImGui::GetColorU32(rgb));
 
-                if (pressed && !draggingCamera && !draggingTransform && mouseX >= screenPos.x - rad.x && mouseX <= screenPos.x + rad.x && mouseY >= screenPos.y - rad.y && mouseY <= screenPos.y + rad.y) {
+                if (pressed && !draggingCamera && !transformState.active && mouseX >= screenPos.x - rad.x && mouseX <= screenPos.x + rad.x && mouseY >= screenPos.y - rad.y && mouseY <= screenPos.y + rad.y) {
                     selectedInstance = nullptr;
                     selectedLight = light;
                     selectedCamera = nullptr;
                 }
             }
 
-            if (!held) {
+            if (!held)
                 draggingCamera = false;
-                draggingTransform = false;
-                selectedAxes = 0;
-            }
 
             ImGui::PopClipRect();
         }
