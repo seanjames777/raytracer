@@ -85,6 +85,8 @@ enum TransformMode {
     TransformModeScale
 };
 
+// TODO: Make sure transform mode and local do not change while dragging the tool
+// TODO: Camera relative transform mode?
 TransformMode transformMode = TransformModeTranslation;
 bool local = false;
 
@@ -171,6 +173,9 @@ void glfw_char_callback(GLFWwindow *window, unsigned int c) {
             break;
         case 'e':
             transformMode = TransformModeRotation;
+            break;
+        case 'r':
+            transformMode = TransformModeScale;
             break;
         case 'l':
             local = !local;
@@ -824,11 +829,9 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
     rotation.rows[2] = c2;
     rotation = transpose(rotation);
 
-    //float4x4 worldViewProjection = viewProjectionMatrix * transform;
-    //float4x4 invWorldViewProjection = inverse(worldViewProjection);
+    float axisLength = 0.0f;
 
     float4x4 invViewProjection = inverse(viewProjection);
-    float axisLength = 0.0f;
 
     // Compute gizmo scale
     {
@@ -838,7 +841,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
         positionNDC = positionNDC / positionNDC.w;
 
         // Create another point a constant screen space distance away
-        float desiredSize = 50.0f / viewSize.x * 2.0f;
+        float desiredSize = 100.0f / viewSize.x * 2.0f;
         float4 offsetPosNDC = positionNDC;
         offsetPosNDC.x += desiredSize;
 
@@ -847,9 +850,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
         offsetPos = offsetPos / offsetPos.w;
 
         // Get world space distance between two points
-        axisLength = length(offsetPos.xyz());
-
-        axisLength = 3.0f;
+        axisLength = length(offsetPos.xyz() - origin);
     }
 
     float axisRadius = 0.022f * axisLength;
@@ -881,7 +882,8 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
         float3(0, 0, 1)
     };
 
-    if (local)
+    // Don't allow world space scaling because it leads to skewing
+    if (local || transformMode == TransformModeScale)
         for (int i = 0; i < 3; i++)
             axes[i] = rotation * axes[i];
 
@@ -916,6 +918,24 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
             if (transformMode == TransformModeTranslation) {
                 origin = constrainedDelta + origin;
                 // Does not affect offset
+            }
+            else if (transformMode == TransformModeScale) {
+                float3 scaleAmount(1, 1, 1);
+
+#if 1
+                // TODO: clamp second dot product
+                for (int i = 0; i < 3; i++) {
+                    if ((1 << i) & selectedAxes)
+                        scaleAmount[i] = max(dot(axes[i], hitPos), 0.00001f) / max(dot(axes[i], selectedOffset), 0.00001f);
+                }
+#endif
+
+                scale = scaleAmount * scale;
+
+                // Scales offset
+                selectedOffset = scaleAmount[0] * dot(selectedOffset, axes[0]) * axes[0] +
+                                 scaleAmount[1] * dot(selectedOffset, axes[1]) * axes[1] +
+                                 scaleAmount[2] * dot(selectedOffset, axes[2]) * axes[2];
             }
             else if (transformMode == TransformModeRotation) {
                 float3 S_norm = normalize(selectedOffset);
@@ -957,7 +977,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
         int hoveredPlane;
         float hoveredDist = INFINITY;
 
-        if (transformMode == TransformModeTranslation) {
+        if (transformMode == TransformModeTranslation || transformMode == TransformModeScale) {
             for (int pickAxis = 0; pickAxis < 3; pickAxis++) {
                 // TODO: pick the plane with the greatest precision?
                 for (int pickPlane = 0; pickPlane < 3; pickPlane++) {
@@ -1041,7 +1061,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
 
     float4x4 gizmoTransform = translation(origin);
 
-    if (local) {
+    if (local || transformMode == TransformModeScale) {
         float4x4 fullRotation;
         fullRotation.rows[0] = float4(rotation.rows[0], 0);
         fullRotation.rows[1] = float4(rotation.rows[1], 0);
@@ -1050,7 +1070,7 @@ void transformGizmo(bool mouseDown, float4x4 & transform, const float4x4 & viewP
         gizmoTransform = gizmoTransform * fullRotation;
     }
 
-    if (transformMode == TransformModeTranslation) {
+    if (transformMode == TransformModeTranslation || transformMode == TransformModeScale) {
         drawAxes(gizmoTransform, 8, axisRadius, 0.66f * axisLength, 0.11f * axisLength, 0.33f * axisLength, float4(axisColors[0], 1), float4(axisColors[1], 1), float4(axisColors[2], 1), vertices, commands);
 
         // TODO: Sort for blending
@@ -1602,7 +1622,7 @@ void ImageDisplay::drawPreviewScene(PVScene *scene) {
             else
                 ImGui::Text("None");
 
-            #if 0
+            #if 1
             ImGui::InputFloat3("Position", &selectedInstance->position[0], 3);
             ImGui::InputFloat3("Rotation", &selectedInstance->rotation[0], 3);
             ImGui::InputFloat3("Scale", &selectedInstance->scale[0], 3);
